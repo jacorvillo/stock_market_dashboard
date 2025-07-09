@@ -417,7 +417,7 @@ def get_stock_data(symbol="SPY", period="1y"):
             raise Exception(f"No data available for {symbol}")
 
 # Function to calculate technical indicators with custom parameters
-def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, stoch_period=5, fast_mode=False):
+def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, stoch_period=5, rsi_period=13, fast_mode=False):
     """Calculate technical indicators for the stock data with custom parameters
     fast_mode: If True, calculates only essential indicators for faster ticker switching"""
     try:
@@ -440,6 +440,7 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             df['ATR'] = []
             df['Stoch_K'] = []
             df['Stoch_D'] = []
+            df['RSI'] = []
             return df
         
         # Only calculate indicators if we have enough data
@@ -523,8 +524,17 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             df['Stoch_K'] = 50  # Neutral stochastic value
             df['Stoch_D'] = 50
         
+        # Relative Strength Index (RSI)
+        rsi_period = max(1, min(rsi_period, 50))  # Ensure period is between 1-50
+        if min_length >= max(14, rsi_period):
+            rsi_indicator = ta.momentum.RSIIndicator(df['Close'], window=rsi_period)
+            df['RSI'] = rsi_indicator.rsi()
+        else:
+            # Fill with neutral values for small datasets
+            df['RSI'] = 50  # Neutral RSI value
+        
         # Fill any remaining NaN values with 0 or forward fill
-        numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D']]
+        numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D', 'RSI']]
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = df[col].ffill().fillna(0)
@@ -606,6 +616,14 @@ def update_lower_chart_settings(chart_type):
             html.P("Displays %K (green) and %D (red) oscillators with overbought (80%) and oversold (20%) levels.", 
                   style={'color': '#ccc', 'fontSize': '12px'})
         ]
+    elif chart_type == 'rsi':
+        return [
+            html.H6("RSI Settings", style={'color': '#00d4aa'}),
+            dbc.Label("RSI Period:", style={'color': '#fff', 'fontSize': '12px'}),
+            dbc.Input(id='rsi-period', type='number', value=13, min=1, max=50, className="mb-3"),
+            html.P("Displays RSI oscillator with overbought (70) and oversold (30) levels. Areas below 30 and above 70 are highlighted.", 
+                  style={'color': '#ccc', 'fontSize': '12px'})
+        ]
     else:  # Volume
         return [
             html.H6("Volume Settings", style={'color': '#00d4aa'}),
@@ -668,6 +686,10 @@ def update_stochastic_store(period):
     """Update store value when Stochastic parameter changes in UI"""
     return period or 5
 
+def update_rsi_store(period):
+    """Update store value when RSI parameter changes in UI"""
+    return period or 13
+
 def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
     """Fetch volume data for comparison stock"""
     if comparison_symbol == 'none':
@@ -709,7 +731,7 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
         print(f"Error fetching comparison volume: {e}")
         return None
 
-def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period):
+def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
     """Update stock data periodically or when symbol/timeframe/parameters change"""
     error_msg = []
     error_class = "alert alert-warning fade show d-none"  # Hidden by default
@@ -725,9 +747,10 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         force_smoothing = 2 if force_smoothing is None else force_smoothing
         adx_period = 13 if adx_period is None else adx_period
         stoch_period = 5 if stoch_period is None else stoch_period
+        rsi_period = 13 if rsi_period is None else rsi_period
         
         print(f"Fetching data for {symbol} with timeframe {timeframe}")
-        print(f"Custom parameters - EMA: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force: {force_smoothing}, ADX: {adx_period}, Stochastic: {stoch_period}")
+        print(f"Custom parameters - EMA: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force: {force_smoothing}, ADX: {adx_period}, Stochastic: {stoch_period}, RSI: {rsi_period}")
         
         # Track if we're using sample data
         using_sample_data = False
@@ -760,7 +783,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
         fast_mode = len(full_data) > 1000  # Use fast mode for large datasets to speed up calculations
-        df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, fast_mode)
+        df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
         
         # Ensure both the Date column and start_date have the same timezone status (both naive)
         # Make sure the Date column is timezone-naive for comparison
@@ -2169,6 +2192,142 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     range=[0, 100],
                     row=2, col=1
                 )
+                
+        elif lower_chart_type == 'rsi':
+            # RSI chart with overbought/oversold areas
+            if 'RSI' in df.columns:
+                # Create a helper function to find fill areas
+                def find_fill_areas(values, dates, threshold, below=True):
+                    """Find areas where RSI is below/above threshold and create fill polygons"""
+                    fill_areas = []
+                    
+                    for i in range(len(values)):
+                        if pd.isna(values.iloc[i]):
+                            continue
+                            
+                        if below and values.iloc[i] < threshold:
+                            # Start of oversold area (below threshold)
+                            area_start = i
+                            # Find the end of this oversold period
+                            area_end = i
+                            for j in range(i + 1, len(values)):
+                                if pd.isna(values.iloc[j]) or values.iloc[j] >= threshold:
+                                    area_end = j - 1
+                                    break
+                                area_end = j
+                            
+                            if area_end > area_start:  # Only create area if it spans multiple points
+                                # Create fill area coordinates
+                                x_coords = list(dates.iloc[area_start:area_end+1])
+                                y_coords = list(values.iloc[area_start:area_end+1])
+                                
+                                # Close the polygon by adding baseline points
+                                x_coords.extend([dates.iloc[area_end], dates.iloc[area_start]])
+                                y_coords.extend([threshold, threshold])
+                                
+                                fill_areas.append((x_coords, y_coords))
+                                
+                        elif not below and values.iloc[i] > threshold:
+                            # Start of overbought area (above threshold)
+                            area_start = i
+                            # Find the end of this overbought period
+                            area_end = i
+                            for j in range(i + 1, len(values)):
+                                if pd.isna(values.iloc[j]) or values.iloc[j] <= threshold:
+                                    area_end = j - 1
+                                    break
+                                area_end = j
+                            
+                            if area_end > area_start:  # Only create area if it spans multiple points
+                                # Create fill area coordinates
+                                x_coords = list(dates.iloc[area_start:area_end+1])
+                                y_coords = list(values.iloc[area_start:area_end+1])
+                                
+                                # Close the polygon by adding baseline points
+                                x_coords.extend([dates.iloc[area_end], dates.iloc[area_start]])
+                                y_coords.extend([threshold, threshold])
+                                
+                                fill_areas.append((x_coords, y_coords))
+                    
+                    return fill_areas
+                
+                # Find oversold fill areas (below 30) - Green
+                oversold_areas = find_fill_areas(df['RSI'], df['Date'], 30, below=True)
+                
+                for x_coords, y_coords in oversold_areas:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=x_coords,
+                            y=y_coords,
+                            fill='toself',
+                            fillcolor='rgba(0, 255, 136, 0.3)',  # Green with transparency
+                            line=dict(color='rgba(0,0,0,0)', width=0),  # Invisible line
+                            showlegend=False,
+                            hoverinfo='skip',
+                            name='Oversold Area'
+                        ),
+                        row=2, col=1
+                    )
+                
+                # Find overbought fill areas (above 70) - Red
+                overbought_areas = find_fill_areas(df['RSI'], df['Date'], 70, below=False)
+                
+                for x_coords, y_coords in overbought_areas:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=x_coords,
+                            y=y_coords,
+                            fill='toself',
+                            fillcolor='rgba(255, 68, 68, 0.3)',  # Red with transparency
+                            line=dict(color='rgba(0,0,0,0)', width=0),  # Invisible line
+                            showlegend=False,
+                            hoverinfo='skip',
+                            name='Overbought Area'
+                        ),
+                        row=2, col=1
+                    )
+                
+                # Add main RSI line (white)
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['RSI'],
+                        name='RSI',
+                        line=dict(color='#ffffff', width=2)  # White
+                    ),
+                    row=2, col=1
+                )
+                
+                # Add overbought line at 70
+                fig.add_hline(
+                    y=70,
+                    line_dash="dot",
+                    line_color="rgba(255, 68, 68, 0.7)",
+                    row=2, col=1,
+                    annotation_text="Overbought (70)",
+                    annotation_position="top right",
+                    annotation_font_size=10,
+                    annotation_font_color="rgba(255, 68, 68, 0.8)"
+                )
+                
+                # Add oversold line at 30
+                fig.add_hline(
+                    y=30,
+                    line_dash="dot",
+                    line_color="rgba(0, 255, 136, 0.7)",
+                    row=2, col=1,
+                    annotation_text="Oversold (30)",
+                    annotation_position="bottom right",
+                    annotation_font_size=10,
+                    annotation_font_color="rgba(0, 255, 136, 0.8)"
+                )
+                
+                # Set y-axis range from 0 to 100 and title
+                fig.update_yaxes(
+                    title_text="RSI",
+                    range=[0, 100],
+                    row=2, col=1
+                )
         
         # Check Value Zone status and add annotation if applicable
         is_in_value_zone = False
@@ -2219,7 +2378,8 @@ def update_indicator_options(timeframe):
             {'label': 'MACD', 'value': 'macd'},
             {'label': 'A/D Line', 'value': 'ad'},
             {'label': 'ADX/DMI', 'value': 'adx'},
-            {'label': 'Slow Stochastic', 'value': 'stochastic'}
+            {'label': 'Slow Stochastic', 'value': 'stochastic'},
+            {'label': 'RSI', 'value': 'rsi'}
         ]
     else:
         lower_options = [
@@ -2228,7 +2388,8 @@ def update_indicator_options(timeframe):
             {'label': 'Force Index', 'value': 'force'},
             {'label': 'A/D Line', 'value': 'ad'},
             {'label': 'ADX/DMI', 'value': 'adx'},
-            {'label': 'Slow Stochastic', 'value': 'stochastic'}
+            {'label': 'Slow Stochastic', 'value': 'stochastic'},
+            {'label': 'RSI', 'value': 'rsi'}
         ]
     
     return ema_style, ema_style, lower_options

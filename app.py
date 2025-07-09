@@ -24,6 +24,7 @@ from functions import (
     update_force_store,
     update_adx_stores,
     update_stochastic_store,
+    update_rsi_store,
     update_data,
     update_combined_chart,
     update_symbol_status,
@@ -223,7 +224,8 @@ app.layout = dbc.Container([
                             {'label': '💪 Force Index', 'value': 'force'},
                             {'label': '📉 A/D Line', 'value': 'ad'},
                             {'label': '📊 ADX/DI', 'value': 'adx'},
-                            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'}
+                            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+                            {'label': '📊 RSI', 'value': 'rsi'}
                         ],
                         value='volume',
                         style={'backgroundColor': '#000000', 'color': '#fff'},
@@ -369,7 +371,8 @@ app.layout.children.extend([
     dcc.Store(id='force-smoothing-store', data=2),
     dcc.Store(id='adx-period-store', data=13),
     dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus']),
-    dcc.Store(id='stochastic-period-store', data=5)
+    dcc.Store(id='stochastic-period-store', data=5),
+    dcc.Store(id='rsi-period-store', data=13)
 ])
 
 # Callback to update store values when UI elements are present
@@ -418,6 +421,16 @@ def update_stochastic_store_callback(period):
     """Call update_stochastic_store function from functions module"""
     return update_stochastic_store(period)
 
+# Callback to update RSI period store
+@callback(
+    Output('rsi-period-store', 'data'),
+    Input('rsi-period', 'value'),
+    prevent_initial_call=True
+)
+def update_rsi_store_callback(period):
+    """Call update_rsi_store function from functions module"""
+    return update_rsi_store(period)
+
 # Callback to update data with custom indicator parameters
 @callback(
     [Output('stock-data-store', 'data'),
@@ -433,11 +446,12 @@ def update_stochastic_store_callback(period):
      Input('macd-signal-store', 'data'),
      Input('force-smoothing-store', 'data'),
      Input('adx-period-store', 'data'),
-     Input('stochastic-period-store', 'data')]
+     Input('stochastic-period-store', 'data'),
+     Input('rsi-period-store', 'data')]
 )
-def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period):
+def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
     """Call update_data function from functions module"""
-    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period)
+    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period)
 
 # Callback for combined chart
 @callback(
