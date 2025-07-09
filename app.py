@@ -32,27 +32,51 @@ from functions import (
     update_stock_status_indicator
 )
 
-# Custom CSS for dark theme with full black background and Inter font
+# Enhanced CSS with Inter font and bold white card headers
 custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Font family for all elements */
 * {
     font-family: 'Inter', sans-serif !important;
 }
 
-.dash-dropdown .Select-control {
+/* Background colors and text colors */
+body, .card, .card-header, .card-body, .nav-tabs, .tab-content, .tab-pane {
     background-color: #000000 !important;
-    border-color: #444 !important;
     color: #fff !important;
 }
 
-.dash-dropdown .Select-menu-outer {
-    background-color: #000000 !important;
+/* Card styling */
+.card, .card-header {
     border-color: #444 !important;
 }
 
-.dash-dropdown .Select-option {
+.card-header {
+    border-bottom: 1px solid #333 !important;
+}
+
+/* Card headers - Bold and white */
+.card-header h1, .card-header h2, .card-header h3, 
+.card-header h4, .card-header h5, .card-header h6 {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-family: 'Inter', sans-serif !important;
+    margin: 0 !important;
+}
+
+/* All headers should be bold and white */
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Dropdown styling */
+.dash-dropdown .Select-control, .dash-dropdown .Select-menu-outer, 
+.dash-dropdown .Select-option, .form-control, .form-select {
     background-color: #000000 !important;
+    border-color: #444 !important;
     color: #fff !important;
 }
 
@@ -65,44 +89,7 @@ custom_css = """
     color: #fff !important;
 }
 
-body {
-    background-color: #000000 !important;
-    color: #fff !important;
-}
-
-/* Additional customizations for consistency */
-.card {
-    background-color: #000000 !important;
-    border-color: #444 !important;
-}
-
-.card-header {
-    background-color: #000000 !important;
-    border-bottom: 1px solid #333 !important;
-}
-
-.card-body {
-    background-color: #000000 !important;
-}
-
-.btn {
-    font-family: 'Inter', sans-serif !important;
-}
-
-/* Improve readability of text on black background */
-h1, h2, h3, h4, h5, h6 {
-    color: #fff !important;
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 600 !important;
-}
-
-.form-control, .form-select {
-    background-color: #000000 !important;
-    border-color: #444 !important;
-    color: #fff !important;
-}
-
-/* Tab styling for dark theme */
+/* Navigation tabs */
 .nav-tabs {
     background-color: #000000 !important;
     border-bottom: 1px solid #444 !important;
@@ -115,32 +102,20 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 500 !important;
 }
 
-.nav-tabs .nav-link:hover {
-    background-color: #111 !important;
-    border-color: #00d4aa !important;
+.nav-tabs .nav-link:hover, .nav-tabs .nav-link.active {
     color: #00d4aa !important;
+    border-color: #00d4aa !important;
 }
 
 .nav-tabs .nav-link.active {
     background-color: #000000 !important;
     border-color: #00d4aa #00d4aa #000000 !important;
-    color: #00d4aa !important;
 }
 
-.tab-content {
-    background-color: #000000 !important;
-}
-
-.tab-pane {
-    background-color: #000000 !important;
-}
-
-/* Radio buttons styling for dark theme */
+/* Form controls */
 .form-check-input {
     background-color: #222 !important;
     border: 2px solid #666 !important;
-    width: 1.2em !important;
-    height: 1.2em !important;
 }
 
 .form-check-input:checked {
@@ -148,37 +123,22 @@ h1, h2, h3, h4, h5, h6 {
     border-color: #00d4aa !important;
 }
 
-.form-check-input:focus {
-    border-color: #00d4aa !important;
-    box-shadow: 0 0 0 0.25rem rgba(0, 212, 170, 0.25) !important;
-}
-
 .form-check-label {
     color: #fff !important;
     padding-left: 8px !important;
-    cursor: pointer !important;
 }
 
-.form-check {
-    margin-bottom: 12px !important;
-    padding: 12px 16px !important;
-    margin-left: 8px !important;
-    margin-right: 8px !important;
-    border-radius: 6px !important;
-    transition: background-color 0.2s ease !important;
+/* Button effects */
+.btn {
+    font-family: 'Inter', sans-serif !important;
 }
 
-.form-check:hover {
-    background-color: rgba(0, 212, 170, 0.1) !important;
-}
-
-/* Button hover effects */
 .btn:hover {
     transform: translateY(-2px);
     transition: all 0.3s ease;
 }
 
-/* Make scrollbars match theme */
+/* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -195,6 +155,13 @@ h1, h2, h3, h4, h5, h6 {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #00d4aa;
+}
+
+/* Labels styling */
+.form-label, label {
+    color: #fff !important;
+    font-weight: 500 !important;
+    font-family: 'Inter', sans-serif !important;
 }
 """
 
@@ -556,10 +523,10 @@ app.layout = dbc.Container([
         ], width=9, id="chart-col")
     ]), # Added missing closing bracket for dbc.Row
     
-    # Auto-refresh component - optimized for faster updates
+    # Auto-refresh component - Optimized interval
     dcc.Interval(
         id='interval-component',
-        interval=10*1000,  # Update every 10 seconds for faster ticker switching
+        interval=30*1000,  # Update every 30 seconds - balanced for performance
         n_intervals=0
     ),
     
@@ -778,16 +745,6 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
                                    volume_comparison, relayout_data, timeframe)
         return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
 
-# Callback to update symbol status message
-@callback(
-    Output('stock-symbol-status', 'children'),
-    Output('stock-symbol-status', 'style'),
-    [Input('current-symbol-store', 'data')]
-)
-def update_symbol_status_callback(symbol):
-    """Call update_symbol_status function from functions module"""
-    return update_symbol_status(symbol)
-
 # Callback to hide EMA options for 1D timeframe
 @callback(
     [Output('ema-periods-container', 'style'),
@@ -871,41 +828,28 @@ def view_yesterday_callback(n_clicks):
         return 'yesterday'
     raise PreventUpdate
 
-# Callback for loading indicator with timestamp
+# Callback for loading indicator with timestamp - simplified
 @callback(
     Output('loading-output', 'children'),
     [Input('current-symbol-store', 'data')],
     prevent_initial_call=True
 )
 def update_loading_feedback(symbol):
-    """Provide feedback when loading new ticker data with timestamp"""
+    """Provide simple feedback when loading new ticker data"""
     if symbol:
         timestamp = datetime.now().strftime('%H:%M:%S')
-        return html.Div([
-            html.Span(f"✅ {symbol} ", style={'color': '#00d4ff', 'fontWeight': 'bold'}),
-            html.Span(f"loaded at {timestamp}", style={'color': '#aaa', 'fontSize': '12px'})
-        ])
+        return f"✅ {symbol} loaded at {timestamp}"
     return ""
 
-# Callback to update the stock status indicator
+# Simplified stock status indicator callback
 @callback(
     Output('stock-status-indicator', 'children'),
-    [Input('combined-chart', 'figure')],
-    [State('current-symbol-store', 'data')]
+    [Input('current-symbol-store', 'data')]
 )
-def update_status_indicator_callback(figure_data, symbol):
-    """Update the stock status indicator with current price and time information"""
-    # Access the symbol info from the combined-chart callback's context
-    ctx = dash.callback_context
-    if hasattr(ctx, 'outputs_list') and ctx.outputs_list:
-        # Try to access the symbol_info from the update_combined_chart function's return value
-        symbol_info = ctx.outputs_list[2] if len(ctx.outputs_list) > 2 else None
-        if symbol_info:
-            return update_stock_status_indicator(symbol_info)
-    
-    # Fallback if we can't get symbol info from context
+def update_status_indicator_callback(symbol):
+    """Update the stock status indicator with current symbol"""
     fallback_info = {
-        'symbol': symbol,
+        'symbol': symbol or 'SPY',
         'time': datetime.now().strftime('%H:%M:%S'),
         'color': '#00d4aa'
     }

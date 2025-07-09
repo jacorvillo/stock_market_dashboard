@@ -843,7 +843,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             # Enhanced mountain chart with custom coloring
             
             # Calculate first price for scaling reference
-            first_price = float(df['Close'].iloc[0]) if len(df) > 0 else 0  # Convert to float
+            first_price = df['Close'].iloc[0] if len(df) > 0 else 0
             
             # Set colors for mountain chart
             line_color = '#00d4aa'  # Teal line
@@ -987,16 +987,16 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         title_color = '#00d4aa'  # Default color
         
         if len(df) > 0:
-            current_price = float(df['Close'].iloc[-1])  # Convert to float to ensure it's a scalar
+            current_price = df['Close'].iloc[-1]
             
             # For percentage calculation, use the first price of the dataset as reference
             if len(df) > 1:
                 if is_intraday:
                     # For 1D view, compare with opening price (approximates previous close)
-                    reference_price = float(df['Open'].iloc[0])  # Convert to float
+                    reference_price = df['Open'].iloc[0]
                 else:
                     # For other timeframes, compare with first price in the dataset
-                    reference_price = float(df['Close'].iloc[0])  # Convert to float
+                    reference_price = df['Close'].iloc[0]
                 
                 price_change = current_price - reference_price
                 percent_change = (price_change / reference_price) * 100
@@ -1461,8 +1461,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         elif chart_type == 'mountain':
             # Mountain (area) chart
             if len(df) >= 2:
-                price_start = float(df['Close'].iloc[0])  # Convert to float
-                price_end = float(df['Close'].iloc[-1])   # Convert to float
+                price_start = df['Close'].iloc[0]
+                price_end = df['Close'].iloc[-1]
                 is_uptrend = price_end >= price_start
                 
                 line_color = '#00d4aa'  # Teal line
@@ -1471,7 +1471,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 line_color = '#00d4aa'
                 fill_color = 'rgba(0, 212, 170, 0.3)'
             
-            first_price = float(df['Close'].iloc[0])  # Convert to float
+            first_price = df['Close'].iloc[0]
             
             # For subplots, we need to specify the fill properly
             fig.add_trace(
@@ -1787,16 +1787,16 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         title_color = '#00d4aa'  # Default color
         
         if len(df) > 0:
-            current_price = float(df['Close'].iloc[-1])  # Convert to float to ensure it's a scalar
+            current_price = df['Close'].iloc[-1]
             
             # For percentage calculation, use the first price of the dataset as reference
             if len(df) > 1:
                 if is_intraday:
                     # For 1D view, compare with opening price (approximates previous close)
-                    reference_price = float(df['Open'].iloc[0])  # Convert to float
+                    reference_price = df['Open'].iloc[0]
                 else:
                     # For other timeframes, compare with first price in the dataset
-                    reference_price = float(df['Close'].iloc[0])  # Convert to float
+                    reference_price = df['Close'].iloc[0]
                 
                 price_change = current_price - reference_price
                 percent_change = (price_change / reference_price) * 100
