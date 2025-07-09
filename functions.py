@@ -417,7 +417,7 @@ def get_stock_data(symbol="SPY", period="1y"):
             raise Exception(f"No data available for {symbol}")
 
 # Function to calculate technical indicators with custom parameters
-def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, fast_mode=False):
+def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, stoch_period=5, fast_mode=False):
     """Calculate technical indicators for the stock data with custom parameters
     fast_mode: If True, calculates only essential indicators for faster ticker switching"""
     try:
@@ -438,6 +438,8 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             df['DI_plus'] = []
             df['DI_minus'] = []
             df['ATR'] = []
+            df['Stoch_K'] = []
+            df['Stoch_D'] = []
             return df
         
         # Only calculate indicators if we have enough data
@@ -510,8 +512,19 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
         else:
             df['ATR'] = (df['High'] - df['Low']).rolling(window=min(14, min_length)).mean()
         
+        # Slow Stochastic (%K and %D)
+        stoch_period = max(1, min(stoch_period, 50))  # Ensure period is between 1-50
+        if min_length >= max(14, stoch_period):
+            stoch_indicator = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=stoch_period, smooth_window=3)
+            df['Stoch_K'] = stoch_indicator.stoch()  # %K line
+            df['Stoch_D'] = stoch_indicator.stoch_signal()  # %D line (smoothed %K)
+        else:
+            # Fill with neutral values for small datasets
+            df['Stoch_K'] = 50  # Neutral stochastic value
+            df['Stoch_D'] = 50
+        
         # Fill any remaining NaN values with 0 or forward fill
-        numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus']]
+        numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D']]
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = df[col].ffill().fillna(0)
@@ -585,6 +598,14 @@ def update_lower_chart_settings(chart_type):
                 style={'color': '#fff'}
             )
         ]
+    elif chart_type == 'stochastic':
+        return [
+            html.H6("Slow Stochastic Settings", style={'color': '#00d4aa'}),
+            dbc.Label("Stochastic Period:", style={'color': '#fff', 'fontSize': '12px'}),
+            dbc.Input(id='stochastic-period', type='number', value=5, min=1, max=50, className="mb-3"),
+            html.P("Displays %K (green) and %D (red) oscillators with overbought (80%) and oversold (20%) levels.", 
+                  style={'color': '#ccc', 'fontSize': '12px'})
+        ]
     else:  # Volume
         return [
             html.H6("Volume Settings", style={'color': '#00d4aa'}),
@@ -643,6 +664,10 @@ def update_adx_stores(period, components):
     components = components or ['adx', 'di_plus', 'di_minus']
     return adx_period, components
 
+def update_stochastic_store(period):
+    """Update store value when Stochastic parameter changes in UI"""
+    return period or 5
+
 def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
     """Fetch volume data for comparison stock"""
     if comparison_symbol == 'none':
@@ -684,7 +709,7 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
         print(f"Error fetching comparison volume: {e}")
         return None
 
-def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period):
+def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period):
     """Update stock data periodically or when symbol/timeframe/parameters change"""
     error_msg = []
     error_class = "alert alert-warning fade show d-none"  # Hidden by default
@@ -699,9 +724,10 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         macd_signal = 9 if macd_signal is None else macd_signal
         force_smoothing = 2 if force_smoothing is None else force_smoothing
         adx_period = 13 if adx_period is None else adx_period
+        stoch_period = 5 if stoch_period is None else stoch_period
         
         print(f"Fetching data for {symbol} with timeframe {timeframe}")
-        print(f"Custom parameters - EMA: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force: {force_smoothing}, ADX: {adx_period}")
+        print(f"Custom parameters - EMA: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force: {force_smoothing}, ADX: {adx_period}, Stochastic: {stoch_period}")
         
         # Track if we're using sample data
         using_sample_data = False
@@ -734,7 +760,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
         fast_mode = len(full_data) > 1000  # Use fast mode for large datasets to speed up calculations
-        df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, fast_mode)
+        df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, fast_mode)
         
         # Ensure both the Date column and start_date have the same timezone status (both naive)
         # Make sure the Date column is timezone-naive for comparison
@@ -2087,6 +2113,62 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             
             # Set y-axis title for ADX/DMI
             fig.update_yaxes(title_text="ADX/DMI", row=2, col=1)
+            
+        elif lower_chart_type == 'stochastic':
+            # Slow Stochastic chart with %K and %D
+            if 'Stoch_K' in df.columns and 'Stoch_D' in df.columns:
+                # %K line (green)
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['Stoch_K'],
+                        name='%K',
+                        line=dict(color='#00ff88', width=2)  # Green
+                    ),
+                    row=2, col=1
+                )
+                
+                # %D line (red)
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['Stoch_D'],
+                        name='%D',
+                        line=dict(color='#ff4444', width=2)  # Red
+                    ),
+                    row=2, col=1
+                )
+                
+                # Add overbought line at 80%
+                fig.add_hline(
+                    y=80,
+                    line_dash="dot",
+                    line_color="rgba(255, 68, 68, 0.7)",
+                    row=2, col=1,
+                    annotation_text="Overbought (80)",
+                    annotation_position="top right",
+                    annotation_font_size=10,
+                    annotation_font_color="rgba(255, 68, 68, 0.8)"
+                )
+                
+                # Add oversold line at 20%
+                fig.add_hline(
+                    y=20,
+                    line_dash="dot",
+                    line_color="rgba(0, 255, 136, 0.7)",
+                    row=2, col=1,
+                    annotation_text="Oversold (20)",
+                    annotation_position="bottom right",
+                    annotation_font_size=10,
+                    annotation_font_color="rgba(0, 255, 136, 0.8)"
+                )
+                
+                # Set y-axis range from 0 to 100 and title
+                fig.update_yaxes(
+                    title_text="Stochastic (%)",
+                    range=[0, 100],
+                    row=2, col=1
+                )
         
         # Check Value Zone status and add annotation if applicable
         is_in_value_zone = False
@@ -2136,7 +2218,8 @@ def update_indicator_options(timeframe):
             {'label': 'Volume', 'value': 'volume'},
             {'label': 'MACD', 'value': 'macd'},
             {'label': 'A/D Line', 'value': 'ad'},
-            {'label': 'ADX/DMI', 'value': 'adx'}
+            {'label': 'ADX/DMI', 'value': 'adx'},
+            {'label': 'Slow Stochastic', 'value': 'stochastic'}
         ]
     else:
         lower_options = [
@@ -2144,7 +2227,8 @@ def update_indicator_options(timeframe):
             {'label': 'MACD', 'value': 'macd'},
             {'label': 'Force Index', 'value': 'force'},
             {'label': 'A/D Line', 'value': 'ad'},
-            {'label': 'ADX/DMI', 'value': 'adx'}
+            {'label': 'ADX/DMI', 'value': 'adx'},
+            {'label': 'Slow Stochastic', 'value': 'stochastic'}
         ]
     
     return ema_style, ema_style, lower_options

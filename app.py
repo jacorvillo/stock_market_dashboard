@@ -23,6 +23,7 @@ from functions import (
     update_macd_stores,
     update_force_store,
     update_adx_stores,
+    update_stochastic_store,
     update_data,
     update_combined_chart,
     update_symbol_status,
@@ -221,7 +222,8 @@ app.layout = dbc.Container([
                             {'label': '📈 MACD', 'value': 'macd'},
                             {'label': '💪 Force Index', 'value': 'force'},
                             {'label': '📉 A/D Line', 'value': 'ad'},
-                            {'label': '📊 ADX/DI', 'value': 'adx'}
+                            {'label': '📊 ADX/DI', 'value': 'adx'},
+                            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'}
                         ],
                         value='volume',
                         style={'backgroundColor': '#000000', 'color': '#fff'},
@@ -366,7 +368,8 @@ app.layout.children.extend([
     dcc.Store(id='macd-signal-store', data=9),
     dcc.Store(id='force-smoothing-store', data=2),
     dcc.Store(id='adx-period-store', data=13),
-    dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus'])
+    dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus']),
+    dcc.Store(id='stochastic-period-store', data=5)
 ])
 
 # Callback to update store values when UI elements are present
@@ -405,6 +408,16 @@ def update_adx_stores_callback(period, components):
     """Call update_adx_stores function from functions module"""
     return update_adx_stores(period, components)
 
+# Callback to update stochastic period store
+@callback(
+    Output('stochastic-period-store', 'data'),
+    Input('stochastic-period', 'value'),
+    prevent_initial_call=True
+)
+def update_stochastic_store_callback(period):
+    """Call update_stochastic_store function from functions module"""
+    return update_stochastic_store(period)
+
 # Callback to update data with custom indicator parameters
 @callback(
     [Output('stock-data-store', 'data'),
@@ -419,11 +432,12 @@ def update_adx_stores_callback(period, components):
      Input('macd-slow-store', 'data'),
      Input('macd-signal-store', 'data'),
      Input('force-smoothing-store', 'data'),
-     Input('adx-period-store', 'data')]
+     Input('adx-period-store', 'data'),
+     Input('stochastic-period-store', 'data')]
 )
-def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period):
+def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period):
     """Call update_data function from functions module"""
-    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period)
+    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period)
 
 # Callback for combined chart
 @callback(
