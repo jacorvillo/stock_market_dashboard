@@ -1,13 +1,13 @@
 # 📈 Stock Market Dashboard
 
-A free Python Dash web application for real-time stock market visualization with technical indicators.
+A free Python Dash toolbox for real-time stock market visualization with indicators. Based on the book The New Trading for a Living by Dr. Alexander Elder
 
 ## Features
 
 - Real-time stock data from Yahoo Finance with multiple timeframes. Works with any US stock symbol (so long as it's available)
 - Candlestick and Mountain (area) charts
 - Sidebar with stock symbol search and timeframe selection
-- (Ongoing): A flurry of technical indicators
+- (Ongoing): Technical indicators (e.g., RSI, %R, OBV)
 
 > [!TIP] 
 > Current indicators available:
@@ -17,17 +17,12 @@ A free Python Dash web application for real-time stock market visualization with
 > - Force Index*
 > - DIR (Directional Movement Index)*: +DI, -DI, and ADX
 > - A/D Line (Accumulation/Distribution Line)*
->
+> - Slow Stochastic*: %K and %D lines
+> - RSI (Relative Strength Index)*
+> - OBV (On-Balance Volume)*
 >
 > *Timeframe can be changed for these indicators
 
-> [!IMPORTANT]
-> Indicators in development:
-> - RSI (Relative Strength Index)
-> - %R (Williams %R)
-> - OBV (On-Balance Volume)
-
-- (To do): Add signals (buy/sell) based on technical indicators!
 
 ### Requirements
 - Python 3.8+
@@ -50,3 +45,22 @@ Open `http://localhost:8050` in your browser to view the dashboard.
 - This is for educational purposes only, not financial advice
 - Data may have slight delays during high market volatility
 - Some symbols may not be available or may require subscription data
+
+## Todo
+
+- [ ] (Short term) Implement additional technical indicators
+
+> [!IMPORTANT] 
+> Indicators in development:
+> - %R (Williams %R)
+> - New High/New Low index
+> - Consensus and commitment indicators
+> - Others
+
+- (Short term) Improve UI/UX design
+- (Short/long term) Add signals (buy/sell) based on technical indicators, both in the chart and as alerts
+
+- [ ] (Longer term) Add stock scanner functionality to filter stocks based on technical indicators and other criteria
+- [ ] (Longer term) Add popular system trading strategies (Triple Screen Trading System, Impulse System, Channel trading)
+- [ ] (Longer term) Add backtesting functionality to test strategies against historical data
+- [ ] (Longer term) Expand to other markets (ETFs, Options, CFDs, futures, forex)
