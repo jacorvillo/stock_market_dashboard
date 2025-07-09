@@ -296,6 +296,17 @@ app.layout = dbc.Container([
                                             dbc.CardBody([
                                                 # Stock Symbol Input Section
                                                 dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                
+                                                # Stock status indicator between label and search bar - minimal space
+                                                html.Div(
+                                                    id="stock-status-indicator",
+                                                    className="mb-2",
+                                                    style={
+                                                        'textAlign': 'center',
+                                                        'fontSize': '12px',
+                                                        'color': '#ccc'
+                                                    }
+                                                ),
                                                 dbc.Row([
                                                     dbc.Col([
                                                         dbc.Input(
@@ -336,19 +347,6 @@ app.layout = dbc.Container([
                                                         )
                                                     ], width=4)
                                                 ], className="mb-3"),
-                                                
-                                                # Stock status indicator with enhanced styling
-                                                html.Div(
-                                                    id="stock-status-indicator",
-                                                    className="mb-4",
-                                                    style={
-                                                        'textAlign': 'center',
-                                                        'padding': '8px 12px',
-                                                        'backgroundColor': '#000000',
-                                                        'borderRadius': '6px',
-                                                        'border': '1px solid #333'
-                                                    }
-                                                ),
                                                 
                                                 html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
                                                 
@@ -431,64 +429,50 @@ app.layout = dbc.Container([
                                                     ], className="mb-3"),
                                                 ]),
                                                 
-                                                # EMA Toggle with enhanced styling
-                                                html.Div([
-                                                    dbc.Checklist(
-                                                        id='show-ema',
-                                                        options=[{
-                                                            'label': html.Div([
-                                                                html.Span("📊 Show EMAs", style={'color': '#fff', 'fontWeight': '500'})
-                                                            ]), 
-                                                            'value': 'show'
-                                                        }],
-                                                        value=['show'],
-                                                        style={'color': '#fff'},
-                                                        className="mb-3"
-                                                    )
-                                                ], style={
-                                                    'backgroundColor': '#000000',
-                                                    'borderRadius': '8px',
-                                                    'padding': '12px 16px',
-                                                    'border': '1px solid #333'
-                                                }),
+                                                # EMA Toggle
+                                                dbc.Checklist(
+                                                    id='show-ema',
+                                                    options=[{
+                                                        'label': html.Div([
+                                                            html.Span("📊 Show EMAs", style={'color': '#fff', 'fontWeight': '500'})
+                                                        ]), 
+                                                        'value': 'show'
+                                                    }],
+                                                    value=['show'],
+                                                    style={'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
                                                 
                                                 html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
                                                 
                                                 # ATR Bands Section
                                                 dbc.Label("ATR Volatility Bands:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
-                                                html.Div([
-                                                    dbc.Checklist(
-                                                        id='atr-bands',
-                                                        options=[
-                                                            {
-                                                                'label': html.Div([
-                                                                    html.Span("±1 ATR", style={'color': '#fff', 'fontWeight': '500'})
-                                                                ]),
-                                                                'value': '1'
-                                                            },
-                                                            {
-                                                                'label': html.Div([
-                                                                    html.Span("±2 ATR", style={'color': '#fff', 'fontWeight': '500'})
-                                                                ]),
-                                                                'value': '2'
-                                                            },
-                                                            {
-                                                                'label': html.Div([
-                                                                    html.Span("±3 ATR", style={'color': '#fff', 'fontWeight': '500'})
-                                                                ]),
-                                                                'value': '3'
-                                                            }
-                                                        ],
-                                                        value=[],
-                                                        inline=False,  # Stack vertically for better mobile experience
-                                                        style={'color': '#fff'}
-                                                    )
-                                                ], style={
-                                                    'backgroundColor': '#000000',
-                                                    'borderRadius': '8px',
-                                                    'padding': '12px 16px',
-                                                    'border': '1px solid #333'
-                                                })
+                                                dbc.Checklist(
+                                                    id='atr-bands',
+                                                    options=[
+                                                        {
+                                                            'label': html.Div([
+                                                                html.Span("±1 ATR", style={'color': '#fff', 'fontWeight': '500'})
+                                                            ]),
+                                                            'value': '1'
+                                                        },
+                                                        {
+                                                            'label': html.Div([
+                                                                html.Span("±2 ATR", style={'color': '#fff', 'fontWeight': '500'})
+                                                            ]),
+                                                            'value': '2'
+                                                        },
+                                                        {
+                                                            'label': html.Div([
+                                                                html.Span("±3 ATR", style={'color': '#fff', 'fontWeight': '500'})
+                                                            ]),
+                                                            'value': '3'
+                                                        }
+                                                    ],
+                                                    value=[],
+                                                    inline=False,  # Stack vertically for better mobile experience
+                                                    style={'color': '#fff'}
+                                                )
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
                                         
@@ -498,29 +482,22 @@ app.layout = dbc.Container([
                                             dbc.CardBody([
                                                 # Lower Chart Selection
                                                 dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
-                                                html.Div([
-                                                    dbc.Select(
-                                                        id='lower-chart-selection',
-                                                        options=[
-                                                            {'label': '📊 Volume', 'value': 'volume'},
-                                                            {'label': '📈 MACD', 'value': 'macd'},
-                                                            {'label': '💪 Force Index', 'value': 'force'},
-                                                            {'label': '📉 A/D Line', 'value': 'ad'},
-                                                            {'label': '📊 ADX/DI', 'value': 'adx'},
-                                                            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
-                                                            {'label': '📊 RSI', 'value': 'rsi'},
-                                                            {'label': '📈 OBV', 'value': 'obv'}
-                                                        ],
-                                                        value='volume',
-                                                        style={'backgroundColor': '#000000', 'color': '#fff'},
-                                                        className="mb-3"
-                                                    )
-                                                ], style={
-                                                    'backgroundColor': '#000000',
-                                                    'borderRadius': '8px',
-                                                    'padding': '12px 16px',
-                                                    'border': '1px solid #333'
-                                                }),
+                                                dbc.Select(
+                                                    id='lower-chart-selection',
+                                                    options=[
+                                                        {'label': '📊 Volume', 'value': 'volume'},
+                                                        {'label': '📈 MACD', 'value': 'macd'},
+                                                        {'label': '💪 Force Index', 'value': 'force'},
+                                                        {'label': '📉 A/D Line', 'value': 'ad'},
+                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
+                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+                                                        {'label': '📊 RSI', 'value': 'rsi'},
+                                                        {'label': '📈 OBV', 'value': 'obv'}
+                                                    ],
+                                                    value='volume',
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
                                                 
                                                 # Dynamic settings section with enhanced container
                                                 html.Div([
