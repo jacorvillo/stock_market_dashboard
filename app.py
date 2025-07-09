@@ -225,7 +225,8 @@ app.layout = dbc.Container([
                             {'label': '📉 A/D Line', 'value': 'ad'},
                             {'label': '📊 ADX/DI', 'value': 'adx'},
                             {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
-                            {'label': '📊 RSI', 'value': 'rsi'}
+                            {'label': '📊 RSI', 'value': 'rsi'},
+                            {'label': '📈 OBV', 'value': 'obv'}
                         ],
                         value='volume',
                         style={'backgroundColor': '#000000', 'color': '#fff'},

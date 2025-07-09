@@ -441,6 +441,7 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             df['Stoch_K'] = []
             df['Stoch_D'] = []
             df['RSI'] = []
+            df['OBV'] = []
             return df
         
         # Only calculate indicators if we have enough data
@@ -533,8 +534,16 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             # Fill with neutral values for small datasets
             df['RSI'] = 50  # Neutral RSI value
         
+        # On Balance Volume (OBV)
+        if min_length >= 1:
+            obv_indicator = ta.volume.OnBalanceVolumeIndicator(df['Close'], df['Volume'])
+            df['OBV'] = obv_indicator.on_balance_volume()
+        else:
+            # Fill with zeros for small datasets
+            df['OBV'] = 0
+        
         # Fill any remaining NaN values with 0 or forward fill
-        numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D', 'RSI']]
+        numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D', 'RSI', 'OBV']]
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = df[col].ffill().fillna(0)
@@ -622,6 +631,12 @@ def update_lower_chart_settings(chart_type):
             dbc.Label("RSI Period:", style={'color': '#fff', 'fontSize': '12px'}),
             dbc.Input(id='rsi-period', type='number', value=13, min=1, max=50, className="mb-3"),
             html.P("Displays RSI oscillator with overbought (70) and oversold (30) levels. Areas below 30 and above 70 are highlighted.", 
+                  style={'color': '#ccc', 'fontSize': '12px'})
+        ]
+    elif chart_type == 'obv':
+        return [
+            html.H6("OBV Settings", style={'color': '#00d4aa'}),
+            html.P("On Balance Volume (OBV) uses volume flow to predict changes in stock price. No additional parameters required.", 
                   style={'color': '#ccc', 'fontSize': '12px'})
         ]
     else:  # Volume
@@ -2328,6 +2343,26 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     range=[0, 100],
                     row=2, col=1
                 )
+                
+        elif lower_chart_type == 'obv':
+            # On Balance Volume chart
+            if 'OBV' in df.columns:
+                # Add OBV line with area fill
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['OBV'],
+                        name='OBV',
+                        line=dict(color='#00d4aa', width=2),  # Teal color
+                        fill='tozeroy',  # Fill to zero baseline
+                        fillcolor='rgba(0, 212, 170, 0.2)',  # Semi-transparent teal
+                        hovertemplate='%{x}<br>OBV: %{y:,.0f}<extra></extra>'
+                    ),
+                    row=2, col=1
+                )
+                
+                # Set y-axis title for OBV
+                fig.update_yaxes(title_text="OBV", row=2, col=1)
         
         # Check Value Zone status and add annotation if applicable
         is_in_value_zone = False
@@ -2379,7 +2414,8 @@ def update_indicator_options(timeframe):
             {'label': 'A/D Line', 'value': 'ad'},
             {'label': 'ADX/DMI', 'value': 'adx'},
             {'label': 'Slow Stochastic', 'value': 'stochastic'},
-            {'label': 'RSI', 'value': 'rsi'}
+            {'label': 'RSI', 'value': 'rsi'},
+            {'label': 'OBV', 'value': 'obv'}
         ]
     else:
         lower_options = [
@@ -2389,7 +2425,8 @@ def update_indicator_options(timeframe):
             {'label': 'A/D Line', 'value': 'ad'},
             {'label': 'ADX/DMI', 'value': 'adx'},
             {'label': 'Slow Stochastic', 'value': 'stochastic'},
-            {'label': 'RSI', 'value': 'rsi'}
+            {'label': 'RSI', 'value': 'rsi'},
+            {'label': 'OBV', 'value': 'obv'}
         ]
     
     return ema_style, ema_style, lower_options
