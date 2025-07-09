@@ -1019,17 +1019,45 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                 from datetime import datetime
                 current_time = datetime.now().strftime('%H:%M:%S')
                 
-                # Format title: SYMBOL - PRICE$ (arrow change, %change) [Updated HH:MM:SS]
-                title_text = f"{symbol} - ${current_price:.2f} ({arrow} ${abs(price_change):.2f}, {percent_change:+.2f}%) [Last updated {current_time}]"
+                # Format title: SYMBOL - PRICE$ (arrow change, %change)
+                main_title = f"{symbol} - ${current_price:.2f} ({arrow} ${abs(price_change):.2f}, {percent_change:+.2f}%)"
+                # Store the current time and price info for status indicator
+                symbol_info = {
+                    'symbol': symbol,
+                    'price': current_price,
+                    'change': price_change,
+                    'percent': percent_change,
+                    'time': current_time,
+                    'color': title_color
+                }
             else:
-                # Single data point case with current time
+                # Single data point case
                 from datetime import datetime
                 current_time = datetime.now().strftime('%H:%M:%S')
-                title_text = f"{symbol} - ${current_price:.2f} [Last updated {current_time}]"
+                main_title = f"{symbol} - ${current_price:.2f}"
+                # Store minimal info for status indicator
+                symbol_info = {
+                    'symbol': symbol,
+                    'price': current_price,
+                    'time': current_time,
+                    'color': title_color
+                }
 
-        # Update layout for dark theme
+        # Update layout for dark theme with bold title
         layout_settings = {
-            'title': title_text,
+            'title': {
+                'text': main_title,
+                'font': {
+                    'color': title_color,
+                    'size': 24,
+                    'family': 'Inter, sans-serif',
+                    'weight': 'bold'
+                },
+                'y': 0.95,
+                'x': 0.05,
+                'xanchor': 'left',
+                'yanchor': 'top'
+            },
             'height': 430, # Adjusted to match the 55vh in the layout
             'showlegend': True,
             'xaxis_rangeslider_visible': False,
@@ -1037,8 +1065,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             'paper_bgcolor': '#000000',
             'plot_bgcolor': '#000000',
             'font': dict(color='#ffffff'),
-            'title_font': dict(color=title_color, size=20),
-            'margin': dict(l=40, r=40, t=50, b=20) # Compact margins
+            'margin': dict(l=40, r=40, t=70, b=20) # Increased top margin for subtitle
         }
         
         # For all chart types, calculate the appropriate y-axis range
@@ -1092,7 +1119,8 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         if 'show' in show_ema and not is_intraday and len(ema_periods) >= 2:
             is_in_value_zone = check_value_zone_status(df, ema_periods)
         
-        return fig, is_in_value_zone
+        # Return the figure, value zone status, and symbol info for status indicator
+        return fig, is_in_value_zone, symbol_info if 'symbol_info' in locals() else None
 
     except Exception as e:
         pass
@@ -1110,7 +1138,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             paper_bgcolor='#000000',
             plot_bgcolor='#000000'
         )
-        return fig, False
+        return fig, False, None
 
 def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_comparison=None):
     """Update the consolidated chart below main chart"""
@@ -1654,13 +1682,13 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 from datetime import datetime
                 current_time = datetime.now().strftime('%H:%M:%S')
                 
-                # Format title: SYMBOL - PRICE$ (arrow change, %change) [Updated HH:MM:SS]
-                title_text = f"{symbol} - ${current_price:.2f} ({arrow} ${abs(price_change):.2f}, {percent_change:+.2f}%) [Updated {current_time}]"
+                # Format main title
+                main_title = f"{symbol} - ${current_price:.2f} ({arrow} ${abs(price_change):.2f}, {percent_change:+.2f}%)"
             else:
                 # Single data point case with current time
                 from datetime import datetime
                 current_time = datetime.now().strftime('%H:%M:%S')
-                title_text = f"{symbol} - ${current_price:.2f} [Updated {current_time}]"
+                main_title = f"{symbol} - ${current_price:.2f}"
 
         # Update layout for dark theme
         layout_settings = {
@@ -1735,10 +1763,19 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             plot_bgcolor='#000000',
             font=dict(color='#ffffff'),
             title=dict(
-                text=title_text,  # Dynamic title with price and changes
-                font=dict(color=title_color, size=18)  # Dynamic color based on performance
+                text=main_title,  # Dynamic title with price and changes
+                font=dict(
+                    color=title_color, 
+                    size=24,
+                    family='Inter, sans-serif',
+                    weight='bold'
+                ),
+                y=0.95,
+                x=0.05,
+                xanchor='left',
+                yanchor='top'
             ),
-            margin=dict(l=40, r=40, t=60, b=40),
+            margin=dict(l=40, r=40, t=70, b=40),
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
@@ -2238,7 +2275,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     range=[0, 100],
                     row=2, col=1
                 )
-                
+        
         elif lower_chart_type == 'obv':
             # On Balance Volume chart
             if 'OBV' in df.columns:
@@ -2355,3 +2392,49 @@ def check_value_zone_status(df, ema_periods):
     except Exception as e:
         pass
         return False
+
+def update_stock_status_indicator(symbol_info):
+    """Generate status indicator with last updated information"""
+    if not symbol_info:
+        return html.Div("No data available", style={'color': '#aaa', 'fontSize': '12px'})
+    
+    # Get the basic information
+    symbol = symbol_info.get('symbol', '')
+    time = symbol_info.get('time', '')
+    color = symbol_info.get('color', '#00d4aa')
+    
+    # Create the status content
+    content = []
+    
+    # Add symbol and price with appropriate styling
+    if 'price' in symbol_info:
+        price = symbol_info.get('price', 0)
+        content.append(
+            html.Div([
+                html.Span(f"{symbol} ", style={'fontWeight': 'bold', 'color': color}),
+                html.Span(f"${price:.2f}", style={'color': '#ffffff'})
+            ], style={'fontSize': '14px'})
+        )
+    
+    # Add change information if available
+    if 'change' in symbol_info and 'percent' in symbol_info:
+        change = symbol_info.get('change', 0)
+        percent = symbol_info.get('percent', 0)
+        
+        # Determine arrow based on change
+        arrow = "↗" if change > 0 else "↘" if change < 0 else "→"
+        
+        content.append(
+            html.Div([
+                html.Span(f"{arrow} ${abs(change):.2f} ({percent:+.2f}%)", 
+                          style={'color': color, 'fontWeight': 'bold'})
+            ], style={'fontSize': '13px'})
+        )
+    
+    # Add last updated time
+    content.append(
+        html.Div(f"Last updated {time}", 
+                 style={'color': '#aaa', 'fontSize': '11px', 'marginTop': '2px', 'textAlign': 'left'})
+    )
+    
+    return html.Div(content, style={'textAlign': 'left', 'padding': '5px', 'borderRadius': '4px'})

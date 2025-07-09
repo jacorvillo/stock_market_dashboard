@@ -28,7 +28,8 @@ from functions import (
     update_data,
     update_combined_chart,
     update_symbol_status,
-    update_indicator_options
+    update_indicator_options,
+    update_stock_status_indicator
 )
 
 # Custom CSS for dark theme with full black background and Inter font
@@ -190,6 +191,16 @@ app.layout = dbc.Container([
                             dbc.Button("🔍", id="search-button", color="success", n_clicks=0, className="w-100")
                         ], width=3)
                     ], className="mb-3"),
+                    
+                    # Stock status indicator with last updated time
+                    html.Div(
+                        id="stock-status-indicator",
+                        className="mb-3",
+                        style={
+                            'textAlign': 'left',
+                            'padding': '5px'
+                        }
+                    ),
                     
                     dbc.Label("Time Frame:", style={'color': '#fff', 'fontWeight': 'bold'}),
                     dcc.Dropdown(
@@ -674,6 +685,30 @@ def update_loading_feedback(symbol):
             html.Span(f"loaded at {timestamp}", style={'color': '#aaa', 'fontSize': '12px'})
         ])
     return ""
+
+# Callback to update the stock status indicator
+@callback(
+    Output('stock-status-indicator', 'children'),
+    [Input('combined-chart', 'figure')],
+    [State('current-symbol-store', 'data')]
+)
+def update_status_indicator_callback(figure_data, symbol):
+    """Update the stock status indicator with current price and time information"""
+    # Access the symbol info from the combined-chart callback's context
+    ctx = dash.callback_context
+    if hasattr(ctx, 'outputs_list') and ctx.outputs_list:
+        # Try to access the symbol_info from the update_combined_chart function's return value
+        symbol_info = ctx.outputs_list[2] if len(ctx.outputs_list) > 2 else None
+        if symbol_info:
+            return update_stock_status_indicator(symbol_info)
+    
+    # Fallback if we can't get symbol info from context
+    fallback_info = {
+        'symbol': symbol,
+        'time': datetime.now().strftime('%H:%M:%S'),
+        'color': '#00d4aa'
+    }
+    return update_stock_status_indicator(fallback_info)
 
 # Run the server
 if __name__ == '__main__':
