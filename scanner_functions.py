@@ -369,14 +369,14 @@ class StockScanner:
             if filters.get('above_ema_26'):
                 filtered_df = filtered_df[filtered_df['above_ema_26'] == True]
             
-            # RSI range filter
+            # RSI range filter - only apply to stocks with valid RSI values
             if filters.get('rsi_min') is not None:
                 filtered_df = filtered_df[
-                    (filtered_df['rsi'].isna()) | (filtered_df['rsi'] >= filters['rsi_min'])
+                    (filtered_df['rsi'].notna()) & (filtered_df['rsi'] >= filters['rsi_min'])
                 ]
             if filters.get('rsi_max') is not None:
                 filtered_df = filtered_df[
-                    (filtered_df['rsi'].isna()) | (filtered_df['rsi'] <= filters['rsi_max'])
+                    (filtered_df['rsi'].notna()) & (filtered_df['rsi'] <= filters['rsi_max'])
                 ]
             
             # MACD signal filter
@@ -438,10 +438,9 @@ PRESET_FILTERS = {
     },
     'oversold_rsi': {
         'name': 'Oversold RSI Recovery',
-        'description': 'RSI between 30-40, potentially recovering from oversold',
+        'description': 'RSI 35 or below (oversold condition)',
         'filters': {
-            'rsi_min': 30,
-            'rsi_max': 40,
+            'rsi_max': 35,
             'min_volume': 1000000
         }
     },
@@ -460,15 +459,15 @@ PRESET_FILTERS = {
         'description': 'Stocks with unusually high volume',
         'filters': {
             'min_volume': 5000000,
-            'price_change_pct': 2  # At least 2% change
+            'change_min': 2  # At least 2% change
         }
     },
     'strong_gainers': {
         'name': 'Strong Daily Gainers',
-        'description': 'Stocks up more than 5% today',
+        'description': 'Stocks up more than 2% today',
         'filters': {
-            'change_min': 5,
-            'min_volume': 1000000
+            'change_min': 2,
+            'min_volume': 500000
         }
     }
 }
