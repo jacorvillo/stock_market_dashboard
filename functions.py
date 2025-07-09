@@ -784,11 +784,12 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         return [], error_msg, error_class
 
 def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands):
-    """Update the main chart with different visualization types and indicators"""
+    """Update the main chart with different visualization types and indicators
+    Returns: (figure, is_in_value_zone)"""
     try:
         if not data:
             print("No data available for main chart")
-            return go.Figure()
+            return go.Figure(), False
         
         df = pd.DataFrame(data)
         df['Date'] = pd.to_datetime(df['Date'])
@@ -881,19 +882,84 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         # Add EMA indicators if enabled AND NOT in intraday mode
         if 'show' in show_ema and not is_intraday:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
-            for i, period in enumerate(ema_periods):
-                ema_col = f'EMA_{period}'
-                if ema_col in df.columns:
-                    color = colors[i % len(colors)]
+            
+            # First, add the Value Zone fill if we have exactly 2 EMAs
+            if len(ema_periods) >= 2:
+                ema1_col = f'EMA_{ema_periods[0]}'
+                ema2_col = f'EMA_{ema_periods[1]}'
+                
+                if ema1_col in df.columns and ema2_col in df.columns:
+                    # Add the first EMA line (will be used as the base for the fill)
                     fig.add_trace(
                         go.Scatter(
                             x=df['Date'],
-                            y=df[ema_col],
+                            y=df[ema1_col],
                             mode='lines',
-                            name=f'EMA {period}',
-                            line=dict(color=color, width=2)
+                            name=f'EMA {ema_periods[0]}',
+                            line=dict(color=colors[0], width=2),
+                            showlegend=True
                         )
                     )
+                    
+                    # Add the second EMA line with fill to the first EMA (creates Value Zone)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df[ema2_col],
+                            mode='lines',
+                            name=f'EMA {ema_periods[1]}',
+                            line=dict(color=colors[1], width=2),
+                            fill='tonexty',  # Fill to the previous trace (first EMA)
+                            fillcolor='rgba(102, 178, 255, 0.15)',  # Light blue with 15% opacity
+                            showlegend=True
+                        )
+                    )
+                    
+                    # Add remaining EMAs (if any) without fill
+                    for i in range(2, len(ema_periods)):
+                        period = ema_periods[i]
+                        ema_col = f'EMA_{period}'
+                        if ema_col in df.columns:
+                            color = colors[i % len(colors)]
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=df['Date'],
+                                    y=df[ema_col],
+                                    mode='lines',
+                                    name=f'EMA {period}',
+                                    line=dict(color=color, width=2)
+                                )
+                            )
+                else:
+                    # Fallback: plot EMAs normally if columns don't exist
+                    for i, period in enumerate(ema_periods):
+                        ema_col = f'EMA_{period}'
+                        if ema_col in df.columns:
+                            color = colors[i % len(colors)]
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=df['Date'],
+                                    y=df[ema_col],
+                                    mode='lines',
+                                    name=f'EMA {period}',
+                                    line=dict(color=color, width=2)
+                                )
+                            )
+            else:
+                # If less than 2 EMAs, plot them normally
+                for i, period in enumerate(ema_periods):
+                    ema_col = f'EMA_{period}'
+                    if ema_col in df.columns:
+                        color = colors[i % len(colors)]
+                        fig.add_trace(
+                            go.Scatter(
+                                x=df['Date'],
+                                y=df[ema_col],
+                                mode='lines',
+                                name=f'EMA {period}',
+                                line=dict(color=color, width=2)
+                            )
+                        )
         
         # Add ATR bands if selected
         if atr_bands and 'ATR' in df.columns:
@@ -1048,7 +1114,12 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         # Just apply styling configs here
         fig.update_yaxes(**yaxis_config)
         
-        return fig
+        # Check Value Zone status for EMAs
+        is_in_value_zone = False
+        if 'show' in show_ema and not is_intraday and len(ema_periods) >= 2:
+            is_in_value_zone = check_value_zone_status(df, ema_periods)
+        
+        return fig, is_in_value_zone
 
     except Exception as e:
         print(f"Error in update_main_chart: {e}")
@@ -1068,7 +1139,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             paper_bgcolor='#1e1e1e',
             plot_bgcolor='#1e1e1e'
         )
-        return fig
+        return fig, False
 
 def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_comparison=None):
     """Update the consolidated chart below main chart"""
@@ -1437,21 +1508,94 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # Add EMA indicators if enabled AND NOT in intraday mode
         if 'show' in show_ema and not is_intraday:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
-            for i, period in enumerate(ema_periods):
-                ema_col = f'EMA_{period}'
-                if ema_col in df.columns:
-                    color = colors[i % len(colors)]
+            
+            # First, add the Value Zone fill if we have exactly 2 EMAs
+            if len(ema_periods) >= 2:
+                ema1_col = f'EMA_{ema_periods[0]}'
+                ema2_col = f'EMA_{ema_periods[1]}'
+                
+                if ema1_col in df.columns and ema2_col in df.columns:
+                    # Add the first EMA line (will be used as the base for the fill)
                     fig.add_trace(
                         go.Scatter(
                             x=df['Date'],
-                            y=df[ema_col],
+                            y=df[ema1_col],
                             mode='lines',
-                            name=f'EMA {period}',
-                            line=dict(color=color, width=1.5),
-                            opacity=0.8
+                            name=f'EMA {ema_periods[0]}',
+                            line=dict(color=colors[0], width=1.5),
+                            opacity=0.8,
+                            showlegend=True
                         ),
                         row=1, col=1
                     )
+                    
+                    # Add the second EMA line with fill to the first EMA (creates Value Zone)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df[ema2_col],
+                            mode='lines',
+                            name=f'EMA {ema_periods[1]}',
+                            line=dict(color=colors[1], width=1.5),
+                            fill='tonexty',  # Fill to the previous trace (first EMA)
+                            fillcolor='rgba(102, 178, 255, 0.15)',  # Light blue with 15% opacity
+                            opacity=0.8,
+                            showlegend=True
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Add remaining EMAs (if any) without fill
+                    for i in range(2, len(ema_periods)):
+                        period = ema_periods[i]
+                        ema_col = f'EMA_{period}'
+                        if ema_col in df.columns:
+                            color = colors[i % len(colors)]
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=df['Date'],
+                                    y=df[ema_col],
+                                    mode='lines',
+                                    name=f'EMA {period}',
+                                    line=dict(color=color, width=1.5),
+                                    opacity=0.8
+                                ),
+                                row=1, col=1
+                            )
+                else:
+                    # Fallback: plot EMAs normally if columns don't exist
+                    for i, period in enumerate(ema_periods):
+                        ema_col = f'EMA_{period}'
+                        if ema_col in df.columns:
+                            color = colors[i % len(colors)]
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=df['Date'],
+                                    y=df[ema_col],
+                                    mode='lines',
+                                    name=f'EMA {period}',
+                                    line=dict(color=color, width=1.5),
+                                    opacity=0.8
+                                ),
+                                row=1, col=1
+                            )
+            else:
+                # If less than 2 EMAs, plot them normally
+                for i, period in enumerate(ema_periods):
+                    ema_col = f'EMA_{period}'
+                    if ema_col in df.columns:
+                        color = colors[i % len(colors)]
+                        fig.add_trace(
+                            go.Scatter(
+                                x=df['Date'],
+                                y=df[ema_col],
+                                mode='lines',
+                                name=f'EMA {period}',
+                                line=dict(color=color, width=1.5),
+                                opacity=0.8
+                            ),
+                            row=1, col=1
+                        )
         
         # Add ATR bands if enabled
         if atr_bands and 'ATR' in df.columns:
@@ -1598,6 +1742,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         fig.update_xaxes(
             gridcolor='#444', 
             zerolinecolor='#444',
+
             rangebreaks=[
                 # Don't show weekends (Saturday=6, Sunday=0)
                 dict(bounds=["sat", "mon"])
@@ -1943,6 +2088,26 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             # Set y-axis title for ADX/DMI
             fig.update_yaxes(title_text="ADX/DMI", row=2, col=1)
         
+        # Check Value Zone status and add annotation if applicable
+        is_in_value_zone = False
+        if 'show' in show_ema and not is_intraday and len(ema_periods) >= 2:
+            is_in_value_zone = check_value_zone_status(df, ema_periods)
+            
+            if is_in_value_zone:
+                # Add a subtle annotation below the chart indicating the stock is in the Value Zone
+                fig.add_annotation(
+                    text="✓ This stock is in the Value Zone",
+                    xref="paper", yref="paper",
+                    x=0.02, y=0.02,  # Bottom left corner
+                    xanchor='left', yanchor='bottom',
+                    showarrow=False,
+                    font=dict(size=12, color="#00d4aa", family="Arial"),
+                    bgcolor="rgba(0, 212, 170, 0.1)",
+                    bordercolor="#00d4aa",
+                    borderwidth=1,
+                    borderpad=4
+                )
+        
         return fig
         
     except Exception as e:
@@ -1983,3 +2148,37 @@ def update_indicator_options(timeframe):
         ]
     
     return ema_style, ema_style, lower_options
+
+def check_value_zone_status(df, ema_periods):
+    """Check if the current stock price is in the Value Zone (between two EMAs)"""
+    try:
+        if len(df) == 0 or len(ema_periods) < 2:
+            return False
+        
+        # Get the last (most recent) price
+        current_price = df['Close'].iloc[-1]
+        
+        # Get the two EMA values (we'll use the first two EMA periods)
+        ema1_col = f'EMA_{ema_periods[0]}'
+        ema2_col = f'EMA_{ema_periods[1]}'
+        
+        if ema1_col not in df.columns or ema2_col not in df.columns:
+            return False
+        
+        # Get the last EMA values
+        ema1_value = df[ema1_col].iloc[-1]
+        ema2_value = df[ema2_col].iloc[-1]
+        
+        # Check if price is between the two EMAs
+        ema_min = min(ema1_value, ema2_value)
+        ema_max = max(ema1_value, ema2_value)
+        
+        is_in_zone = ema_min <= current_price <= ema_max
+        
+        print(f"Value Zone check: Price=${current_price:.2f}, EMA1=${ema1_value:.2f}, EMA2=${ema2_value:.2f}, In Zone={is_in_zone}")
+        
+        return is_in_zone
+        
+    except Exception as e:
+        print(f"Error checking Value Zone status: {e}")
+        return False
