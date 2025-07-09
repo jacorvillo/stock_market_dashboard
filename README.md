@@ -1,6 +1,8 @@
 # 📈 Stock Market Dashboard
 
-A free Python Dash toolbox for real-time stock market visualization with indicators. Based on the book The New Trading for a Living by Dr. Alexander Elder
+A free Python Dash toolbox for real-time stock market visualization with indicators. Based on the book _The New Trading for a Living_ by Dr. Alexander Elder
+
+![Stock Dashboard Screenshot](https://github.com/jacorvillo/stock_market_dashboard/blob/main/image.png)
 
 ## Features
 
@@ -24,11 +26,11 @@ A free Python Dash toolbox for real-time stock market visualization with indicat
 > *Timeframe can be changed for these indicators
 
 
-### Requirements
+## Requirements
 - Python 3.8+
 - Internet connection for live data
 
-### Installation and Usage
+## Installation and Usage
 ```bash
 # Clone or download the project
 cd stock_test
@@ -41,7 +43,7 @@ python app.py
 ```
 Open `http://localhost:8050` in your browser to view the dashboard.
 
-### Notes
+## Notes
 - This is for educational purposes only, not financial advice
 - Data may have slight delays during high market volatility
 - Some symbols may not be available or may require subscription data
