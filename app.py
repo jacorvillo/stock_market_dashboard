@@ -285,17 +285,211 @@ app.layout = dbc.Container([
                     # Tabs for sidebar content
                     dbc.Tabs(
                         id="sidebar-tabs",
-                        active_tab="stock-search-tab",
+                        active_tab="scanner-tab",
                         children=[
-                            # Stock Search Tab
+                            # Stock Scanner Tab
                             dbc.Tab(
-                                label="Stock Search",
+                                label="🔍 Scanner",
+                                tab_id="scanner-tab",
+                                children=[
+                                    html.Div(style={'padding': '15px 0'}, children=[
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H4("🔍 Scanner", className="text-center", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                # Quick Preset Scans
+                                                dbc.Label("🚀 Quick Scans:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Button("Value Zone", id="preset-value-zone", size="sm", color="info", outline=True, className="mb-2 w-100")
+                                                    ], width=6),
+                                                    dbc.Col([
+                                                        dbc.Button("Oversold RSI", id="preset-oversold", size="sm", color="warning", outline=True, className="mb-2 w-100")
+                                                    ], width=6)
+                                                ]),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Button("High Volume", id="preset-volume", size="sm", color="success", outline=True, className="mb-2 w-100")
+                                                    ], width=6),
+                                                    dbc.Col([
+                                                        dbc.Button("Random 25", id="preset-random", size="sm", color="secondary", outline=True, className="mb-2 w-100")
+                                                    ], width=6)
+                                                ], className="mb-3"),
+                                                
+                                                html.Hr(style={'borderColor': '#333'}),
+                                                
+                                                # Expandable Filter Sections
+                                                dbc.Accordion([
+                                                    dbc.AccordionItem([
+                                                        # Elder's Core Filters
+                                                        dbc.Checklist(
+                                                            id='elder-filters',
+                                                            options=[
+                                                                {'label': '📊 In Value Zone (13-26 EMA)', 'value': 'value_zone'},
+                                                                {'label': '📈 Bullish EMA Alignment', 'value': 'ema_bullish'},
+                                                                {'label': '💪 Bullish MACD Signal', 'value': 'macd_bullish'},
+                                                                {'label': '📊 Above 13 EMA', 'value': 'above_ema_13'}
+                                                            ],
+                                                            value=[],
+                                                            style={'color': '#fff'}
+                                                        )
+                                                    ], title="🎯 Elder's Methods", item_id="elder-section"),
+                                                    
+                                                    dbc.AccordionItem([
+                                                        # RSI Range Preset
+                                                        dbc.Label("RSI Range:", style={'color': '#fff', 'marginBottom': '10px'}),
+                                                        dbc.Select(
+                                                            id='rsi-preset',
+                                                            options=[
+                                                                {'label': 'Any RSI', 'value': 'any'},
+                                                                {'label': 'Oversold (< 30)', 'value': 'oversold'},
+                                                                {'label': 'Recovery (30-40)', 'value': 'recovery'},
+                                                                {'label': 'Neutral (40-60)', 'value': 'neutral'},
+                                                                {'label': 'Overbought Setup (60-70)', 'value': 'setup'},
+                                                                {'label': 'Overbought (> 70)', 'value': 'overbought'}
+                                                            ],
+                                                            value='any',
+                                                            className="mb-3"
+                                                        )
+                                                    ], title="📊 Momentum Filters", item_id="momentum-section"),
+                                                    
+                                                    dbc.AccordionItem([
+                                                        # Volume Presets
+                                                        dbc.Label("Minimum Volume:", style={'color': '#fff', 'marginBottom': '10px'}),
+                                                        dbc.Select(
+                                                            id='volume-preset',
+                                                            options=[
+                                                                {'label': 'Any Volume', 'value': 0},
+                                                                {'label': 'Light Trading (> 100K)', 'value': 100000},
+                                                                {'label': 'Moderate Trading (> 500K)', 'value': 500000},
+                                                                {'label': 'Active Trading (> 1M)', 'value': 1000000},
+                                                                {'label': 'High Volume (> 5M)', 'value': 5000000}
+                                                            ],
+                                                            value=500000,
+                                                            className="mb-3"
+                                                        )
+                                                    ], title="📊 Volume & Activity", item_id="volume-section"),
+                                                    
+                                                    dbc.AccordionItem([
+                                                        # Price Range Presets
+                                                        dbc.Label("Price Range:", style={'color': '#fff', 'marginBottom': '10px'}),
+                                                        dbc.Select(
+                                                            id='price-preset',
+                                                            options=[
+                                                                {'label': 'Any Price', 'value': 'any'},
+                                                                {'label': 'Penny Stocks (< $5)', 'value': 'penny'},
+                                                                {'label': 'Low Price ($5-$20)', 'value': 'low'},
+                                                                {'label': 'Medium Price ($20-$100)', 'value': 'medium'},
+                                                                {'label': 'High Price ($100-$500)', 'value': 'high'},
+                                                                {'label': 'Premium Stocks (> $500)', 'value': 'premium'}
+                                                            ],
+                                                            value='any',
+                                                            className="mb-3"
+                                                        ),
+                                                        
+                                                        # Daily Change Filter
+                                                        dbc.Label("Daily Price Change:", style={'color': '#fff', 'marginBottom': '10px'}),
+                                                        dbc.Select(
+                                                            id='change-preset',
+                                                            options=[
+                                                                {'label': 'Any Change', 'value': 'any'},
+                                                                {'label': 'Strong Gainers (> +5%)', 'value': 'strong_up'},
+                                                                {'label': 'Moderate Gainers (+2% to +5%)', 'value': 'moderate_up'},
+                                                                {'label': 'Small Moves (-2% to +2%)', 'value': 'stable'},
+                                                                {'label': 'Moderate Decliners (-5% to -2%)', 'value': 'moderate_down'},
+                                                                {'label': 'Strong Decliners (< -5%)', 'value': 'strong_down'}
+                                                            ],
+                                                            value='any'
+                                                        )
+                                                    ], title="💰 Price & Change Filters", item_id="price-section"),
+                                                    
+                                                    dbc.AccordionItem([
+                                                        # Stock Universe Selection
+                                                        dbc.Label("Stock Universe:", style={'color': '#fff', 'marginBottom': '10px'}),
+                                                        dbc.Checklist(
+                                                            id='universe-selection',
+                                                            options=[
+                                                                {'label': '📈 S&P 500', 'value': 'sp500'},
+                                                                {'label': '🚀 NASDAQ 100', 'value': 'nasdaq100'},
+                                                                {'label': '🏛️ Dow Jones 30', 'value': 'dow30'},
+                                                                {'label': '📊 Popular ETFs', 'value': 'etfs'},
+                                                                {'label': '🌱 Growth Stocks', 'value': 'growth'},
+                                                                {'label': '💰 Dividend Stocks', 'value': 'dividend'}
+                                                            ],
+                                                            value=['sp500'],
+                                                            style={'color': '#fff'},
+                                                            className="mb-3"
+                                                        ),
+                                                        
+                                                        # Result Options
+                                                        dbc.Label("Scan Options:", style={'color': '#fff', 'marginBottom': '10px'}),
+                                                        dbc.Row([
+                                                            dbc.Col([
+                                                                dbc.Label("Max Results:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                                dbc.Select(
+                                                                    id='result-limit',
+                                                                    options=[
+                                                                        {'label': 'Top 10', 'value': 10},
+                                                                        {'label': 'Top 25', 'value': 25},
+                                                                        {'label': 'Top 50', 'value': 50},
+                                                                        {'label': 'Top 100', 'value': 100}
+                                                                    ],
+                                                                    value=25,
+                                                                    size='sm'
+                                                                )
+                                                            ], width=6),
+                                                            dbc.Col([
+                                                                dbc.Label("Sort By:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                                dbc.Select(
+                                                                    id='sort-by',
+                                                                    options=[
+                                                                        {'label': 'Volume', 'value': 'volume'},
+                                                                        {'label': 'Price Change %', 'value': 'change'},
+                                                                        {'label': 'RSI', 'value': 'rsi'},
+                                                                        {'label': 'Random', 'value': 'random'}
+                                                                    ],
+                                                                    value='volume',
+                                                                    size='sm'
+                                                                )
+                                                            ], width=6)
+                                                        ])
+                                                    ], title="🎯 Universe & Results", item_id="universe-section")
+                                                ], start_collapsed=True, className="mb-3"),
+                                                
+                                                # Scan Button
+                                                dbc.Button(
+                                                    [
+                                                        html.Span("🔍", style={'marginRight': '8px', 'fontSize': '18px'}),
+                                                        html.Span("Start Scan", style={'color': '#000', 'fontWeight': 'bold'})
+                                                    ],
+                                                    id="start-scan-button",
+                                                    color="success",
+                                                    size="lg",
+                                                    className="w-100 mb-3",
+                                                    style={
+                                                        'background': 'linear-gradient(45deg, #00d4aa, #00ff88)',
+                                                        'border': 'none',
+                                                        'fontWeight': 'bold'
+                                                    },
+                                                    n_clicks=0
+                                                ),
+                                                
+                                                # Scan Status
+                                                html.Div(id="scan-status", className="text-center mb-3"),
+                                                
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
+                                    ])
+                                ]
+                            ),
+                            # Stock Search Tab (Analysis)
+                            dbc.Tab(
+                                label="🛠️ Analysis",
                                 tab_id="stock-search-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
                                         # Stock Search Card
                                         dbc.Card([
-                                            dbc.CardHeader(html.H4("🔍 Stock Search", className="text-center", style={'color': '#00d4aa'})),
+                                            dbc.CardHeader(html.H4("🛠️ Analysis", className="text-center", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
                                                 # Stock Symbol Input Section
                                                 dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
@@ -517,12 +711,12 @@ app.layout = dbc.Container([
                             ),
                             # Insights Tab
                             dbc.Tab(
-                                label="Insights",
+                                label="💡 Insights",
                                 tab_id="insights-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
                                         dbc.Card([
-                                            dbc.CardHeader(html.H4("💡 Trading Insights", className="text-center", style={'color': '#00d4aa'})),
+                                            dbc.CardHeader(html.H4("💡 Insights", className="text-center", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
                                                 # Current Stock Display (read-only)
                                                 dbc.Label("Analyzing Current Stock:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
@@ -616,207 +810,6 @@ app.layout = dbc.Container([
                                                     style={'marginTop': '20px'},
                                                     children=[]
                                                 )
-                                            ], style={'backgroundColor': '#000000'})
-                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
-                                    ])
-                                ]
-                            ),
-                            # Stock Scanner Tab
-                            dbc.Tab(
-                                label="Stock Scanner",
-                                tab_id="scanner-tab",
-                                children=[
-                                    html.Div(style={'padding': '15px 0'}, children=[
-                                        dbc.Card([
-                                            dbc.CardHeader(html.H4("🔍 Stock Scanner", className="text-center", style={'color': '#00d4aa'})),
-                                            dbc.CardBody([
-                                                # Quick Preset Scans
-                                                dbc.Label("🚀 Quick Scans:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
-                                                dbc.Row([
-                                                    dbc.Col([
-                                                        dbc.Button("Value Zone", id="preset-value-zone", size="sm", color="info", outline=True, className="mb-2 w-100")
-                                                    ], width=6),
-                                                    dbc.Col([
-                                                        dbc.Button("Oversold RSI", id="preset-oversold", size="sm", color="warning", outline=True, className="mb-2 w-100")
-                                                    ], width=6)
-                                                ]),
-                                                dbc.Row([
-                                                    dbc.Col([
-                                                        dbc.Button("High Volume", id="preset-volume", size="sm", color="success", outline=True, className="mb-2 w-100")
-                                                    ], width=6),
-                                                    dbc.Col([
-                                                        dbc.Button("Random 25", id="preset-random", size="sm", color="secondary", outline=True, className="mb-2 w-100")
-                                                    ], width=6)
-                                                ], className="mb-3"),
-                                                
-                                                html.Hr(style={'borderColor': '#333'}),
-                                                
-                                                # Expandable Filter Sections
-                                                dbc.Accordion([
-                                                    dbc.AccordionItem([
-                                                        # Elder's Core Filters
-                                                        dbc.Checklist(
-                                                            id='elder-filters',
-                                                            options=[
-                                                                {'label': '📊 In Value Zone (13-26 EMA)', 'value': 'value_zone'},
-                                                                {'label': '📈 Bullish EMA Alignment', 'value': 'ema_bullish'},
-                                                                {'label': '💪 Bullish MACD Signal', 'value': 'macd_bullish'},
-                                                                {'label': '📊 Above 13 EMA', 'value': 'above_ema_13'}
-                                                            ],
-                                                            value=[],
-                                                            style={'color': '#fff'}
-                                                        )
-                                                    ], title="🎯 Elder's Methods", item_id="elder-section"),
-                                                    
-                                                    dbc.AccordionItem([
-                                                        # RSI Range Preset
-                                                        dbc.Label("RSI Range:", style={'color': '#fff', 'marginBottom': '10px'}),
-                                                        dbc.Select(
-                                                            id='rsi-preset',
-                                                            options=[
-                                                                {'label': 'Any RSI', 'value': 'any'},
-                                                                {'label': 'Oversold (< 30)', 'value': 'oversold'},
-                                                                {'label': 'Recovery (30-40)', 'value': 'recovery'},
-                                                                {'label': 'Neutral (40-60)', 'value': 'neutral'},
-                                                                {'label': 'Overbought Setup (60-70)', 'value': 'setup'},
-                                                                {'label': 'Overbought (> 70)', 'value': 'overbought'}
-                                                            ],
-                                                            value='any',
-                                                            className="mb-3"
-                                                        )
-                                                    ], title="📊 Momentum Filters", item_id="momentum-section"),
-                                                    
-                                                    dbc.AccordionItem([
-                                                        # Volume Presets
-                                                        dbc.Label("Minimum Volume:", style={'color': '#fff', 'marginBottom': '10px'}),
-                                                        dbc.Select(
-                                                            id='volume-preset',
-                                                            options=[
-                                                                {'label': 'Any Volume', 'value': 0},
-                                                                {'label': 'Light Trading (> 100K)', 'value': 100000},
-                                                                {'label': 'Moderate Trading (> 500K)', 'value': 500000},
-                                                                {'label': 'Active Trading (> 1M)', 'value': 1000000},
-                                                                {'label': 'High Volume (> 5M)', 'value': 5000000}
-                                                            ],
-                                                            value=500000,
-                                                            className="mb-3"
-                                                        )
-                                                    ], title="📊 Volume & Activity", item_id="volume-section"),
-                                                    
-                                                    dbc.AccordionItem([
-                                                        # Price Range Presets
-                                                        dbc.Label("Price Range:", style={'color': '#fff', 'marginBottom': '10px'}),
-                                                        dbc.Select(
-                                                            id='price-preset',
-                                                            options=[
-                                                                {'label': 'Any Price', 'value': 'any'},
-                                                                {'label': 'Penny Stocks (< $5)', 'value': 'penny'},
-                                                                {'label': 'Low Price ($5-$20)', 'value': 'low'},
-                                                                {'label': 'Medium Price ($20-$100)', 'value': 'medium'},
-                                                                {'label': 'High Price ($100-$500)', 'value': 'high'},
-                                                                {'label': 'Premium Stocks (> $500)', 'value': 'premium'}
-                                                            ],
-                                                            value='any',
-                                                            className="mb-3"
-                                                        ),
-                                                        
-                                                        # Daily Change Filter
-                                                        dbc.Label("Daily Price Change:", style={'color': '#fff', 'marginBottom': '10px'}),
-                                                        dbc.Select(
-                                                            id='change-preset',
-                                                            options=[
-                                                                {'label': 'Any Change', 'value': 'any'},
-                                                                {'label': 'Strong Gainers (> +5%)', 'value': 'strong_up'},
-                                                                {'label': 'Moderate Gainers (+2% to +5%)', 'value': 'moderate_up'},
-                                                                {'label': 'Small Moves (-2% to +2%)', 'value': 'stable'},
-                                                                {'label': 'Moderate Decliners (-5% to -2%)', 'value': 'moderate_down'},
-                                                                {'label': 'Strong Decliners (< -5%)', 'value': 'strong_down'}
-                                                            ],
-                                                            value='any'
-                                                        )
-                                                    ], title="💰 Price & Change Filters", item_id="price-section"),
-                                                    
-                                                    dbc.AccordionItem([
-                                                        # Stock Universe Selection
-                                                        dbc.Label("Stock Universe:", style={'color': '#fff', 'marginBottom': '10px'}),
-                                                        dbc.Checklist(
-                                                            id='universe-selection',
-                                                            options=[
-                                                                {'label': '📈 S&P 500', 'value': 'sp500'},
-                                                                {'label': '🚀 NASDAQ 100', 'value': 'nasdaq100'},
-                                                                {'label': '🏛️ Dow Jones 30', 'value': 'dow30'},
-                                                                {'label': '📊 Popular ETFs', 'value': 'etfs'},
-                                                                {'label': '🌱 Growth Stocks', 'value': 'growth'},
-                                                                {'label': '💰 Dividend Stocks', 'value': 'dividend'}
-                                                            ],
-                                                            value=['sp500'],
-                                                            style={'color': '#fff'},
-                                                            className="mb-3"
-                                                        ),
-                                                        
-                                                        # Result Options
-                                                        dbc.Label("Scan Options:", style={'color': '#fff', 'marginBottom': '10px'}),
-                                                        dbc.Row([
-                                                            dbc.Col([
-                                                                dbc.Label("Max Results:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                                dbc.Select(
-                                                                    id='result-limit',
-                                                                    options=[
-                                                                        {'label': 'Top 10', 'value': 10},
-                                                                        {'label': 'Top 25', 'value': 25},
-                                                                        {'label': 'Top 50', 'value': 50},
-                                                                        {'label': 'Top 100', 'value': 100}
-                                                                    ],
-                                                                    value=25,
-                                                                    size='sm'
-                                                                )
-                                                            ], width=6),
-                                                            dbc.Col([
-                                                                dbc.Label("Sort By:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                                dbc.Select(
-                                                                    id='sort-by',
-                                                                    options=[
-                                                                        {'label': 'Volume', 'value': 'volume'},
-                                                                        {'label': 'Price Change %', 'value': 'change'},
-                                                                        {'label': 'RSI', 'value': 'rsi'},
-                                                                        {'label': 'Random', 'value': 'random'}
-                                                                    ],
-                                                                    value='volume',
-                                                                    size='sm'
-                                                                )
-                                                            ], width=6)
-                                                        ])
-                                                    ], title="🎯 Universe & Results", item_id="universe-section")
-                                                ], start_collapsed=True, className="mb-3"),
-                                                
-                                                # Scan Button
-                                                dbc.Button(
-                                                    [
-                                                        html.Span("🔍", style={'marginRight': '8px', 'fontSize': '18px'}),
-                                                        html.Span("Start Scan", style={'color': '#000', 'fontWeight': 'bold'})
-                                                    ],
-                                                    id="start-scan-button",
-                                                    color="success",
-                                                    size="lg",
-                                                    className="w-100 mb-3",
-                                                    style={
-                                                        'background': 'linear-gradient(45deg, #00d4aa, #00ff88)',
-                                                        'border': 'none',
-                                                        'fontWeight': 'bold'
-                                                    },
-                                                    n_clicks=0
-                                                ),
-                                                
-                                                # Scan Status
-                                                html.Div(id="scan-status", className="text-center mb-3"),
-                                                
-                                                # Info message about where results appear
-                                                dbc.Alert([
-                                                    html.P([
-                                                        "📊 Scanner results will appear in the main chart area →"
-                                                    ], style={'margin': '0', 'fontSize': '12px'})
-                                                ], color="info", className="mt-3")
-                                                
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                                     ])
