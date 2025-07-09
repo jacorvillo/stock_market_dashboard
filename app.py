@@ -35,6 +35,9 @@ from functions import (
 # Import scanner functions
 from scanner_functions import StockScanner, get_preset_filter, get_available_presets
 
+# Import insights functions
+from insights_functions import TechnicalInsights, generate_insights_summary
+
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -719,19 +722,64 @@ app.layout = dbc.Container([
                                             dbc.CardHeader(html.H4("💡 Insights", className="text-center", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
                                                 # Current Stock Display (read-only)
-                                                dbc.Label("Analyzing Current Stock:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Label("Stock Symbol to Analyze:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Input(
+                                                            id='insights-stock-input',
+                                                            placeholder="Enter any US stock symbol (e.g., AAPL, TSLA, SPY)",
+                                                            value="SPY",
+                                                            type="text",
+                                                            style={
+                                                                'backgroundColor': '#000000', 
+                                                                'color': '#fff',
+                                                                'border': '2px solid #00d4aa',
+                                                                'borderRadius': '8px',
+                                                                'padding': '12px 16px',
+                                                                'fontSize': '16px',
+                                                                'fontWeight': '500',
+                                                                'textAlign': 'center'
+                                                            },
+                                                            className="text-uppercase"
+                                                        )
+                                                    ], width=8),
+                                                    dbc.Col([
+                                                        dbc.Button(
+                                                            [
+                                                                html.Span("🔄", style={'marginRight': '5px', 'fontSize': '14px'}),
+                                                                html.Span("Update", style={'fontWeight': 'bold', 'fontSize': '14px'})
+                                                            ],
+                                                            id="update-insights-stock-button",
+                                                            color="info",
+                                                            outline=True,
+                                                            size="sm",
+                                                            className="w-100",
+                                                            style={
+                                                                'borderColor': '#00d4aa',
+                                                                'color': '#00d4aa',
+                                                                'borderRadius': '8px',
+                                                                'padding': '12px 8px',
+                                                                'fontWeight': 'bold',
+                                                                'transition': 'all 0.3s ease'
+                                                            }
+                                                        )
+                                                    ], width=4)
+                                                ], className="mb-3"),
                                                 html.Div(
-                                                    id='insights-current-stock',
+                                                    id='insights-current-stock-display',
                                                     style={
-                                                        'backgroundColor': '#000000',
-                                                        'border': '2px solid #00d4aa',
-                                                        'borderRadius': '8px',
-                                                        'padding': '12px 16px',
+                                                        'backgroundColor': '#1a1a1a',
+                                                        'border': '1px solid #333',
+                                                        'borderRadius': '6px',
+                                                        'padding': '8px 12px',
                                                         'marginBottom': '20px',
-                                                        'textAlign': 'center'
+                                                        'textAlign': 'center',
+                                                        'fontSize': '12px',
+                                                        'color': '#ccc'
                                                     },
                                                     children=[
-                                                        html.H5("SPY", style={'color': '#00d4aa', 'margin': '0', 'fontWeight': 'bold'})
+                                                        html.Span("Currently analyzing: "),
+                                                        html.Strong("SPY", style={'color': '#00d4aa'})
                                                     ]
                                                 ),
                                                 
@@ -1237,82 +1285,271 @@ def update_status_indicator_callback(symbol):
 
 # ========== INSIGHTS TAB CALLBACKS ==========
 
-# Callback to update the current stock display in Insights tab
-@callback(
-    Output('insights-current-stock', 'children'),
-    [Input('current-symbol-store', 'data')]
-)
-def update_insights_current_stock(current_symbol):
-    """Update the current stock display in the Insights tab"""
-    symbol = current_symbol or 'SPY'
-    return html.H5(symbol, style={'color': '#00d4aa', 'margin': '0', 'fontWeight': 'bold'})
-
 # Callback to handle insights analysis
 @callback(
     [Output('insights-status', 'children'),
-     Output('insights-results', 'children')],
-    [Input('run-insights-button', 'n_clicks')],
-    [State('current-symbol-store', 'data'),
+     Output('insights-results', 'children'),
+     Output('insights-current-stock-display', 'children')],
+    [Input('run-insights-button', 'n_clicks'),
+     Input('update-insights-stock-button', 'n_clicks')],
+    [State('insights-stock-input', 'value'),
      State('insights-trading-style', 'value')],
     prevent_initial_call=True
 )
-def run_insights_analysis(n_clicks, current_symbol, trading_style):
+def run_insights_analysis(run_clicks, update_clicks, insights_symbol, trading_style):
     """Handle the insights analysis when the button is clicked"""
-    if not n_clicks:
+    ctx = dash.callback_context
+    if not ctx.triggered:
         raise PreventUpdate
     
-    # Use current symbol or fallback to SPY
-    symbol = current_symbol or 'SPY'
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
-    # Validate trading style
+    # Use insights symbol or fallback to SPY
+    symbol = (insights_symbol or 'SPY').strip().upper()
+    
+    # Update the display when Update button is clicked
+    if button_id == 'update-insights-stock-button':
+        updated_display = [
+            html.Span("Currently analyzing: "),
+            html.Strong(symbol, style={'color': '#00d4aa'})
+        ]
+        return [[], [], updated_display]
+    
+    # Validate trading style for analysis
     if not trading_style:
         return [
             dbc.Alert("Please select a trading style", color="warning", className="mt-2"),
-            []
+            [],
+            dash.no_update
         ]
     
-    # Show loading state
-    loading_status = html.Div([
-        dbc.Spinner(size="sm", color="success"),
-        html.Span(" Analyzing " + symbol + " for " + trading_style.replace('_', ' ').title() + "...", 
-                 style={'marginLeft': '10px', 'color': '#00d4aa'})
-    ])
+    try:
+        # Show loading state first
+        loading_status = html.Div([
+            dbc.Spinner(size="sm", color="success"),
+            html.Span(f" Analyzing {symbol} for {trading_style.replace('_', ' ').title()}...", 
+                     style={'marginLeft': '10px', 'color': '#00d4aa'})
+        ])
+        
+        # Get current stock data with all indicators
+        # Use the same timeframe as the main chart (default to 6M for comprehensive analysis)
+        timeframe = '6mo'  # Good balance of data and relevance for insights
+        
+        # Fetch stock data with indicators
+        stock_data_result = get_stock_data(symbol, timeframe)
+        
+        # Handle the tuple return from get_stock_data
+        if isinstance(stock_data_result, tuple):
+            stock_data = stock_data_result[0]  # Extract the DataFrame from the tuple
+        else:
+            stock_data = stock_data_result
+        
+        if stock_data is None or stock_data.empty:
+            return [
+                dbc.Alert(f"Unable to fetch data for {symbol}. Please try again.", color="danger", className="mt-2"),
+                []
+            ]
+        
+        # Calculate all indicators
+        df_with_indicators = calculate_indicators(
+            stock_data, 
+            ema_periods=[13, 26, 50],  # Standard EMA periods for analysis
+            macd_fast=12, 
+            macd_slow=26, 
+            macd_signal=9,
+            force_smoothing=2,
+            adx_period=14,
+            stoch_period=14,
+            rsi_period=14
+        )
+        
+        # Initialize insights analyzer
+        insights_analyzer = TechnicalInsights()
+        
+        # Generate comprehensive insights
+        insights_data = insights_analyzer.analyze_stock(df_with_indicators, symbol)
+        
+        # Generate formatted summary
+        insights_summary = generate_insights_summary(insights_data)
+        
+        # Create detailed results cards
+        results = create_insights_results_layout(insights_data, trading_style)
+        
+        # Return success status and results
+        success_status = html.Div([
+            html.Span("✅", style={'color': '#28a745', 'marginRight': '10px', 'fontSize': '16px'}),
+            html.Span(f"Analysis completed for {symbol}", style={'color': '#28a745'})
+        ])
+        
+        return [success_status, results, dash.no_update]
+        
+    except Exception as e:
+        # Handle any errors gracefully
+        error_status = html.Div([
+            html.Span("⚠️", style={'color': '#dc3545', 'marginRight': '10px', 'fontSize': '16px'}),
+            html.Span(f"Error analyzing {symbol}: {str(e)}", style={'color': '#dc3545'})
+        ])
+        
+        return [error_status, [], dash.no_update]
+
+
+def create_insights_results_layout(insights_data, trading_style):
+    """Create the detailed insights results layout"""
     
-    # For now, return a placeholder result
-    # This is where the actual AI analysis would be implemented
-    
-    # Get trading style display name and emoji
+    # Get trading style info
     style_info = {
         'day_trading': {'name': 'Day Trading', 'emoji': '⚡', 'color': '#ff6b6b'},
         'swing_trading': {'name': 'Swing Trading', 'emoji': '📊', 'color': '#4ecdc4'},
         'longterm_trading': {'name': 'Long-term Trading', 'emoji': '🌱', 'color': '#45b7d1'}
     }
-    
     current_style = style_info.get(trading_style, style_info['swing_trading'])
     
-    # Create placeholder results
-    results = dbc.Card([
+    # Main summary card
+    summary_card = dbc.Card([
         dbc.CardHeader([
             html.H5([
                 html.Span(current_style['emoji'], style={'marginRight': '10px', 'fontSize': '24px'}),
-                f"{current_style['name']} Analysis for {symbol}"
+                f"{current_style['name']} Analysis for {insights_data['symbol']}"
             ], style={'color': '#00d4aa', 'marginBottom': '0'})
         ]),
         dbc.CardBody([
+            # Overall sentiment and recommendation
             html.Div([
-                html.H6("Insights is under development! It will include:", style={'color': '#fff', 'marginBottom': '15px'}),
+                html.H6("📊 Overall Market Assessment", style={'color': '#fff', 'marginBottom': '15px'}),
+                html.Div([
+                    html.Strong("Sentiment: "), 
+                    html.Span(
+                        insights_data['overall_sentiment']['sentiment']['text'], 
+                        style={
+                            'marginLeft': '10px',
+                            'color': insights_data['overall_sentiment']['sentiment']['color'],
+                            'fontWeight': insights_data['overall_sentiment']['sentiment'].get('weight', 'normal')
+                        }
+                    ),
+                    html.Br(),
+                    html.Strong("Recommendation: "), 
+                    html.Span(
+                        insights_data['trading_recommendation']['recommendation']['text'], 
+                        style={
+                            'marginLeft': '10px',
+                            'color': insights_data['trading_recommendation']['recommendation']['color'],
+                            'fontWeight': insights_data['trading_recommendation']['recommendation'].get('weight', 'normal')
+                        }
+                    ),
+                    html.Br(),
+                    html.Strong("Risk Level: "), 
+                    html.Span(insights_data['trading_recommendation']['risk_level'], style={'marginLeft': '10px', 'color': '#ffc107'})
+                ], style={'color': '#ccc', 'marginBottom': '20px'})
+            ]),
+            
+            # Key insights row
+            dbc.Row([
+                dbc.Col([
+                    html.H6("🎯 Price Action", style={'color': '#00d4aa'}),
+                    html.P(insights_data['price_analysis']['summary'], style={'color': '#ccc'})
+                ], width=6),
+                dbc.Col([
+                    html.H6("📈 Volume Analysis", style={'color': '#00d4aa'}),
+                    html.P(insights_data['volume_analysis']['summary'], style={'color': '#ccc'})
+                ], width=6)
+            ]),
+            
+            # Action items
+            html.Div([
+                html.H6("💡 Action Items", style={'color': '#fff', 'marginBottom': '10px'}),
                 html.Ul([
-                    html.Li(f"📊 Technical indicators optimized for {current_style['name'].lower()}", style={'color': '#ccc', 'marginBottom': '5px'}),
-                    html.Li("🎯 Entry and exit signals", style={'color': '#ccc', 'marginBottom': '5px'}),
-                    html.Li("⚠️ Risk assessment and position sizing", style={'color': '#ccc', 'marginBottom': '5px'}),
-                    html.Li("📈 Market sentiment analysis", style={'color': '#ccc', 'marginBottom': '5px'}),
-                    html.Li("🔮 Price targets and stop-loss recommendations", style={'color': '#ccc', 'marginBottom': '5px'})
-                ], style={'listStyleType': 'none', 'paddingLeft': '0'})
+                    html.Li([
+                        html.Span(item['text'], style={'color': item['color']})
+                    ], style={'marginBottom': '5px'}) 
+                    for item in insights_data['trading_recommendation'].get('action_items', [])
+                ], style={'listStyleType': 'none', 'paddingLeft': '0'}) if insights_data['trading_recommendation'].get('action_items') else html.P("No specific action items at this time.", style={'color': '#ccc'})
             ])
         ])
-    ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mt-3")
+    ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3")
     
-    return [[], results]
+    # Detailed indicators cards
+    indicators_row = dbc.Row([
+        # Trend indicators
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader(html.H6("📊 Trend Indicators", style={'color': '#00d4aa', 'marginBottom': '0'})),
+                dbc.CardBody([
+                    create_indicator_display("MACD", insights_data['trend_analysis'].get('macd', {})),
+                    create_indicator_display("ADX/DMI", insights_data['trend_analysis'].get('adx_dmi', {}))
+                ])
+            ], style={'backgroundColor': '#1a1a1a', 'border': '1px solid #333'})
+        ], width=6),
+        
+        # Momentum indicators  
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader(html.H6("⚡ Momentum Indicators", style={'color': '#00d4aa', 'marginBottom': '0'})),
+                dbc.CardBody([
+                    create_indicator_display("RSI", insights_data['momentum_analysis'].get('rsi', {})),
+                    create_indicator_display("Stochastic", insights_data['momentum_analysis'].get('stochastic', {})),
+                    create_indicator_display("Force Index", insights_data['momentum_analysis'].get('force_index', {}))
+                ])
+            ], style={'backgroundColor': '#1a1a1a', 'border': '1px solid #333'})
+        ], width=6)
+    ], className="mb-3")
+    
+    # Risk and levels card
+    risk_levels_card = dbc.Card([
+        dbc.CardHeader(html.H6("⚠️ Risk Assessment & Key Levels", style={'color': '#00d4aa', 'marginBottom': '0'})),
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col([
+                    html.Strong("Risk Level: ", style={'color': '#fff'}),
+                    html.Span(
+                        insights_data['risk_assessment']['overall_risk']['text'],
+                        style={'color': insights_data['risk_assessment']['overall_risk']['color']}
+                    ),
+                    html.Br(),
+                    html.Strong("Risk Factors: ", style={'color': '#fff'}),
+                    html.Ul([
+                        html.Li([
+                            html.Span(factor['text'], style={'color': factor['color']})
+                        ]) 
+                        for factor in insights_data['risk_assessment'].get('risk_factors', [])
+                    ], style={'marginTop': '5px'}) if insights_data['risk_assessment'].get('risk_factors') else html.Span("No major risk factors detected", style={'color': '#28a745'})
+                ], width=6),
+                dbc.Col([
+                    html.Strong("Key Levels: ", style={'color': '#fff'}),
+                    html.P(insights_data['key_levels']['summary'], style={'color': '#ccc', 'marginTop': '5px'}),
+                    html.Strong("Divergences: ", style={'color': '#fff'}),
+                    html.P(insights_data['divergence_analysis']['summary'], style={'color': '#ccc', 'marginTop': '5px'})
+                ], width=6)
+            ])
+        ])
+    ], style={'backgroundColor': '#1a1a1a', 'border': '1px solid #333'}, className="mb-3")
+    
+    return [summary_card, indicators_row, risk_levels_card]
+
+
+def create_indicator_display(name, data):
+    """Create a formatted display for an individual indicator"""
+    if not data:
+        return html.Div([
+            html.Strong(f"{name}: ", style={'color': '#fff'}),
+            html.Span("No data available", style={'color': '#666'})
+        ], style={'marginBottom': '10px'})
+    
+    # Handle signal display (could be dict or string)
+    signal_element = ""
+    if isinstance(data.get('signal'), dict):
+        signal_element = html.Span(
+            data['signal']['text'],
+            style={'color': data['signal']['color']}
+        )
+    else:
+        signal_element = html.Span(data.get('signal', 'N/A'))
+    
+    return html.Div([
+        html.Strong(f"{name}: ", style={'color': '#fff'}),
+        signal_element,
+        html.Br() if data.get('interpretation') else "",
+        html.Small(data.get('interpretation', ''), style={'color': '#aaa'}) if data.get('interpretation') else ""
+    ], style={'marginBottom': '15px'})
 
 # ========== STOCK SCANNER TAB CALLBACKS ==========
 
