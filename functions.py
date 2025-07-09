@@ -765,7 +765,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         error_class = "alert alert-danger fade show"
         return [], error_msg, error_class
 
-def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands):
+def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, timeframe=None):
     """Update the main chart with different visualization types and indicators
     Returns: (figure, is_in_value_zone)"""
     try:
@@ -782,11 +782,21 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         atr_bands = atr_bands or []
         
         # Detect if data contains intraday (minute) timepoints
-        is_intraday = False
-        if len(df) > 1:
+        # First check if timeframe is explicitly intraday
+        is_intraday = timeframe in ['1d', 'yesterday'] 
+        
+        # If timeframe parameter isn't available, fall back to data frequency detection
+        if not is_intraday and len(df) > 1:
             # Check if time difference between points is less than a day
             time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
             is_intraday = time_diff < 24*60*60
+            
+            # Additional check: if data has more than 30 points in a single day, it's likely intraday
+            if len(df) > 30:
+                first_day = df['Date'].iloc[0].date()
+                last_day = df['Date'].iloc[-1].date()
+                if first_day == last_day:
+                    is_intraday = True
         
         # Create figure with dark theme
         fig = go.Figure()
@@ -968,22 +978,9 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                 except Exception as e:
                     pass
 
-        # Add previous day's closing price as horizontal line
-        # Only for intraday charts
-        if is_intraday and len(df) > 1:
-            try:
-                prev_close = df['Close'].iloc[0]  # Approximate prev close as first value
-                fig.add_shape(
-                    type="line", line_color="rgba(255, 255, 255, 0.5)", line_width=1, line_dash="dash",
-                    x0=df['Date'].min(), x1=df['Date'].max(), y0=prev_close, y1=prev_close,
-                    annotation_text=f"Prev Close: ${prev_close:.2f}",
-                    annotation_position="top right",
-                    annotation_font_size=10,
-                    annotation_font_color="rgba(255, 255, 255, 0.8)",
-                    row=1
-                )
-            except Exception as e:
-                pass
+        # Previous code for adding a horizontal close line was here
+        # This has been replaced with a better implementation later in the function
+        # that uses monthly data to get the official previous close price
 
         # Calculate dynamic title with price and percentage changes
         title_text = symbol
@@ -1421,10 +1418,17 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             return fig
         
         # Check if we are using 1D timeframe (based on data frequency)
-        is_intraday = False
+        # Determine if this is intraday data using both timeframe parameter and data frequency
+        is_intraday_timeframe = timeframe in ['1d', 'yesterday']
+        
+        # Also check data frequency as a backup method
+        is_intraday_data = False
         if len(df) > 2:
             time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
-            is_intraday = time_diff < 3600  # Less than 1 hour between points
+            is_intraday_data = time_diff < 3600  # Less than 1 hour between points
+            
+        # Use either method to determine if it's intraday
+        is_intraday = is_intraday_timeframe or is_intraday_data
         
         # Create subplots with shared x-axis
         fig = make_subplots(
@@ -1625,28 +1629,157 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 except ValueError:
                     continue
         
-        # Add previous day's close line for 1D charts
+        # Add previous day's close line for intraday charts (Today or Previous Market Period)
         if is_intraday and len(df) > 0:
-            # For 1D view, try to get previous day's close price
+            # Get the official previous close from a 1-month timeframe (like shown in 1M+ views)
             try:
-                # For intraday data, we need to fetch previous trading day's close
-                # We'll use a simple approximation - the opening price is often close to previous close
-                prev_close = df['Open'].iloc[0] if len(df) > 0 else df['Close'].iloc[0]
+                # Get 1-month daily data to ensure we get the official previous close price
+                monthly_data = yf.download(symbol, period="1mo", interval="1d", progress=False)
                 
-                # Add horizontal line for previous day's close
-                fig.add_hline(
-                    y=prev_close,
-                    line_dash="dot",
-                    line_color="rgba(255, 255, 255, 0.6)",
-                    line_width=1,
-                    annotation_text=f"Prev Close: ${prev_close:.2f}",
-                    annotation_position="top right",
-                    annotation_font_size=10,
-                    annotation_font_color="rgba(255, 255, 255, 0.8)",
-                    row=1
-                )
+                if not monthly_data.empty:
+                    # Get yesterday's close or the last available close price
+                    # This ensures consistency with what's shown in 1M+ views
+                    if len(monthly_data) >= 2:
+                        prev_close = monthly_data['Close'].iloc[-2]  # Second last item is the previous complete trading day
+                        
+                        print(f"Adding previous close line for {symbol}: ${prev_close:.2f}")
+                        
+                        # Add horizontal line for the official previous close
+                        fig.add_trace(
+                            go.Scatter(
+                                x=[df['Date'].min(), df['Date'].max()],
+                                y=[prev_close, prev_close],
+                                mode='lines',
+                                line=dict(color='rgba(255, 255, 255, 0.8)', width=1.5, dash='dash'),
+                                name=f'Prev Close: ${prev_close:.2f}',
+                                hoverinfo='y',
+                                showlegend=False
+                            ), 
+                            row=1, col=1
+                        )
+                        
+                        # Add annotation for the previous close value
+                        fig.add_annotation(
+                            x=df['Date'].min(),
+                            y=prev_close,
+                            text=f"Prev Close: ${prev_close:.2f}",
+                            showarrow=False,
+                            xanchor='left',
+                            yanchor='bottom',
+                            xshift=10,
+                            bgcolor='rgba(0,0,0,0.6)',
+                            bordercolor='rgba(0,0,0,0)',  # Transparent border
+                            borderwidth=0,               # No border
+                            borderpad=4,
+                            font=dict(color='white', size=10)
+                        )
+                    else:
+                        # If we only have one day of data, use that close as reference
+                        prev_close = monthly_data['Close'].iloc[-1]
+                        
+                        # Add horizontal line for the official previous close
+                        fig.add_trace(
+                            go.Scatter(
+                                x=[df['Date'].min(), df['Date'].max()],
+                                y=[prev_close, prev_close],
+                                mode='lines',
+                                line=dict(color='rgba(255, 255, 255, 0.8)', width=1.5, dash='dash'),
+                                name=f'Last Close: ${prev_close:.2f}',
+                                hoverinfo='y',
+                                showlegend=False
+                            ), 
+                            row=1, col=1
+                        )
+                        
+                        # Add annotation for the last close value
+                        fig.add_annotation(
+                            x=df['Date'].min(),
+                            y=prev_close,
+                            text=f"Last Close: ${prev_close:.2f}",
+                            showarrow=False,
+                            xanchor='left',
+                            yanchor='bottom',
+                            xshift=10,
+                            bgcolor='rgba(0,0,0,0.6)',
+                            bordercolor='rgba(0,0,0,0)',  # Transparent border
+                            borderwidth=0,               # No border
+                            borderpad=4,
+                            font=dict(color='white', size=10)
+                        )
+                else:
+                    # Fallback to use the first open price if we can't get monthly data
+                    fallback_close = df['Open'].iloc[0]
+                    
+                    # Add horizontal line with fallback price
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[df['Date'].min(), df['Date'].max()],
+                            y=[fallback_close, fallback_close],
+                            mode='lines',
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dash'),
+                            name=f'Approx. Prev: ${fallback_close:.2f}',
+                            hoverinfo='y',
+                            showlegend=False
+                        ), 
+                        row=1, col=1
+                    )
+                    
+                    # Add annotation for the approximate previous close
+                    fig.add_annotation(
+                        x=df['Date'].min(),
+                        y=fallback_close,
+                        text=f"Approx. Prev: ${fallback_close:.2f}",
+                        showarrow=False,
+                        xanchor='left',
+                        yanchor='bottom',
+                        xshift=10,
+                        bgcolor='rgba(0,0,0,0.6)',
+                        bordercolor='rgba(0,0,0,0)',  # Transparent border
+                        borderwidth=0,               # No border
+                        borderpad=4,
+                        font=dict(color='white', size=10)
+                    )
             except Exception as e:
-                pass
+                print(f"Error fetching previous close for {symbol}: {e}")
+                # Try a more direct approach as fallback
+                try:
+                    # Try to get yesterday's close using direct Yahoo Finance API call
+                    ticker = yf.Ticker(symbol)
+                    prev_close = ticker.info.get('previousClose')
+                    
+                    if prev_close:
+                        print(f"Using ticker.info for previous close: ${prev_close:.2f}")
+                        fig.add_trace(
+                            go.Scatter(
+                                x=[df['Date'].min(), df['Date'].max()],
+                                y=[prev_close, prev_close],
+                                mode='lines',
+                                line=dict(color='rgba(255, 255, 255, 0.8)', width=1.5, dash='dash'),
+                                name=f'Prev Close: ${prev_close:.2f}',
+                                hoverinfo='y',
+                                showlegend=False
+                            ), 
+                            row=1, col=1
+                        )
+                        
+                        # Add annotation for the previous close value
+                        fig.add_annotation(
+                            x=df['Date'].min(),
+                            y=prev_close,
+                            text=f"Prev Close: ${prev_close:.2f}",
+                            showarrow=False,
+                            xanchor='left',
+                            yanchor='bottom',
+                            xshift=10,
+                            bgcolor='rgba(0,0,0,0.6)',
+                            bordercolor='rgba(0,0,0,0)',  # Transparent border
+                            borderwidth=0,               # No border
+                            borderpad=4,
+                            font=dict(color='white', size=10)
+                        )
+                except Exception as fallback_error:
+                    print(f"Fallback for previous close also failed: {fallback_error}")
+                    # Continue without adding the line
 
         # Calculate dynamic title with price and percentage changes
         title_text = symbol
