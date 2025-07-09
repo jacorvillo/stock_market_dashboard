@@ -1534,8 +1534,10 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             paper_bgcolor='#1e1e1e',
             plot_bgcolor='#1e1e1e',
             font=dict(color='#ffffff'),
-            title=title_text,  # Dynamic title with price and changes
-            title_font=dict(color=title_color, size=18),  # Dynamic color based on performance
+            title=dict(
+                text=title_text,  # Dynamic title with price and changes
+                font=dict(color=title_color, size=18)  # Dynamic color based on performance
+            ),
             margin=dict(l=40, r=40, t=60, b=40),
             legend=dict(
                 orientation="h",
