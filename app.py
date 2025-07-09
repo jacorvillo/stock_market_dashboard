@@ -141,7 +141,6 @@ app.layout = dbc.Container([
                         options=[
                             {'label': '📅 Today', 'value': '1d'},
                             {'label': '📅 Previous Market Period', 'value': 'yesterday'},
-                            {'label': '📅 5 Days', 'value': '5d'},
                             {'label': '📅 1 Month', 'value': '1mo'},
                             {'label': '📅 6 Months', 'value': '6mo'},
                             {'label': '📅 Year to Date', 'value': 'ytd'},

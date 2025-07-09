@@ -30,7 +30,6 @@ def _get_cached_data(symbol, timeframe):
     """Get cached data if available and valid"""
     cache_key = f"{symbol}_{timeframe}"
     if _is_cache_valid(symbol, timeframe):
-        print(f"Using cached data for {symbol} {timeframe}")
         return _ticker_cache[cache_key]
     return None
 
@@ -40,7 +39,6 @@ def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
     from datetime import datetime
     _ticker_cache[cache_key] = (data.copy(), start_date, end_date, is_minute_data)
     _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
-    print(f"Cached data for {symbol} {timeframe} (expires in {CACHE_DURATION_SECONDS}s)")
 
 # Function to fetch stock data with lookback for indicators
 def get_stock_data(symbol="SPY", period="1y"):
@@ -52,12 +50,9 @@ def get_stock_data(symbol="SPY", period="1y"):
             if cached_result is not None:
                 return cached_result
         
-        print(f"Attempting to fetch {symbol} data for period {period}")
-        
         # Sanitize symbol for safety
         symbol = symbol.strip().upper()
         if not symbol or not all(c.isalnum() or c in ['-', '.'] for c in symbol):
-            print(f"Invalid symbol format: {symbol}, using SPY instead")
             symbol = "SPY"
             
         # Check if intraday (1d or yesterday) data is requested
@@ -74,21 +69,14 @@ def get_stock_data(symbol="SPY", period="1y"):
         # For July 2025, we're in EDT (summer time), so UTC-4
         now_et = now_utc - timedelta(hours=4)
         
-        print(f"Local time (CEST): {now_cest.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"UTC time: {now_utc.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Market time (EDT): {now_et.strftime('%Y-%m-%d %H:%M:%S')}")
-        
         # Check if we are in market hours (9:30AM - 4:00PM ET)
         is_market_open = (now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)) and now_et.hour < 16
         is_pre_market = now_et.hour < 9 or (now_et.hour == 9 and now_et.minute < 30)
         is_after_market = now_et.hour >= 16
         is_weekend = now_et.weekday() >= 5  # Saturday=5, Sunday=6
         
-        print(f"Market status: {'WEEKEND' if is_weekend else 'OPEN' if is_market_open else 'PRE-MARKET' if is_pre_market else 'AFTER-MARKET'}")
-        
         # Handle "yesterday" period first - always fetch previous trading day data
         if period == "yesterday":
-            print(f"Yesterday period requested - fetching previous trading day minute data")
             
             # Calculate the previous trading day (skip weekends and go back to last business day)
             current_date = now_cest.date()
@@ -98,19 +86,15 @@ def get_stock_data(symbol="SPY", period="1y"):
             while prev_day.weekday() > 4:  # 5=Saturday, 6=Sunday
                 prev_day = prev_day - pd.Timedelta(days=1)
             
-            print(f"Previous trading day: {prev_day}")
-            
             # Fetch minute data for a period that includes the previous trading day
-            # We'll use "5d" period to ensure we get the previous trading day's data
+            # Use "1mo" period to ensure we get the previous trading day's data
             ticker = yf.Ticker(symbol)
             try:
-                print(f"Fetching minute data for previous trading day for {symbol}")
-                data = ticker.history(period="5d", interval="1m", timeout=5)
+                data = ticker.history(period="1mo", interval="1m", timeout=5)
                 
                 if data.empty:
-                    print(f"No minute data available for {symbol}")
                     # Fallback to daily data and then filter
-                    data = ticker.history(period="5d", interval="1d", timeout=5)
+                    data = ticker.history(period="1mo", interval="1d", timeout=5)
                     if data.empty:
                         raise Exception(f"No data available for {symbol}")
                 
@@ -124,14 +108,10 @@ def get_stock_data(symbol="SPY", period="1y"):
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
                 
-                print(f"Fetched {len(data)} data points, converted to CEST")
-                print(f"Data range: {data['Date'].min()} to {data['Date'].max()} (CEST)")
-                
                 # Filter to only show data from the previous trading day in CEST
                 data = data[data['Date'].dt.date == prev_day]
                 
                 if data.empty:
-                    print(f"No data for previous trading day ({prev_day}) after timezone conversion")
                     # Return empty dataset if no data for yesterday
                     empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
                     start_date = pd.Timestamp(prev_day)
@@ -145,10 +125,7 @@ def get_stock_data(symbol="SPY", period="1y"):
                     (data['Date'].dt.time <= pd.Timestamp('22:00:00').time())
                 ]
                 
-                print(f"Filtered to market hours: {len(data)} points")
-                
                 if data.empty:
-                    print(f"No market hours data for previous trading day ({prev_day})")
                     empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
                     start_date = pd.Timestamp(prev_day)
                     end_date = pd.Timestamp(prev_day)
@@ -160,11 +137,9 @@ def get_stock_data(symbol="SPY", period="1y"):
                 end_date = data['Date'].max()
                 is_minute_data = True
                 
-                print(f"Final yesterday dataset: {len(data)} points from {start_date} to {end_date} (CEST)")
                 return data, start_date, end_date, is_minute_data
                 
             except Exception as e:
-                print(f"Error fetching yesterday minute data for {symbol}: {e}")
                 # Return empty dataset on error
                 empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
                 start_date = pd.Timestamp(prev_day)
@@ -176,18 +151,12 @@ def get_stock_data(symbol="SPY", period="1y"):
         if is_intraday:
             # Special handling for "yesterday" period - always fetch previous trading day data
             if period == "yesterday":
-                print(f"Yesterday period requested - bypassing market hours check")
                 # Skip to the "yesterday" handling logic later in the function
                 pass
             else:
                 # For 1D view: Show empty chart when market is closed, real-time data when open
                 
-                print(f"1D view requested - Market is {'WEEKEND' if is_weekend else 'OPEN' if is_market_open else 'PRE-MARKET' if is_pre_market else 'AFTER-MARKET'}")
-                print(f"Current ET time: {now_et.strftime('%Y-%m-%d %H:%M:%S')} (Hour: {now_et.hour}, Minute: {now_et.minute})")
-                print(f"Is weekend: {is_weekend}, Is market open: {is_market_open}")
-                
                 if is_weekend:
-                    print(f"Weekend detected - returning empty dataset for 1D view")
                     # Return empty dataset when it's weekend
                     empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
                     start_date = now_cest
@@ -195,7 +164,6 @@ def get_stock_data(symbol="SPY", period="1y"):
                     is_minute_data = True
                     return empty_df, start_date, end_date, is_minute_data
                 elif is_pre_market or is_after_market:
-                    print(f"Market is closed (pre/after hours) - returning empty dataset for 1D view")
                     # During trading days but outside market hours, return empty dataset
                     # This ensures we only show data during active market hours
                     empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
@@ -205,18 +173,12 @@ def get_stock_data(symbol="SPY", period="1y"):
                     return empty_df, start_date, end_date, is_minute_data
             
             # Market is open - fetch real-time minute data for today only
-            print(f"Market is OPEN - fetching real-time minute data for today")
-            print(f"Today in ET timezone: {now_et.strftime('%Y-%m-%d')}")
-            print(f"Today in CEST timezone: {now_cest.strftime('%Y-%m-%d')}")
             
             # Fetch today's minute data using yfinance
             ticker = yf.Ticker(symbol)
             try:
                 # For intraday, use "1d" period with "1m" interval to get today's data
-                print(f"Fetching real-time minute data for {symbol}")
                 data = ticker.history(period="1d", interval="1m", timeout=3)  # Reduced timeout for faster response
-                
-                print(f"Successfully fetched {len(data)} minute data points for {symbol}")
                 
                 # Convert timestamps to CEST timezone for display
                 data.reset_index(inplace=True)
@@ -233,16 +195,11 @@ def get_stock_data(symbol="SPY", period="1y"):
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
                 
-                print(f"Converted {len(data)} timestamps from ET to CEST")
-                print(f"Data range: {data['Date'].min()} to {data['Date'].max()} (CEST)")
-                
                 # Filter to only show data from today in CEST
                 today_cest = now_cest.date()
-                print(f"Filtering for today's date in CEST: {today_cest}")
                 data = data[data['Date'].dt.date == today_cest]
                 
                 if data.empty:
-                    print(f"No data for today ({today_cest}) after timezone conversion")
                     empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
                     start_date = now_cest
                     end_date = now_cest
@@ -254,11 +211,9 @@ def get_stock_data(symbol="SPY", period="1y"):
                 end_date = data['Date'].max()
                 is_minute_data = True
                 
-                print(f"Final 1D dataset: {len(data)} points from {start_date} to {end_date} (CEST)")
                 return data, start_date, end_date, is_minute_data
                 
             except Exception as e:
-                print(f"Error fetching 1D minute data for {symbol}: {e}")
                 # Return empty dataset on error
                 empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
                 start_date = now_cest
@@ -269,9 +224,7 @@ def get_stock_data(symbol="SPY", period="1y"):
             # Calculate optimized period for faster loading while maintaining indicator accuracy
             # Reduced extended periods for faster ticker switching
             extended_period = period
-            if period in ["5d"]:
-                extended_period = "1mo"  # Reduced from 3mo for faster loading
-            elif period == "1mo":
+            if period == "1mo":
                 extended_period = "3mo"  # Reduced from 6mo for faster loading
             elif period == "6mo":
                 extended_period = "1y"   # Keep as is (reasonable)
@@ -287,7 +240,6 @@ def get_stock_data(symbol="SPY", period="1y"):
             data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
         
         if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
-            print(f"Insufficient data returned for {symbol}, falling back to SPY")
             # Fallback to SPY if current symbol fails
             if symbol != "SPY":
                 ticker = yf.Ticker("SPY")
@@ -298,7 +250,6 @@ def get_stock_data(symbol="SPY", period="1y"):
                 raise Exception(f"Could not fetch data for {symbol}")
             
         data.reset_index(inplace=True)
-        print(f"Successfully fetched {len(data)} rows of extended data for {symbol}")
         
         # Handle the Date/Datetime column
         # YFinance may return 'Date' for daily data or 'Datetime' for intraday data
@@ -336,11 +287,8 @@ def get_stock_data(symbol="SPY", period="1y"):
                     start_date = trading_day.replace(hour=9, minute=30)
                     end_date = trading_day.replace(hour=16, minute=0)
                 
-                print(f"Setting intraday window: {start_date} to {end_date}")
             else:
                 start_date = end_date - pd.Timedelta(days=1)
-        elif period == "5d":
-            start_date = end_date - pd.Timedelta(days=7)  # Account for weekends
         elif period == "1mo":
             start_date = end_date - pd.DateOffset(months=1)
         elif period == "6mo":
@@ -349,7 +297,6 @@ def get_stock_data(symbol="SPY", period="1y"):
             # For YTD, exclude today from the data if we're in pre-market hours
             # Using ET (market time) for the determination
             if is_pre_market:
-                print(f"Pre-market hours detected for YTD (ET time: {now_et.strftime('%H:%M:%S')}), excluding current day from display")
                 # Adjust end_date to previous day's end
                 end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) - pd.Timedelta(days=1)
                 end_date = end_date.replace(hour=23, minute=59, second=59)
@@ -376,12 +323,6 @@ def get_stock_data(symbol="SPY", period="1y"):
                 median_diff_seconds = time_diffs.median().total_seconds()
                 is_minute_data = median_diff_seconds < 600  # 10 minutes in seconds
         
-        # Log the data type we're working with
-        if is_minute_data:
-            print(f"Using minute-level data for {symbol} with {len(full_data)} points")
-        else:
-            print(f"Using daily-level data for {symbol} with {len(full_data)} points")
-        
         # Cache non-intraday data for faster ticker switching (don't cache intraday as it needs real-time updates)
         if period not in ["1d", "yesterday"]:
             _cache_data(symbol, period, full_data, start_date, end_date, is_minute_data)
@@ -390,7 +331,6 @@ def get_stock_data(symbol="SPY", period="1y"):
         return full_data, start_date, end_date, is_minute_data
         
     except Exception as e:
-        print(f"Could not fetch real data for {symbol}: {e}. Trying SPY fallback.")
         # Try SPY as fallback
         try:
             if symbol != "SPY":
@@ -413,7 +353,6 @@ def get_stock_data(symbol="SPY", period="1y"):
             raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
             
         except Exception as fallback_error:
-            print(f"SPY fallback also failed: {fallback_error}")
             raise Exception(f"No data available for {symbol}")
 
 # Function to calculate technical indicators with custom parameters
@@ -425,7 +364,6 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
         
         # Handle empty dataframes (e.g., when market is closed for 1D view)
         if df.empty:
-            print("Empty dataframe - skipping indicator calculations")
             # Return empty dataframe with indicator columns
             for period in ema_periods:
                 df[f'EMA_{period}'] = []
@@ -448,13 +386,8 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
         min_length = len(df)
         
         if fast_mode:
-            print(f"Fast mode: calculating essential indicators for {min_length} data points")
             # In fast mode, only calculate the most essential indicators
             ema_periods = ema_periods[:2] if len(ema_periods) > 2 else ema_periods  # Limit to 2 EMAs max
-        else:
-            print(f"Calculating indicators for {min_length} data points")
-            
-        print(f"EMA periods: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force smoothing: {force_smoothing}, ADX period: {adx_period}")
         
         # Custom EMA periods (optimized for speed)
         for period in ema_periods:
@@ -548,11 +481,9 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             if col in df.columns:
                 df[col] = df[col].ffill().fillna(0)
         
-        print(f"Indicators calculated successfully")
         return df
         
     except Exception as e:
-        print(f"Error calculating indicators: {e}")
         # Return dataframe with zero-filled indicator columns
         for period in ema_periods:
             df[f'EMA_{period}'] = df['Close']
@@ -670,7 +601,6 @@ def update_symbol(n_clicks, symbol):
         symbol = symbol.upper().strip()
         # Replace any potential special characters that shouldn't be in a ticker
         symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.'])
-        print(f"User searched for symbol: {symbol}")
         return symbol
     return 'SPY'
 
@@ -711,7 +641,6 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
         return None
         
     try:
-        print(f"Fetching comparison volume data for {comparison_symbol}")
         ticker = yf.Ticker(comparison_symbol)
         
         # Use a slightly extended period to ensure we get enough data
@@ -743,7 +672,6 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
         # Return only Date and Volume columns
         return comp_data[['Date', 'Volume']].copy()
     except Exception as e:
-        print(f"Error fetching comparison volume: {e}")
         return None
 
 def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
@@ -764,9 +692,6 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         stoch_period = 5 if stoch_period is None else stoch_period
         rsi_period = 13 if rsi_period is None else rsi_period
         
-        print(f"Fetching data for {symbol} with timeframe {timeframe}")
-        print(f"Custom parameters - EMA: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force: {force_smoothing}, ADX: {adx_period}, Stochastic: {stoch_period}, RSI: {rsi_period}")
-        
         # Track if we're using sample data
         using_sample_data = False
         
@@ -775,13 +700,11 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             # Check cache first
             cached_result = _get_cached_data(symbol, timeframe)
             if cached_result is not None:
-                print(f"Using cached data for {symbol} {timeframe}")
                 full_data, start_date, end_date, is_minute_data = cached_result
             else:
                 full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe)
                 _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)  # Cache the result
         except Exception as data_error:
-            print(f"Error fetching data for {symbol}: {data_error}")
             full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)  # Fall back to SPY
             error_msg = [
                 html.I(className="fas fa-exclamation-triangle me-2"),
@@ -793,7 +716,6 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         
         # Check if we have empty data for 1D or yesterday view (market closed) - this is normal, don't show errors
         if timeframe in ["1d", "yesterday"] and len(full_data) == 0:
-            print(f"Market is closed for {timeframe} view - returning empty data without error messages")
             return [], [], "alert alert-warning fade show d-none"  # Hidden error class
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
@@ -814,10 +736,8 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         if not using_sample_data and (len(df_final) < 5):
             # For 1D or yesterday view, if we have no data it's likely because market is closed - don't show error
             if timeframe in ["1d", "yesterday"]:
-                print(f"No data for {symbol} in {timeframe} view - market likely closed, not showing error")
                 return [], [], "alert alert-warning fade show d-none"  # Hidden error class
             
-            print(f"Insufficient data for {symbol}, using sample data")
             full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)
             df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, fast_mode=True)
             
@@ -834,11 +754,9 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             ]
             error_class = "alert alert-warning fade show"
             
-        print(f"Final data shape: {df_final.shape} (from {start_date} to {end_date})")
         return df_final.to_dict('records'), error_msg, error_class
         
     except Exception as e:
-        print(f"Error in update_data: {e}")
         # Return error state instead of sample data
         error_msg = [
             html.I(className="fas fa-exclamation-triangle me-2"),
@@ -852,7 +770,6 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
     Returns: (figure, is_in_value_zone)"""
     try:
         if not data:
-            print("No data available for main chart")
             return go.Figure(), False
         
         df = pd.DataFrame(data)
@@ -864,18 +781,12 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
         
-        print(f"Rendering chart for {symbol}, type: {chart_type}")
-        print(f"EMA settings: show={show_ema}, periods={ema_periods}")
-        print(f"ATR bands: {atr_bands}")
-        
         # Detect if data contains intraday (minute) timepoints
         is_intraday = False
         if len(df) > 1:
             # Check if time difference between points is less than a day
             time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
             is_intraday = time_diff < 24*60*60
-            
-        print(f"Data type: {'intraday' if is_intraday else 'daily'}")
         
         # Create figure with dark theme
         fig = go.Figure()
@@ -1055,7 +966,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                         )
                     )
                 except Exception as e:
-                    print(f"Error plotting ATR band {band_str}: {e}")
+                    pass
 
         # Add previous day's closing price as horizontal line
         # Only for intraday charts
@@ -1072,7 +983,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                     row=1
                 )
             except Exception as e:
-                print(f"Could not add previous close line: {e}")
+                pass
 
         # Calculate dynamic title with price and percentage changes
         title_text = symbol
@@ -1147,8 +1058,6 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             y_min = y_min - y_range_buffer
             y_max = y_max + y_range_buffer
             
-            print(f"Setting chart y-axis range: min={y_min:.2f}, max={y_max:.2f}")
-            
             # Set y-axis range explicitly
             layout_settings['yaxis'] = dict(
                 range=[y_min, y_max],
@@ -1186,9 +1095,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         return fig, is_in_value_zone
 
     except Exception as e:
-        print(f"Error in update_main_chart: {e}")
-        import traceback
-        traceback.print_exc()
+        pass
         # Return a simple error message chart
         fig = go.Figure()
         fig.add_annotation(
@@ -1440,7 +1347,6 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
     """Update a combined chart with main price chart on top and indicator chart below"""
     try:
         if not data:
-            print("No data available for combined chart")
             return go.Figure()
         
         df = pd.DataFrame(data)
@@ -1453,12 +1359,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         atr_bands = atr_bands or []
         lower_chart_type = lower_chart_type or 'volume'
         
-        print(f"Rendering combined chart for {symbol}")
-        print(f"Main chart type: {chart_type}, Lower chart: {lower_chart_type}")
-        
         # Handle empty data (e.g., when market is closed for 1D view)
         if df.empty:
-            print("No data available - rendering empty chart")
             fig = go.Figure()
             
             # Add message for empty chart
@@ -1716,7 +1618,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     row=1
                 )
             except Exception as e:
-                print(f"Could not add previous close line: {e}")
+                pass
 
         # Calculate dynamic title with price and percentage changes
         title_text = symbol
@@ -1791,8 +1693,6 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             y_min = y_min - y_range_buffer
             y_max = y_max + y_range_buffer
             
-            print(f"Setting chart y-axis range: min={y_min:.2f}, max={y_max:.2f}")
-            
             # Set y-axis range explicitly
             layout_settings['yaxis'] = dict(
                 range=[y_min, y_max],
@@ -1806,7 +1706,6 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         fig.update_xaxes(
             gridcolor='#444', 
             zerolinecolor='#444',
-
             rangebreaks=[
                 # Don't show weekends (Saturday=6, Sunday=0)
                 dict(bounds=["sat", "mon"])
@@ -1914,17 +1813,15 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 # Apply the preserved x-axis range
                 x_range = [relayout_data['xaxis.range[0]'], relayout_data['xaxis.range[1]']]
                 fig.update_xaxes(range=x_range)
-                print(f"Preserved x-axis range: {x_range}")
             except Exception as e:
-                print(f"Could not preserve x-axis range: {e}")
+                pass
         elif relayout_data and 'xaxis2.range[0]' in relayout_data and 'xaxis2.range[1]' in relayout_data:
             try:
                 # Apply the preserved x-axis range from the lower chart
                 x_range = [relayout_data['xaxis2.range[0]'], relayout_data['xaxis2.range[1]']]
                 fig.update_xaxes(range=x_range)
-                print(f"Preserved x-axis range from lower chart: {x_range}")
             except Exception as e:
-                print(f"Could not preserve x-axis range from lower chart: {e}")
+                pass
         
         # Update y-axes styling
         fig.update_yaxes(gridcolor='#444', zerolinecolor='#444')
@@ -1933,8 +1830,6 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         fig.update_annotations(font_color='#00d4aa')
         
         # Add lower chart in row 2 based on selected indicator type
-        print(f"Adding lower chart: {lower_chart_type}")
-        
         if lower_chart_type == 'volume':
             # Volume chart (default)
             colors = []
@@ -2219,7 +2114,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     for i in range(len(values)):
                         if pd.isna(values.iloc[i]):
                             continue
-                            
+                        
                         if below and values.iloc[i] < threshold:
                             # Start of oversold area (below threshold)
                             area_start = i
@@ -2241,7 +2136,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                                 y_coords.extend([threshold, threshold])
                                 
                                 fill_areas.append((x_coords, y_coords))
-                                
+                        
                         elif not below and values.iloc[i] > threshold:
                             # Start of overbought area (above threshold)
                             area_start = i
@@ -2387,9 +2282,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         return fig
         
     except Exception as e:
-        print(f"Error in combined chart: {e}")
-        import traceback
-        traceback.print_exc()
+        pass
         return go.Figure()
 
 def update_symbol_status(symbol):
@@ -2457,10 +2350,8 @@ def check_value_zone_status(df, ema_periods):
         
         is_in_zone = ema_min <= current_price <= ema_max
         
-        print(f"Value Zone check: Price=${current_price:.2f}, EMA1=${ema1_value:.2f}, EMA2=${ema2_value:.2f}, In Zone={is_in_zone}")
-        
         return is_in_zone
         
     except Exception as e:
-        print(f"Error checking Value Zone status: {e}")
+        pass
         return False
