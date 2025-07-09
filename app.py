@@ -102,6 +102,39 @@ h1, h2, h3, h4, h5, h6 {
     color: #fff !important;
 }
 
+/* Tab styling for dark theme */
+.nav-tabs {
+    background-color: #000000 !important;
+    border-bottom: 1px solid #444 !important;
+}
+
+.nav-tabs .nav-link {
+    background-color: #000000 !important;
+    border: 1px solid #444 !important;
+    color: #ccc !important;
+    font-weight: 500 !important;
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: #111 !important;
+    border-color: #00d4aa !important;
+    color: #00d4aa !important;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #000000 !important;
+    border-color: #00d4aa #00d4aa #000000 !important;
+    color: #00d4aa !important;
+}
+
+.tab-content {
+    background-color: #000000 !important;
+}
+
+.tab-pane {
+    background-color: #000000 !important;
+}
+
 /* Make scrollbars match theme */
 ::-webkit-scrollbar {
     width: 8px;
@@ -154,13 +187,13 @@ app.index_string = '''
 
 # App layout with advanced customization
 app.layout = dbc.Container([
-    # Sidebar toggle button (fixed position)
+    # Sidebar toggle button (fixed position at bottom left)
     dbc.Button(
         "☰", 
         id="sidebar-toggle-button", 
         color="secondary", 
         className="mb-3",
-        style={"position": "fixed", "top": "20px", "left": "20px", "zIndex": "1000", "fontSize": "20px", "fontWeight": "bold", "padding": "5px 12px"}
+        style={"position": "fixed", "bottom": "20px", "left": "20px", "zIndex": "1000", "fontSize": "20px", "fontWeight": "bold", "padding": "5px 12px"}
     ),
     
     # Main content row with sidebar and charts
@@ -168,143 +201,180 @@ app.layout = dbc.Container([
         # Sidebar column with collapse functionality
         dbc.Col(
             dbc.Collapse(
-                html.Div(style={'height': '95vh', 'overflow-y': 'auto'}, children=[            dbc.Card([
-                dbc.CardHeader(html.H4("🔍 Stock Search", className="text-center", style={'color': '#00d4aa'})),
-                dbc.CardBody([
-                    dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                    dbc.Row([
-                        dbc.Col([
-                            dbc.Input(
-                                id='stock-symbol-input',
-                                placeholder="Enter any US stock symbol (e.g., AAPL, TSLA, SPY)",
-                                value="SPY",
-                                type="text",
-                                style={
-                                    'backgroundColor': '#000000', 
-                                    'color': '#fff',
-                                    'border': '1px solid #444'
-                                },
-                                className="text-uppercase"
+                html.Div(style={'height': '95vh', 'overflow-y': 'auto'}, children=[
+                    # Tabs for sidebar content
+                    dbc.Tabs(
+                        id="sidebar-tabs",
+                        active_tab="stock-search-tab",
+                        children=[
+                            # Stock Search Tab
+                            dbc.Tab(
+                                label="Stock Search",
+                                tab_id="stock-search-tab",
+                                children=[
+                                    html.Div(style={'padding': '15px 0'}, children=[
+                                        # Stock Search Card
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H4("🔍 Stock Search", className="text-center", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Input(
+                                                            id='stock-symbol-input',
+                                                            placeholder="Enter any US stock symbol (e.g., AAPL, TSLA, SPY)",
+                                                            value="SPY",
+                                                            type="text",
+                                                            style={
+                                                                'backgroundColor': '#000000', 
+                                                                'color': '#fff',
+                                                                'border': '1px solid #444'
+                                                            },
+                                                            className="text-uppercase"
+                                                        )
+                                                    ], width=9),
+                                                    dbc.Col([
+                                                        dbc.Button("🔍", id="search-button", color="success", n_clicks=0, className="w-100")
+                                                    ], width=3)
+                                                ], className="mb-3"),
+                                                
+                                                # Stock status indicator with last updated time
+                                                html.Div(
+                                                    id="stock-status-indicator",
+                                                    className="mb-3",
+                                                    style={
+                                                        'textAlign': 'left',
+                                                        'padding': '5px'
+                                                    }
+                                                ),
+                                                
+                                                dbc.Label("Time Frame:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                dcc.Dropdown(
+                                                    id='timeframe-dropdown',
+                                                    options=[
+                                                        {'label': '📅 Today', 'value': '1d'},
+                                                        {'label': '📅 Previous Market Period', 'value': 'yesterday'},
+                                                        {'label': '📅 1 Month', 'value': '1mo'},
+                                                        {'label': '📅 6 Months', 'value': '6mo'},
+                                                        {'label': '📅 Year to Date', 'value': 'ytd'},
+                                                        {'label': '📅 1 Year', 'value': '1y'},
+                                                        {'label': '📅 5 Years', 'value': '5y'},
+                                                        {'label': '📅 Max', 'value': 'max'}
+                                                    ],
+                                                    value='1d',  # Default to 1D view
+                                                    className="mb-3",
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'}
+                                                ),
+                                                
+                                                dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                dcc.Dropdown(
+                                                    id='chart-type-dropdown',
+                                                    options=[
+                                                        {'label': '🕯️ Candlesticks', 'value': 'candlestick'},
+                                                        {'label': '🏔️ Mountain Chart', 'value': 'mountain'}
+                                                    ],
+                                                    value='candlestick',
+                                                    className="mb-3",
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'}
+                                                )
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
+                                        
+                                        # EMA and ATR Settings Card (Main Chart Settings)
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H5("📈 Main Chart Settings", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                dbc.Label("EMA Periods:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                html.Div(id='ema-periods-container', children=[
+                                                    dbc.Row([
+                                                        dbc.Col([
+                                                            dbc.Label("Fast EMA:", style={'color': '#fff', 'fontSize': '12px'}),
+                                                            dbc.Input(id='ema-period-0', type='number', value=13, min=1, max=200, size='sm')
+                                                        ], width=6),
+                                                        dbc.Col([
+                                                            dbc.Label("Slow EMA:", style={'color': '#fff', 'fontSize': '12px'}),
+                                                            dbc.Input(id='ema-period-1', type='number', value=26, min=1, max=200, size='sm')
+                                                        ], width=6)
+                                                    ], className="mb-2"),
+                                                ]),
+                                                dbc.Checklist(
+                                                    id='show-ema',
+                                                    options=[{'label': 'Show EMAs', 'value': 'show'}],
+                                                    value=['show'],
+                                                    style={'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
+                                                
+                                                html.Hr(style={'borderColor': '#444', 'margin': '10px 0px'}),
+                                                
+                                                # Moving ATR bands into the EMA settings card
+                                                dbc.Label("ATR Bands:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                dbc.Checklist(
+                                                    id='atr-bands',
+                                                    options=[
+                                                        {'label': '±1 ATR', 'value': '1'},
+                                                        {'label': '±2 ATR', 'value': '2'},
+                                                        {'label': '±3 ATR', 'value': '3'}
+                                                    ],
+                                                    value=[],
+                                                    inline=True,
+                                                    style={'color': '#fff'}
+                                                )
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
+                                        
+                                        # Lower Chart Selection Card (moved up)
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                dcc.Dropdown(
+                                                    id='lower-chart-selection',
+                                                    options=[
+                                                        {'label': '📊 Volume', 'value': 'volume'},
+                                                        {'label': '📈 MACD', 'value': 'macd'},
+                                                        {'label': '💪 Force Index', 'value': 'force'},
+                                                        {'label': '📉 A/D Line', 'value': 'ad'},
+                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
+                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+                                                        {'label': '📊 RSI', 'value': 'rsi'},
+                                                        {'label': '📈 OBV', 'value': 'obv'}
+                                                    ],
+                                                    value='volume',
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
+                                                
+                                                # Dynamic settings based on selected lower chart
+                                                html.Div(id='lower-chart-settings', children=[
+                                                    # Settings will be dynamically generated based on selection
+                                                ])
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
+                                    ])
+                                ]
+                            ),
+                            # Insights Tab (empty for now)
+                            dbc.Tab(
+                                label="Insights",
+                                tab_id="insights-tab",
+                                children=[
+                                    html.Div(style={'padding': '15px 0'}, children=[
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H4("💡 Insights", className="text-center", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                html.Div([
+                                                    html.P("Insights features coming soon...", 
+                                                          style={'color': '#ccc', 'textAlign': 'center', 'marginTop': '50px'})
+                                                ])
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
+                                    ])
+                                ]
                             )
-                        ], width=9),
-                        dbc.Col([
-                            dbc.Button("🔍", id="search-button", color="success", n_clicks=0, className="w-100")
-                        ], width=3)
-                    ], className="mb-3"),
-                    
-                    # Stock status indicator with last updated time
-                    html.Div(
-                        id="stock-status-indicator",
-                        className="mb-3",
-                        style={
-                            'textAlign': 'left',
-                            'padding': '5px'
-                        }
-                    ),
-                    
-                    dbc.Label("Time Frame:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                    dcc.Dropdown(
-                        id='timeframe-dropdown',
-                        options=[
-                            {'label': '📅 Today', 'value': '1d'},
-                            {'label': '📅 Previous Market Period', 'value': 'yesterday'},
-                            {'label': '📅 1 Month', 'value': '1mo'},
-                            {'label': '📅 6 Months', 'value': '6mo'},
-                            {'label': '📅 Year to Date', 'value': 'ytd'},
-                            {'label': '📅 1 Year', 'value': '1y'},
-                            {'label': '📅 5 Years', 'value': '5y'},
-                            {'label': '📅 Max', 'value': 'max'}
                         ],
-                        value='1d',  # Default to 1D view
-                        className="mb-3",
-                        style={'backgroundColor': '#000000', 'color': '#fff'}
-                    ),
-                    
-                    dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                    dcc.Dropdown(
-                        id='chart-type-dropdown',
-                        options=[
-                            {'label': '🕯️ Candlesticks', 'value': 'candlestick'},
-                            {'label': '🏔️ Mountain Chart', 'value': 'mountain'}
-                        ],
-                        value='candlestick',
-                        className="mb-3",
-                        style={'backgroundColor': '#000000', 'color': '#fff'}
+                        style={'backgroundColor': '#000000'}
                     )
-                ], style={'backgroundColor': '#000000'})
-            ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
-            
-            # EMA and ATR Settings Card (Main Chart Settings)
-            dbc.Card([
-                dbc.CardHeader(html.H5("📈 Main Chart Settings", style={'color': '#00d4aa'})),
-                dbc.CardBody([
-                    dbc.Label("EMA Periods:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                    html.Div(id='ema-periods-container', children=[
-                        dbc.Row([
-                            dbc.Col([
-                                dbc.Label("Fast EMA:", style={'color': '#fff', 'fontSize': '12px'}),
-                                dbc.Input(id='ema-period-0', type='number', value=13, min=1, max=200, size='sm')
-                            ], width=6),
-                            dbc.Col([
-                                dbc.Label("Slow EMA:", style={'color': '#fff', 'fontSize': '12px'}),
-                                dbc.Input(id='ema-period-1', type='number', value=26, min=1, max=200, size='sm')
-                            ], width=6)
-                        ], className="mb-2"),
-                    ]),
-                    dbc.Checklist(
-                        id='show-ema',
-                        options=[{'label': 'Show EMAs', 'value': 'show'}],
-                        value=['show'],
-                        style={'color': '#fff'},
-                        className="mb-3"
-                    ),
-                    
-                    html.Hr(style={'borderColor': '#444', 'margin': '10px 0px'}),
-                    
-                    # Moving ATR bands into the EMA settings card
-                    dbc.Label("ATR Bands:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                    dbc.Checklist(
-                        id='atr-bands',
-                        options=[
-                            {'label': '±1 ATR', 'value': '1'},
-                            {'label': '±2 ATR', 'value': '2'},
-                            {'label': '±3 ATR', 'value': '3'}
-                        ],
-                        value=[],
-                        inline=True,
-                        style={'color': '#fff'}
-                    )
-                ], style={'backgroundColor': '#000000'})
-            ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
-            
-            # Lower Chart Selection Card (moved up)
-            dbc.Card([
-                dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
-                dbc.CardBody([
-                    dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                    dcc.Dropdown(
-                        id='lower-chart-selection',
-                        options=[
-                            {'label': '📊 Volume', 'value': 'volume'},
-                            {'label': '📈 MACD', 'value': 'macd'},
-                            {'label': '💪 Force Index', 'value': 'force'},
-                            {'label': '📉 A/D Line', 'value': 'ad'},
-                            {'label': '📊 ADX/DI', 'value': 'adx'},
-                            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
-                            {'label': '📊 RSI', 'value': 'rsi'},
-                            {'label': '📈 OBV', 'value': 'obv'}
-                        ],
-                        value='volume',
-                        style={'backgroundColor': '#000000', 'color': '#fff'},
-                        className="mb-3"
-                    ),
-                    
-                    # Dynamic settings based on selected lower chart
-                    html.Div(id='lower-chart-settings', children=[
-                        # Settings will be dynamically generated based on selection
-                    ])
-                ], style={'backgroundColor': '#000000'})
-            ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                 ]),
                 id="sidebar-collapse",
                 is_open=True

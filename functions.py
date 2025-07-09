@@ -843,7 +843,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             # Enhanced mountain chart with custom coloring
             
             # Calculate first price for scaling reference
-            first_price = df['Close'].iloc[0] if len(df) > 0 else 0
+            first_price = float(df['Close'].iloc[0]) if len(df) > 0 else 0  # Convert to float
             
             # Set colors for mountain chart
             line_color = '#00d4aa'  # Teal line
@@ -987,16 +987,16 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         title_color = '#00d4aa'  # Default color
         
         if len(df) > 0:
-            current_price = df['Close'].iloc[-1]
+            current_price = float(df['Close'].iloc[-1])  # Convert to float to ensure it's a scalar
             
             # For percentage calculation, use the first price of the dataset as reference
             if len(df) > 1:
                 if is_intraday:
                     # For 1D view, compare with opening price (approximates previous close)
-                    reference_price = df['Open'].iloc[0]
+                    reference_price = float(df['Open'].iloc[0])  # Convert to float
                 else:
                     # For other timeframes, compare with first price in the dataset
-                    reference_price = df['Close'].iloc[0]
+                    reference_price = float(df['Close'].iloc[0])  # Convert to float
                 
                 price_change = current_price - reference_price
                 percent_change = (price_change / reference_price) * 100
@@ -1461,8 +1461,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         elif chart_type == 'mountain':
             # Mountain (area) chart
             if len(df) >= 2:
-                price_start = df['Close'].iloc[0]
-                price_end = df['Close'].iloc[-1]
+                price_start = float(df['Close'].iloc[0])  # Convert to float
+                price_end = float(df['Close'].iloc[-1])   # Convert to float
                 is_uptrend = price_end >= price_start
                 
                 line_color = '#00d4aa'  # Teal line
@@ -1471,7 +1471,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 line_color = '#00d4aa'
                 fill_color = 'rgba(0, 212, 170, 0.3)'
             
-            first_price = df['Close'].iloc[0]
+            first_price = float(df['Close'].iloc[0])  # Convert to float
             
             # For subplots, we need to specify the fill properly
             fig.add_trace(
@@ -1640,7 +1640,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     # Get yesterday's close or the last available close price
                     # This ensures consistency with what's shown in 1M+ views
                     if len(monthly_data) >= 2:
-                        prev_close = monthly_data['Close'].iloc[-2]  # Second last item is the previous complete trading day
+                        prev_close = float(monthly_data['Close'].iloc[-2])  # Convert to float to ensure it's a scalar
                         
                         print(f"Adding previous close line for {symbol}: ${prev_close:.2f}")
                         
@@ -1675,7 +1675,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                         )
                     else:
                         # If we only have one day of data, use that close as reference
-                        prev_close = monthly_data['Close'].iloc[-1]
+                        prev_close = float(monthly_data['Close'].iloc[-1])  # Convert to float to ensure it's a scalar
                         
                         # Add horizontal line for the official previous close
                         fig.add_trace(
@@ -1708,7 +1708,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                         )
                 else:
                     # Fallback to use the first open price if we can't get monthly data
-                    fallback_close = df['Open'].iloc[0]
+                    fallback_close = float(df['Open'].iloc[0])  # Convert to float to ensure it's a scalar
                     
                     # Add horizontal line with fallback price
                     fig.add_trace(
@@ -1747,7 +1747,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     ticker = yf.Ticker(symbol)
                     prev_close = ticker.info.get('previousClose')
                     
-                    if prev_close:
+                    if prev_close and isinstance(prev_close, (int, float)):
+                        prev_close = float(prev_close)  # Ensure it's a float scalar
                         print(f"Using ticker.info for previous close: ${prev_close:.2f}")
                         fig.add_trace(
                             go.Scatter(
@@ -1786,16 +1787,16 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         title_color = '#00d4aa'  # Default color
         
         if len(df) > 0:
-            current_price = df['Close'].iloc[-1]
+            current_price = float(df['Close'].iloc[-1])  # Convert to float to ensure it's a scalar
             
             # For percentage calculation, use the first price of the dataset as reference
             if len(df) > 1:
                 if is_intraday:
                     # For 1D view, compare with opening price (approximates previous close)
-                    reference_price = df['Open'].iloc[0]
+                    reference_price = float(df['Open'].iloc[0])  # Convert to float
                 else:
                     # For other timeframes, compare with first price in the dataset
-                    reference_price = df['Close'].iloc[0]
+                    reference_price = float(df['Close'].iloc[0])  # Convert to float
                 
                 price_change = current_price - reference_price
                 percent_change = (price_change / reference_price) * 100
