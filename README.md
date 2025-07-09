@@ -7,9 +7,10 @@ A free Python Dash web application for real-time stock market visualization with
 - Real-time stock data from Yahoo Finance with multiple timeframes. Works with any US stock symbol (so long as it's available)
 - Candlestick and Mountain (area) charts
 - Sidebar with stock symbol search and timeframe selection
-- (Ongoing): Technical indicators (e.g., RSI, %R, OBV)
+- (Ongoing): A flurry of technical indicators
 
-> [!success] Current indicators available:
+> [!TIP] 
+> Current indicators available:
 > - EMA (Exponential Moving Average)*: Two EMAs and the Value Zone between them
 > - Volume: Volume bars with optional comparison to another market
 > - MACD (Moving Average Convergence Divergence)*: MACD line, signal line, and histogram
@@ -20,12 +21,13 @@ A free Python Dash web application for real-time stock market visualization with
 >
 > *Timeframe can be changed for these indicators
 
-> [!Summary] Indicators in development:
+> [!IMPORTANT]
+> Indicators in development:
 > - RSI (Relative Strength Index)
 > - %R (Williams %R)
 > - OBV (On-Balance Volume)
 
-- (To do): Add signals (buy/sell) based on technical indicators
+- (To do): Add signals (buy/sell) based on technical indicators!
 
 ### Requirements
 - Python 3.8+
