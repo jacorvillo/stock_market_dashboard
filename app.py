@@ -72,20 +72,27 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', sans-serif !important;
 }
 
-/* Dropdown styling */
-.dash-dropdown .Select-control, .dash-dropdown .Select-menu-outer, 
-.dash-dropdown .Select-option, .form-control, .form-select {
+
+
+/* Enhanced Form control styling */
+.form-control, .form-select {
     background-color: #000000 !important;
-    border-color: #444 !important;
+    border: 1px solid #333 !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #000000 !important;
+    border-color: #00d4aa !important;
+    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1) !important;
     color: #fff !important;
 }
 
-.dash-dropdown .Select-option:hover {
-    background-color: #00d4aa !important;
-    color: #000 !important;
-}
-
-.dash-dropdown .Select-value-label {
+/* Ensure dbc.Select has consistent styling */
+.form-select option {
+    background-color: #000000 !important;
     color: #fff !important;
 }
 
@@ -100,6 +107,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid #444 !important;
     color: #ccc !important;
     font-weight: 500 !important;
+    border-radius: 8px 8px 0 0 !important;
 }
 
 .nav-tabs .nav-link:hover, .nav-tabs .nav-link.active {
@@ -112,10 +120,11 @@ h1, h2, h3, h4, h5, h6 {
     border-color: #00d4aa #00d4aa #000000 !important;
 }
 
-/* Form controls */
+/* Enhanced Form controls */
 .form-check-input {
     background-color: #222 !important;
     border: 2px solid #666 !important;
+    border-radius: 6px !important;
 }
 
 .form-check-input:checked {
@@ -126,16 +135,32 @@ h1, h2, h3, h4, h5, h6 {
 .form-check-label {
     color: #fff !important;
     padding-left: 8px !important;
+    font-weight: 500 !important;
 }
 
-/* Button effects */
+/* Enhanced Button effects */
 .btn {
     font-family: 'Inter', sans-serif !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
 }
 
 .btn:hover {
-    transform: translateY(-2px);
-    transition: all 0.3s ease;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #00d4aa, #00ff88) !important;
+    border: none !important;
+    color: #000 !important;
+}
+
+.btn-secondary {
+    background-color: #333 !important;
+    border-color: #444 !important;
+    color: #fff !important;
 }
 
 /* Scrollbar styling */
@@ -145,7 +170,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-track {
-    background: #111;
+    background: #000000;
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -157,11 +183,52 @@ h1, h2, h3, h4, h5, h6 {
     background: #00d4aa;
 }
 
-/* Labels styling */
+/* Enhanced Labels styling */
 .form-label, label {
     color: #fff !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     font-family: 'Inter', sans-serif !important;
+    margin-bottom: 8px !important;
+}
+
+/* Input styling enhancements */
+input[type="number"], input[type="text"] {
+    background-color: #000000 !important;
+    border: 1px solid #333 !important;
+    border-radius: 6px !important;
+    color: #fff !important;
+    font-weight: 500 !important;
+}
+
+input[type="number"]:focus, input[type="text"]:focus {
+    border-color: #00d4aa !important;
+    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1) !important;
+}
+
+/* Card enhancements */
+.card {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.card-body {
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* Alert styling for AMOLED */
+.alert {
+    border-radius: 8px !important;
+    border: 1px solid #333 !important;
+    background-color: #000000 !important;
+}
+
+.alert-warning {
+    color: #ffcc00 !important;
+    border-color: #ffcc00 !important;
 }
 """
 
@@ -227,7 +294,8 @@ app.layout = dbc.Container([
                                         dbc.Card([
                                             dbc.CardHeader(html.H4("🔍 Stock Search", className="text-center", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
-                                                dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                # Stock Symbol Input Section
+                                                dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
                                                 dbc.Row([
                                                     dbc.Col([
                                                         dbc.Input(
@@ -238,28 +306,55 @@ app.layout = dbc.Container([
                                                             style={
                                                                 'backgroundColor': '#000000', 
                                                                 'color': '#fff',
-                                                                'border': '1px solid #444'
+                                                                'border': '2px solid #444',
+                                                                'borderRadius': '8px',
+                                                                'padding': '12px 16px',
+                                                                'fontSize': '16px',
+                                                                'fontWeight': '500'
                                                             },
                                                             className="text-uppercase"
                                                         )
-                                                    ], width=9),
+                                                    ], width=8),
                                                     dbc.Col([
-                                                        dbc.Button("🔍", id="search-button", color="success", n_clicks=0, className="w-100")
-                                                    ], width=3)
+                                                        dbc.Button(
+                                                            [
+                                                                html.Span("🔍", style={'marginRight': '5px', 'fontSize': '16px'}),
+                                                                html.Span("Search", style={'fontWeight': 'bold'})
+                                                            ],
+                                                            id="search-button", 
+                                                            color="success", 
+                                                            n_clicks=0, 
+                                                            className="w-100",
+                                                            style={
+                                                                'background': 'linear-gradient(45deg, #00d4aa, #00ff88)',
+                                                                'border': 'none',
+                                                                'borderRadius': '8px',
+                                                                'padding': '12px 8px',
+                                                                'fontWeight': 'bold',
+                                                                'boxShadow': '0 4px 15px rgba(0, 212, 170, 0.2)'
+                                                            }
+                                                        )
+                                                    ], width=4)
                                                 ], className="mb-3"),
                                                 
-                                                # Stock status indicator with last updated time
+                                                # Stock status indicator with enhanced styling
                                                 html.Div(
                                                     id="stock-status-indicator",
-                                                    className="mb-3",
+                                                    className="mb-4",
                                                     style={
-                                                        'textAlign': 'left',
-                                                        'padding': '5px'
+                                                        'textAlign': 'center',
+                                                        'padding': '8px 12px',
+                                                        'backgroundColor': '#000000',
+                                                        'borderRadius': '6px',
+                                                        'border': '1px solid #333'
                                                     }
                                                 ),
                                                 
-                                                dbc.Label("Time Frame:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                                                dcc.Dropdown(
+                                                html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
+                                                
+                                                # Time Frame Section
+                                                dbc.Label("Time Frame:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Select(
                                                     id='timeframe-dropdown',
                                                     options=[
                                                         {'label': '📅 Today', 'value': '1d'},
@@ -271,13 +366,14 @@ app.layout = dbc.Container([
                                                         {'label': '📅 5 Years', 'value': '5y'},
                                                         {'label': '📅 Max', 'value': 'max'}
                                                     ],
-                                                    value='1d',  # Default to 1D view
+                                                    value='1d',
                                                     className="mb-3",
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
                                                 ),
                                                 
-                                                dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                                                dcc.Dropdown(
+                                                # Chart Type Section
+                                                dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Select(
                                                     id='chart-type-dropdown',
                                                     options=[
                                                         {'label': '🕯️ Candlesticks', 'value': 'candlestick'},
@@ -294,71 +390,146 @@ app.layout = dbc.Container([
                                         dbc.Card([
                                             dbc.CardHeader(html.H5("📈 Main Chart Settings", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
-                                                dbc.Label("EMA Periods:", style={'color': '#fff', 'fontWeight': 'bold'}),
+                                                # EMA Section
+                                                dbc.Label("EMA Periods:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
                                                 html.Div(id='ema-periods-container', children=[
                                                     dbc.Row([
                                                         dbc.Col([
-                                                            dbc.Label("Fast EMA:", style={'color': '#fff', 'fontSize': '12px'}),
-                                                            dbc.Input(id='ema-period-0', type='number', value=13, min=1, max=200, size='sm')
+                                                            dbc.Label("Fast EMA:", style={'color': '#ccc', 'fontSize': '12px', 'marginBottom': '5px'}),
+                                                            dbc.Input(
+                                                                id='ema-period-0', 
+                                                                type='number', 
+                                                                value=13, 
+                                                                min=1, 
+                                                                max=200, 
+                                                                size='sm',
+                                                                style={
+                                                                    'backgroundColor': '#000000',
+                                                                    'border': '1px solid #333',
+                                                                    'color': '#fff',
+                                                                    'borderRadius': '6px'
+                                                                }
+                                                            )
                                                         ], width=6),
                                                         dbc.Col([
-                                                            dbc.Label("Slow EMA:", style={'color': '#fff', 'fontSize': '12px'}),
-                                                            dbc.Input(id='ema-period-1', type='number', value=26, min=1, max=200, size='sm')
+                                                            dbc.Label("Slow EMA:", style={'color': '#ccc', 'fontSize': '12px', 'marginBottom': '5px'}),
+                                                            dbc.Input(
+                                                                id='ema-period-1', 
+                                                                type='number', 
+                                                                value=26, 
+                                                                min=1, 
+                                                                max=200, 
+                                                                size='sm',
+                                                                style={
+                                                                    'backgroundColor': '#000000',
+                                                                    'border': '1px solid #333',
+                                                                    'color': '#fff',
+                                                                    'borderRadius': '6px'
+                                                                }
+                                                            )
                                                         ], width=6)
-                                                    ], className="mb-2"),
+                                                    ], className="mb-3"),
                                                 ]),
-                                                dbc.Checklist(
-                                                    id='show-ema',
-                                                    options=[{'label': 'Show EMAs', 'value': 'show'}],
-                                                    value=['show'],
-                                                    style={'color': '#fff'},
-                                                    className="mb-3"
-                                                ),
                                                 
-                                                html.Hr(style={'borderColor': '#444', 'margin': '10px 0px'}),
+                                                # EMA Toggle with enhanced styling
+                                                html.Div([
+                                                    dbc.Checklist(
+                                                        id='show-ema',
+                                                        options=[{
+                                                            'label': html.Div([
+                                                                html.Span("📊 Show EMAs", style={'color': '#fff', 'fontWeight': '500'})
+                                                            ]), 
+                                                            'value': 'show'
+                                                        }],
+                                                        value=['show'],
+                                                        style={'color': '#fff'},
+                                                        className="mb-3"
+                                                    )
+                                                ], style={
+                                                    'backgroundColor': '#000000',
+                                                    'borderRadius': '8px',
+                                                    'padding': '12px 16px',
+                                                    'border': '1px solid #333'
+                                                }),
                                                 
-                                                # Moving ATR bands into the EMA settings card
-                                                dbc.Label("ATR Bands:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                                                dbc.Checklist(
-                                                    id='atr-bands',
-                                                    options=[
-                                                        {'label': '±1 ATR', 'value': '1'},
-                                                        {'label': '±2 ATR', 'value': '2'},
-                                                        {'label': '±3 ATR', 'value': '3'}
-                                                    ],
-                                                    value=[],
-                                                    inline=True,
-                                                    style={'color': '#fff'}
-                                                )
+                                                html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
+                                                
+                                                # ATR Bands Section
+                                                dbc.Label("ATR Volatility Bands:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                html.Div([
+                                                    dbc.Checklist(
+                                                        id='atr-bands',
+                                                        options=[
+                                                            {
+                                                                'label': html.Div([
+                                                                    html.Span("±1 ATR", style={'color': '#fff', 'fontWeight': '500'})
+                                                                ]),
+                                                                'value': '1'
+                                                            },
+                                                            {
+                                                                'label': html.Div([
+                                                                    html.Span("±2 ATR", style={'color': '#fff', 'fontWeight': '500'})
+                                                                ]),
+                                                                'value': '2'
+                                                            },
+                                                            {
+                                                                'label': html.Div([
+                                                                    html.Span("±3 ATR", style={'color': '#fff', 'fontWeight': '500'})
+                                                                ]),
+                                                                'value': '3'
+                                                            }
+                                                        ],
+                                                        value=[],
+                                                        inline=False,  # Stack vertically for better mobile experience
+                                                        style={'color': '#fff'}
+                                                    )
+                                                ], style={
+                                                    'backgroundColor': '#000000',
+                                                    'borderRadius': '8px',
+                                                    'padding': '12px 16px',
+                                                    'border': '1px solid #333'
+                                                })
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
                                         
-                                        # Lower Chart Selection Card (moved up)
+                                        # Lower Chart Selection Card
                                         dbc.Card([
                                             dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
-                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold'}),
-                                                dcc.Dropdown(
-                                                    id='lower-chart-selection',
-                                                    options=[
-                                                        {'label': '📊 Volume', 'value': 'volume'},
-                                                        {'label': '📈 MACD', 'value': 'macd'},
-                                                        {'label': '💪 Force Index', 'value': 'force'},
-                                                        {'label': '📉 A/D Line', 'value': 'ad'},
-                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
-                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
-                                                        {'label': '📊 RSI', 'value': 'rsi'},
-                                                        {'label': '📈 OBV', 'value': 'obv'}
-                                                    ],
-                                                    value='volume',
-                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
-                                                    className="mb-3"
-                                                ),
+                                                # Lower Chart Selection
+                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                html.Div([
+                                                    dbc.Select(
+                                                        id='lower-chart-selection',
+                                                        options=[
+                                                            {'label': '📊 Volume', 'value': 'volume'},
+                                                            {'label': '📈 MACD', 'value': 'macd'},
+                                                            {'label': '💪 Force Index', 'value': 'force'},
+                                                            {'label': '📉 A/D Line', 'value': 'ad'},
+                                                            {'label': '📊 ADX/DI', 'value': 'adx'},
+                                                            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+                                                            {'label': '📊 RSI', 'value': 'rsi'},
+                                                            {'label': '📈 OBV', 'value': 'obv'}
+                                                        ],
+                                                        value='volume',
+                                                        style={'backgroundColor': '#000000', 'color': '#fff'},
+                                                        className="mb-3"
+                                                    )
+                                                ], style={
+                                                    'backgroundColor': '#000000',
+                                                    'borderRadius': '8px',
+                                                    'padding': '12px 16px',
+                                                    'border': '1px solid #333'
+                                                }),
                                                 
-                                                # Dynamic settings based on selected lower chart
-                                                html.Div(id='lower-chart-settings', children=[
-                                                    # Settings will be dynamically generated based on selection
-                                                ])
+                                                # Dynamic settings section with enhanced container
+                                                html.Div([
+                                                    html.Div(id='lower-chart-settings', children=[
+                                                        # Settings will be dynamically generated based on selection
+                                                    ])
+                                                ], style={
+                                                    'marginTop': '15px'
+                                                })
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                                     ])
@@ -378,7 +549,7 @@ app.layout = dbc.Container([
                                                 html.Div(
                                                     id='insights-current-stock',
                                                     style={
-                                                        'backgroundColor': '#111',
+                                                        'backgroundColor': '#000000',
                                                         'border': '2px solid #00d4aa',
                                                         'borderRadius': '8px',
                                                         'padding': '12px 16px',

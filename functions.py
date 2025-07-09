@@ -575,7 +575,7 @@ def update_lower_chart_settings(chart_type):
             html.H6("Volume Settings", style={'color': '#00d4aa'}),
             dbc.Row([
                 dbc.Col([
-                    dbc.Label("Compare with:", style={'color': '#fff', 'fontSize': '12px'}),
+                    dbc.Label("Compare with another stock or ETF:", style={'color': '#fff', 'fontSize': '12px'}),
                     dbc.Select(
                         id='volume-comparison-select',
                         options=[
@@ -589,9 +589,7 @@ def update_lower_chart_settings(chart_type):
                         style={'backgroundColor': '#2b3035', 'color': '#fff'}
                     )
                 ], width=12)
-            ], className="mb-2"),
-            html.P("Compare the trading volume with another stock or ETF.", 
-                  style={'color': '#ccc', 'fontSize': '12px'})
+            ], className="mb-2")
         ]
     
 def update_symbol(n_clicks, symbol):
