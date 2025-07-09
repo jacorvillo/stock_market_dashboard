@@ -135,6 +135,49 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #000000 !important;
 }
 
+/* Radio buttons styling for dark theme */
+.form-check-input {
+    background-color: #222 !important;
+    border: 2px solid #666 !important;
+    width: 1.2em !important;
+    height: 1.2em !important;
+}
+
+.form-check-input:checked {
+    background-color: #00d4aa !important;
+    border-color: #00d4aa !important;
+}
+
+.form-check-input:focus {
+    border-color: #00d4aa !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 212, 170, 0.25) !important;
+}
+
+.form-check-label {
+    color: #fff !important;
+    padding-left: 8px !important;
+    cursor: pointer !important;
+}
+
+.form-check {
+    margin-bottom: 12px !important;
+    padding: 12px 16px !important;
+    margin-left: 8px !important;
+    margin-right: 8px !important;
+    border-radius: 6px !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.form-check:hover {
+    background-color: rgba(0, 212, 170, 0.1) !important;
+}
+
+/* Button hover effects */
+.btn:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
 /* Make scrollbars match theme */
 ::-webkit-scrollbar {
     width: 8px;
@@ -354,19 +397,107 @@ app.layout = dbc.Container([
                                     ])
                                 ]
                             ),
-                            # Insights Tab (empty for now)
+                            # Insights Tab
                             dbc.Tab(
                                 label="Insights",
                                 tab_id="insights-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
                                         dbc.Card([
-                                            dbc.CardHeader(html.H4("💡 Insights", className="text-center", style={'color': '#00d4aa'})),
+                                            dbc.CardHeader(html.H4("💡 Trading Insights", className="text-center", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
+                                                # Current Stock Display (read-only)
+                                                dbc.Label("Analyzing Current Stock:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                html.Div(
+                                                    id='insights-current-stock',
+                                                    style={
+                                                        'backgroundColor': '#111',
+                                                        'border': '2px solid #00d4aa',
+                                                        'borderRadius': '8px',
+                                                        'padding': '12px 16px',
+                                                        'marginBottom': '20px',
+                                                        'textAlign': 'center'
+                                                    },
+                                                    children=[
+                                                        html.H5("SPY", style={'color': '#00d4aa', 'margin': '0', 'fontWeight': 'bold'})
+                                                    ]
+                                                ),
+                                                
+                                                # Trading Style Selection
+                                                dbc.Label("Trading Style:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '15px'}),
+                                                dbc.RadioItems(
+                                                    id='insights-trading-style',
+                                                    options=[
+                                                        {
+                                                            'label': html.Div([
+                                                                html.Div([
+                                                                    "⚡ Day Trading",
+                                                                    html.Small(" (Intraday positions)", style={'color': '#ccc', 'display': 'block', 'fontStyle': 'italic'})
+                                                                ], style={'marginLeft': '8px'})
+                                                            ]), 
+                                                            'value': 'day_trading'
+                                                        },
+                                                        {
+                                                            'label': html.Div([
+                                                                html.Div([
+                                                                    "📊 Swing Trading",
+                                                                    html.Small(" (2-10 day positions)", style={'color': '#ccc', 'display': 'block', 'fontStyle': 'italic'})
+                                                                ], style={'marginLeft': '8px'})
+                                                            ]), 
+                                                            'value': 'swing_trading'
+                                                        },
+                                                        {
+                                                            'label': html.Div([
+                                                                html.Div([
+                                                                    "🌱 Long-term Trading",
+                                                                    html.Small(" (Weeks to months)", style={'color': '#ccc', 'display': 'block', 'fontStyle': 'italic'})
+                                                                ], style={'marginLeft': '8px'})
+                                                            ]), 
+                                                            'value': 'longterm_trading'
+                                                        }
+                                                    ],
+                                                    value='swing_trading',  # Default to swing trading
+                                                    style={'color': '#fff'},
+                                                    className="mb-4"
+                                                ),
+                                                
+                                                # Run Insights Button
                                                 html.Div([
-                                                    html.P("Insights features coming soon...", 
-                                                          style={'color': '#ccc', 'textAlign': 'center', 'marginTop': '50px'})
-                                                ])
+                                                    dbc.Button(
+                                                        [
+                                                            html.Span("🧠", style={'marginRight': '8px', 'fontSize': '18px'}),
+                                                            # Text in black
+                                                            html.Span("Run Insights!", style={'color': '#000', 'fontWeight': 'bold'})
+                                                        ],
+                                                        id="run-insights-button",
+                                                        color="success",
+                                                        size="lg",
+                                                        className="w-100",
+                                                        style={
+                                                            'background': 'linear-gradient(45deg, #00d4aa, #00ff88)',
+                                                            'border': 'none',
+                                                            'fontWeight': 'bold',
+                                                            'fontSize': '16px',
+                                                            'padding': '12px 20px',
+                                                            'boxShadow': '0 4px 15px rgba(0, 212, 170, 0.3)'
+                                                        },
+                                                        n_clicks=0
+                                                    )
+                                                ], className="mb-3"),
+                                                
+                                                # Loading/Status indicator
+                                                html.Div(
+                                                    id="insights-status",
+                                                    style={'textAlign': 'center', 'marginTop': '10px'},
+                                                    children=[]
+                                                ),
+                                                
+                                                # Insights Results Area (initially hidden)
+                                                html.Div(
+                                                    id="insights-results",
+                                                    style={'marginTop': '20px'},
+                                                    children=[]
+                                                )
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                                     ])
@@ -779,6 +910,85 @@ def update_status_indicator_callback(figure_data, symbol):
         'color': '#00d4aa'
     }
     return update_stock_status_indicator(fallback_info)
+
+# ========== INSIGHTS TAB CALLBACKS ==========
+
+# Callback to update the current stock display in Insights tab
+@callback(
+    Output('insights-current-stock', 'children'),
+    [Input('current-symbol-store', 'data')]
+)
+def update_insights_current_stock(current_symbol):
+    """Update the current stock display in the Insights tab"""
+    symbol = current_symbol or 'SPY'
+    return html.H5(symbol, style={'color': '#00d4aa', 'margin': '0', 'fontWeight': 'bold'})
+
+# Callback to handle insights analysis
+@callback(
+    [Output('insights-status', 'children'),
+     Output('insights-results', 'children')],
+    [Input('run-insights-button', 'n_clicks')],
+    [State('current-symbol-store', 'data'),
+     State('insights-trading-style', 'value')],
+    prevent_initial_call=True
+)
+def run_insights_analysis(n_clicks, current_symbol, trading_style):
+    """Handle the insights analysis when the button is clicked"""
+    if not n_clicks:
+        raise PreventUpdate
+    
+    # Use current symbol or fallback to SPY
+    symbol = current_symbol or 'SPY'
+    
+    # Validate trading style
+    if not trading_style:
+        return [
+            dbc.Alert("Please select a trading style", color="warning", className="mt-2"),
+            []
+        ]
+    
+    # Show loading state
+    loading_status = html.Div([
+        dbc.Spinner(size="sm", color="success"),
+        html.Span(" Analyzing " + symbol + " for " + trading_style.replace('_', ' ').title() + "...", 
+                 style={'marginLeft': '10px', 'color': '#00d4aa'})
+    ])
+    
+    # For now, return a placeholder result
+    # This is where the actual AI analysis would be implemented
+    
+    # Get trading style display name and emoji
+    style_info = {
+        'day_trading': {'name': 'Day Trading', 'emoji': '⚡', 'color': '#ff6b6b'},
+        'swing_trading': {'name': 'Swing Trading', 'emoji': '📊', 'color': '#4ecdc4'},
+        'longterm_trading': {'name': 'Long-term Trading', 'emoji': '🌱', 'color': '#45b7d1'}
+    }
+    
+    current_style = style_info.get(trading_style, style_info['swing_trading'])
+    
+    # Create placeholder results
+    results = dbc.Card([
+        dbc.CardHeader([
+            html.H5([
+                html.Span(current_style['emoji'], style={'marginRight': '10px', 'fontSize': '24px'}),
+                f"{current_style['name']} Analysis for {symbol}"
+            ], style={'color': '#00d4aa', 'marginBottom': '0'})
+        ]),
+        dbc.CardBody([
+            html.Div([
+                html.H6("Insights is under development! It will include:", style={'color': '#fff', 'marginBottom': '15px'}),
+                html.Ul([
+                    html.Li(f"📊 Technical indicators optimized for {current_style['name'].lower()}", style={'color': '#ccc', 'marginBottom': '5px'}),
+                    html.Li("🎯 Entry and exit signals", style={'color': '#ccc', 'marginBottom': '5px'}),
+                    html.Li("⚠️ Risk assessment and position sizing", style={'color': '#ccc', 'marginBottom': '5px'}),
+                    html.Li("📈 Market sentiment analysis", style={'color': '#ccc', 'marginBottom': '5px'}),
+                    html.Li("🔮 Price targets and stop-loss recommendations", style={'color': '#ccc', 'marginBottom': '5px'})
+                ], style={'listStyleType': 'none', 'paddingLeft': '0'})
+            ])
+        ])
+    ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mt-3")
+    
+    return [[], results]
 
 # Run the server
 if __name__ == '__main__':
