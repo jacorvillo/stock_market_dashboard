@@ -1,0 +1,1891 @@
+import pandas as pd
+import numpy as np
+import datetime as dt
+from datetime import datetime, timedelta
+import yfinance as yf
+import dash
+from dash import html, dcc, Input, Output, State, callback
+import dash_bootstrap_components as dbc
+import ta
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from plotly.subplots import make_subplots
+
+# Simple cache for recently viewed tickers (speeds up repeated requests)
+_ticker_cache = {}
+_cache_expiry = {}
+CACHE_DURATION_SECONDS = 60  # Cache data for 1 minute
+
+def _is_cache_valid(symbol, timeframe):
+    """Check if cached data is still valid"""
+    cache_key = f"{symbol}_{timeframe}"
+    if cache_key not in _ticker_cache or cache_key not in _cache_expiry:
+        return False
+    
+    # Check if cache has expired
+    from datetime import datetime
+    return datetime.now().timestamp() < _cache_expiry[cache_key]
+
+def _get_cached_data(symbol, timeframe):
+    """Get cached data if available and valid"""
+    cache_key = f"{symbol}_{timeframe}"
+    if _is_cache_valid(symbol, timeframe):
+        print(f"Using cached data for {symbol} {timeframe}")
+        return _ticker_cache[cache_key]
+    return None
+
+def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
+    """Cache data for fast retrieval"""
+    cache_key = f"{symbol}_{timeframe}"
+    from datetime import datetime
+    _ticker_cache[cache_key] = (data.copy(), start_date, end_date, is_minute_data)
+    _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
+    print(f"Cached data for {symbol} {timeframe} (expires in {CACHE_DURATION_SECONDS}s)")
+
+# Function to fetch stock data with lookback for indicators
+def get_stock_data(symbol="SPY", period="1y"):
+    """Fetch stock data from yfinance with caching for faster ticker switching"""
+    try:
+        # Check cache first for non-intraday data (intraday needs real-time updates)
+        if period != "1d":
+            cached_result = _get_cached_data(symbol, period)
+            if cached_result is not None:
+                return cached_result
+        
+        print(f"Attempting to fetch {symbol} data for period {period}")
+        
+        # Sanitize symbol for safety
+        symbol = symbol.strip().upper()
+        if not symbol or not all(c.isalnum() or c in ['-', '.'] for c in symbol):
+            print(f"Invalid symbol format: {symbol}, using SPY instead")
+            symbol = "SPY"
+            
+        # Check if intraday (1d) data is requested
+        is_intraday = period == "1d"
+        
+        # Get current time in CEST (user's timezone)
+        now_cest = datetime.now()
+        
+        # Convert CEST to UTC first
+        # CEST is UTC+2, so subtract 2 hours to get UTC
+        now_utc = now_cest - timedelta(hours=2)
+        
+        # Convert UTC to Eastern Time (EDT is UTC-4 in summer, EST is UTC-5 in winter)
+        # For July 2025, we're in EDT (summer time), so UTC-4
+        now_et = now_utc - timedelta(hours=4)
+        
+        print(f"Local time (CEST): {now_cest.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"UTC time: {now_utc.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Market time (EDT): {now_et.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # Check if we are in market hours (9:30AM - 4:00PM ET)
+        is_market_open = (now_et.hour > 9 or (now_et.hour == 9 and now_et.minute >= 30)) and now_et.hour < 16
+        is_pre_market = now_et.hour < 9 or (now_et.hour == 9 and now_et.minute < 30)
+        is_after_market = now_et.hour >= 16
+        is_weekend = now_et.weekday() >= 5  # Saturday=5, Sunday=6
+        
+        print(f"Market status: {'WEEKEND' if is_weekend else 'OPEN' if is_market_open else 'PRE-MARKET' if is_pre_market else 'AFTER-MARKET'}")
+        
+        # Handle intraday data differently - get minute data for 1-day period
+        if is_intraday:
+            # For 1D view: Show empty chart when market is closed, real-time data when open
+            
+            print(f"1D view requested - Market is {'WEEKEND' if is_weekend else 'OPEN' if is_market_open else 'PRE-MARKET' if is_pre_market else 'AFTER-MARKET'}")
+            print(f"Current ET time: {now_et.strftime('%Y-%m-%d %H:%M:%S')} (Hour: {now_et.hour}, Minute: {now_et.minute})")
+            print(f"Is weekend: {is_weekend}, Is market open: {is_market_open}")
+            
+            if is_weekend:
+                print(f"Weekend detected - returning empty dataset for 1D view")
+                # Return empty dataset when it's weekend
+                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                start_date = now_cest
+                end_date = now_cest
+                is_minute_data = True
+                return empty_df, start_date, end_date, is_minute_data
+            elif is_pre_market or is_after_market:
+                print(f"Market is closed (pre/after hours) - returning empty dataset for 1D view")
+                # During trading days but outside market hours, return empty dataset
+                # This ensures we only show data during active market hours
+                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                start_date = now_cest
+                end_date = now_cest
+                is_minute_data = True
+                return empty_df, start_date, end_date, is_minute_data
+            
+            # Market is open - fetch real-time minute data for today only
+            print(f"Market is OPEN - fetching real-time minute data for today")
+            print(f"Today in ET timezone: {now_et.strftime('%Y-%m-%d')}")
+            print(f"Today in CEST timezone: {now_cest.strftime('%Y-%m-%d')}")
+            
+            # Fetch today's minute data using yfinance
+            ticker = yf.Ticker(symbol)
+            try:
+                # For intraday, use "1d" period with "1m" interval to get today's data
+                print(f"Fetching real-time minute data for {symbol}")
+                data = ticker.history(period="1d", interval="1m", timeout=3)  # Reduced timeout for faster response
+                
+                print(f"Successfully fetched {len(data)} minute data points for {symbol}")
+                
+                # Convert timestamps to CEST timezone for display
+                data.reset_index(inplace=True)
+                
+                # Handle the Date/Datetime column and convert to CEST
+                if 'Datetime' in data.columns:
+                    data = data.rename(columns={'Datetime': 'Date'})
+                
+                # Convert from ET to CEST
+                # yfinance intraday data comes in ET timezone
+                # EDT is UTC-4, so to convert to CEST (UTC+2): add 6 hours
+                # EST is UTC-5, so to convert to CEST (UTC+1): add 6 hours (winter)
+                # For July 2025, we're in summer time, so EDT to CEST = +6 hours
+                data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
+                data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
+                
+                print(f"Converted {len(data)} timestamps from ET to CEST")
+                print(f"Data range: {data['Date'].min()} to {data['Date'].max()} (CEST)")
+                
+                # Filter to only show data from today in CEST
+                today_cest = now_cest.date()
+                print(f"Filtering for today's date in CEST: {today_cest}")
+                data = data[data['Date'].dt.date == today_cest]
+                
+                if data.empty:
+                    print(f"No data for today ({today_cest}) after timezone conversion")
+                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                
+                # Set start and end dates for the display
+                start_date = data['Date'].min()
+                end_date = data['Date'].max()
+                is_minute_data = True
+                
+                print(f"Final 1D dataset: {len(data)} points from {start_date} to {end_date} (CEST)")
+                return data, start_date, end_date, is_minute_data
+                
+            except Exception as e:
+                print(f"Error fetching 1D minute data for {symbol}: {e}")
+                # Return empty dataset on error
+                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                start_date = now_cest
+                end_date = now_cest
+                is_minute_data = True
+                return empty_df, start_date, end_date, is_minute_data
+        else:
+            # Calculate optimized period for faster loading while maintaining indicator accuracy
+            # Reduced extended periods for faster ticker switching
+            extended_period = period
+            if period in ["5d"]:
+                extended_period = "1mo"  # Reduced from 3mo for faster loading
+            elif period == "1mo":
+                extended_period = "3mo"  # Reduced from 6mo for faster loading
+            elif period == "6mo":
+                extended_period = "1y"   # Keep as is (reasonable)
+            elif period == "ytd":
+                extended_period = "1y"   # Reduced from 2y for faster loading
+            elif period == "1y":
+                extended_period = "2y"   # Reduced from 3y for faster loading
+            elif period == "5y":
+                extended_period = "7y"   # Reduced from 10y for faster loading
+            
+            # Try to fetch real stock data with reduced timeout for faster response
+            ticker = yf.Ticker(symbol)
+            data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
+        
+        if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
+            print(f"Insufficient data returned for {symbol}, falling back to SPY")
+            # Fallback to SPY if current symbol fails
+            if symbol != "SPY":
+                ticker = yf.Ticker("SPY")
+                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout
+                if data.empty:
+                    raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
+            else:
+                raise Exception(f"Could not fetch data for {symbol}")
+            
+        data.reset_index(inplace=True)
+        print(f"Successfully fetched {len(data)} rows of extended data for {symbol}")
+        
+        # Handle the Date/Datetime column
+        # YFinance may return 'Date' for daily data or 'Datetime' for intraday data
+        if 'Date' in data.columns:
+            data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)  # Remove timezone info
+        elif 'Datetime' in data.columns:
+            # For intraday data, rename Datetime to Date for consistency
+            data = data.rename(columns={'Datetime': 'Date'})
+            data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)  # Remove timezone info
+        
+        # Exclude weekends
+        # Only keep business days (Monday=0 to Friday=4)
+        data = data[data['Date'].dt.weekday < 5]
+        
+        # Calculate the target end date and start date for the requested period
+        end_date = data['Date'].max()
+        
+        # Calculate start date based on requested period
+        if period == "1d":
+            # For intraday data, calculate precise 1 day window
+            if is_intraday:
+                # For 1d intraday view, show just one full trading day (9:30AM - 4:00PM)
+                # Get today's market date
+                trading_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                # Calculate market opening and closing times
+                market_open = trading_day.replace(hour=9, minute=30)
+                market_close = trading_day.replace(hour=16, minute=0)
+                
+                # For intraday data, we'll restrict to market hours on the display date
+                start_date = market_open
+                
+                # If we're showing yesterday's data (pre-market), ensure we get correct market hours
+                if is_pre_market:
+                    # We're viewing previous day's data, so use that date's market session
+                    start_date = trading_day.replace(hour=9, minute=30)
+                    end_date = trading_day.replace(hour=16, minute=0)
+                
+                print(f"Setting intraday window: {start_date} to {end_date}")
+            else:
+                start_date = end_date - pd.Timedelta(days=1)
+        elif period == "5d":
+            start_date = end_date - pd.Timedelta(days=7)  # Account for weekends
+        elif period == "1mo":
+            start_date = end_date - pd.DateOffset(months=1)
+        elif period == "6mo":
+            start_date = end_date - pd.DateOffset(months=6)
+        elif period == "ytd":
+            # For YTD, exclude today from the data if we're in pre-market hours
+            # Using ET (market time) for the determination
+            if is_pre_market:
+                print(f"Pre-market hours detected for YTD (ET time: {now_et.strftime('%H:%M:%S')}), excluding current day from display")
+                # Adjust end_date to previous day's end
+                end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) - pd.Timedelta(days=1)
+                end_date = end_date.replace(hour=23, minute=59, second=59)
+                
+            # Create a naive datetime object for January 1st of the current year
+            start_date = pd.Timestamp(end_date.year, 1, 1)
+        elif period == "1y":
+            start_date = end_date - pd.DateOffset(years=1)
+        elif period == "5y":
+            start_date = end_date - pd.DateOffset(years=5)
+        else:  # max
+            start_date = data['Date'].min()
+        
+        # Store the full data for indicator calculation
+        full_data = data.copy()
+        
+        # For intraday data, add a marker to identify this as minute-level data
+        is_minute_data = False
+        if period == "1d" and is_intraday and len(data) > 0:
+            # Check if the data has minute granularity (check time differences)
+            time_diffs = pd.Series(data['Date'].diff().dropna())
+            if len(time_diffs) > 0:
+                # If the median time difference is less than 10 minutes, it's likely minute data
+                median_diff_seconds = time_diffs.median().total_seconds()
+                is_minute_data = median_diff_seconds < 600  # 10 minutes in seconds
+        
+        # Log the data type we're working with
+        if is_minute_data:
+            print(f"Using minute-level data for {symbol} with {len(full_data)} points")
+        else:
+            print(f"Using daily-level data for {symbol} with {len(full_data)} points")
+        
+        # Cache non-intraday data for faster ticker switching (don't cache intraday as it needs real-time updates)
+        if period != "1d":
+            _cache_data(symbol, period, full_data, start_date, end_date, is_minute_data)
+        
+        # After indicator calculation, we'll trim to the requested period
+        return full_data, start_date, end_date, is_minute_data
+        
+    except Exception as e:
+        print(f"Could not fetch real data for {symbol}: {e}. Trying SPY fallback.")
+        # Try SPY as fallback
+        try:
+            if symbol != "SPY":
+                ticker = yf.Ticker("SPY")
+                data = ticker.history(period="1y", timeout=5)
+                if not data.empty:
+                    data.reset_index(inplace=True)
+                    if 'Date' in data.columns:
+                        data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
+                    elif 'Datetime' in data.columns:
+                        data = data.rename(columns={'Datetime': 'Date'})
+                        data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
+                    
+                    end_date = data['Date'].max()
+                    start_date = end_date - pd.DateOffset(months=1)  # Default to 1 month
+                    is_minute_data = False
+                    return data, start_date, end_date, is_minute_data
+            
+            # If SPY also fails, raise error
+            raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
+            
+        except Exception as fallback_error:
+            print(f"SPY fallback also failed: {fallback_error}")
+            raise Exception(f"No data available for {symbol}")
+
+# Function to calculate technical indicators with custom parameters
+def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, fast_mode=False):
+    """Calculate technical indicators for the stock data with custom parameters
+    fast_mode: If True, calculates only essential indicators for faster ticker switching"""
+    try:
+        df = df.copy()
+        
+        # Handle empty dataframes (e.g., when market is closed for 1D view)
+        if df.empty:
+            print("Empty dataframe - skipping indicator calculations")
+            # Return empty dataframe with indicator columns
+            for period in ema_periods:
+                df[f'EMA_{period}'] = []
+            df['MACD'] = []
+            df['MACD_signal'] = []
+            df['MACD_hist'] = []
+            df['Force_Index'] = []
+            df['AD_Line'] = []
+            df['ADX'] = []
+            df['DI_plus'] = []
+            df['DI_minus'] = []
+            df['ATR'] = []
+            return df
+        
+        # Only calculate indicators if we have enough data
+        min_length = len(df)
+        
+        if fast_mode:
+            print(f"Fast mode: calculating essential indicators for {min_length} data points")
+            # In fast mode, only calculate the most essential indicators
+            ema_periods = ema_periods[:2] if len(ema_periods) > 2 else ema_periods  # Limit to 2 EMAs max
+        else:
+            print(f"Calculating indicators for {min_length} data points")
+            
+        print(f"EMA periods: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force smoothing: {force_smoothing}, ADX period: {adx_period}")
+        
+        # Custom EMA periods (optimized for speed)
+        for period in ema_periods:
+            if min_length >= max(period, 10):  # Require minimum 10 data points
+                df[f'EMA_{period}'] = ta.trend.EMAIndicator(df['Close'], window=min(period, min_length//2)).ema_indicator()
+            else:
+                df[f'EMA_{period}'] = df['Close']  # Use close price as fallback
+        
+        # MACD with custom parameters
+        if min_length >= max(macd_fast, macd_slow):
+            macd = ta.trend.MACD(df['Close'], window_fast=macd_fast, window_slow=macd_slow, window_sign=macd_signal)
+            df['MACD'] = macd.macd()
+            df['MACD_signal'] = macd.macd_signal()
+            df['MACD_hist'] = macd.macd_diff()
+        else:
+            # Fill with zeros for small datasets
+            df['MACD'] = 0
+            df['MACD_signal'] = 0
+            df['MACD_hist'] = 0
+        
+        # Force Index with smoothing
+        if min_length >= 2:
+            force_raw = ta.volume.ForceIndexIndicator(df['Close'], df['Volume']).force_index()
+            if force_smoothing > 1 and min_length >= force_smoothing:
+                df['Force_Index'] = force_raw.rolling(window=force_smoothing).mean()
+            else:
+                df['Force_Index'] = force_raw
+        else:
+            df['Force_Index'] = 0
+        
+        # A/D Line (Accumulation/Distribution)
+        if min_length >= 1:
+            ad_line = ta.volume.AccDistIndexIndicator(df['High'], df['Low'], df['Close'], df['Volume']).acc_dist_index()
+            # Store as both AD and AD_Line for compatibility
+            df['AD'] = ad_line
+            df['AD_Line'] = ad_line
+        else:
+            df['AD'] = 0
+            df['AD_Line'] = 0
+            
+        # ADX, DI+, and DI- indicators
+        adx_period = max(1, min(adx_period, 50))  # Ensure period is between 1-50
+        if min_length >= max(14, adx_period):
+            adx_indicator = ta.trend.ADXIndicator(df['High'], df['Low'], df['Close'], window=adx_period)
+            df['ADX'] = adx_indicator.adx()
+            df['DI_plus'] = adx_indicator.adx_pos()
+            df['DI_minus'] = adx_indicator.adx_neg()
+        else:
+            # Fill with default values for small datasets
+            df['ADX'] = 25  # Neutral ADX value
+            df['DI_plus'] = 25
+            df['DI_minus'] = 25
+            
+        # ATR for bands calculation
+        if min_length >= 14:
+            df['ATR'] = ta.volatility.AverageTrueRange(df['High'], df['Low'], df['Close'], window=14).average_true_range()
+        else:
+            df['ATR'] = (df['High'] - df['Low']).rolling(window=min(14, min_length)).mean()
+        
+        # Fill any remaining NaN values with 0 or forward fill
+        numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus']]
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = df[col].ffill().fillna(0)
+        
+        print(f"Indicators calculated successfully")
+        return df
+        
+    except Exception as e:
+        print(f"Error calculating indicators: {e}")
+        # Return dataframe with zero-filled indicator columns
+        for period in ema_periods:
+            df[f'EMA_{period}'] = df['Close']
+        df['MACD'] = 0
+        df['MACD_signal'] = 0
+        df['MACD_hist'] = 0
+        df['Force_Index'] = 0
+        df['AD_Line'] = 0
+        df['ADX'] = 25  # Default neutral value
+        df['DI_plus'] = 25
+        df['DI_minus'] = 25
+        df['ATR'] = (df['High'] - df['Low']) * 0.1  # Simple ATR estimate
+        return df
+    
+def update_lower_chart_settings(chart_type):
+    """Update the settings panel based on the selected lower chart type"""
+    if chart_type == 'macd':
+        return [
+            html.H6("MACD Settings", style={'color': '#00d4aa'}),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label("Fast Period:", style={'color': '#fff', 'fontSize': '12px'}),
+                    dbc.Input(id='macd-fast', type='number', value=12, min=1, max=50, size='sm')
+                ], width=4),
+                dbc.Col([
+                    dbc.Label("Slow Period:", style={'color': '#fff', 'fontSize': '12px'}),
+                    dbc.Input(id='macd-slow', type='number', value=26, min=1, max=100, size='sm')
+                ], width=4),
+                dbc.Col([
+                    dbc.Label("Signal:", style={'color': '#fff', 'fontSize': '12px'}),
+                    dbc.Input(id='macd-signal', type='number', value=9, min=1, max=50, size='sm')
+                ], width=4)
+            ], className="mb-2")
+        ]
+    elif chart_type == 'force':
+        return [
+            html.H6("Force Index Settings", style={'color': '#00d4aa'}),
+            dbc.Label("Smoothing Period:", style={'color': '#fff', 'fontSize': '12px'}),
+            dbc.Input(id='force-smoothing', type='number', value=2, min=1, max=20, className="mb-3")
+        ]
+    elif chart_type == 'ad':
+        return [
+            html.H6("A/D Line Settings", style={'color': '#00d4aa'}),
+            html.P("The Accumulation/Distribution Line uses price and volume data with no additional parameters.", 
+                  style={'color': '#ccc', 'fontSize': '12px'})
+        ]
+    elif chart_type == 'adx':
+        return [
+            html.H6("ADX/DI Settings", style={'color': '#00d4aa'}),
+            dbc.Label("ADX Period:", style={'color': '#fff', 'fontSize': '12px'}),
+            dbc.Input(id='adx-period', type='number', value=13, min=1, max=50, className="mb-3"),
+            dbc.Label("Display:", style={'color': '#fff', 'fontSize': '12px'}),
+            dbc.Checklist(
+                id='adx-components',
+                options=[
+                    {'label': 'ADX Line', 'value': 'adx'},
+                    {'label': 'DI+ Line', 'value': 'di_plus'},
+                    {'label': 'DI- Line', 'value': 'di_minus'}
+                ],
+                value=['adx', 'di_plus', 'di_minus'],
+                inline=True,
+                style={'color': '#fff'}
+            )
+        ]
+    else:  # Volume
+        return [
+            html.H6("Volume Settings", style={'color': '#00d4aa'}),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label("Compare with:", style={'color': '#fff', 'fontSize': '12px'}),
+                    dbc.Select(
+                        id='volume-comparison-select',
+                        options=[
+                            {'label': 'None', 'value': 'none'},
+                            {'label': 'SPY - S&P 500 ETF', 'value': 'SPY'},
+                            {'label': 'QQQ - Nasdaq ETF', 'value': 'QQQ'},
+                            {'label': 'IWM - Russell 2000 ETF', 'value': 'IWM'},
+                            {'label': 'DIA - Dow Jones ETF', 'value': 'DIA'}
+                        ],
+                        value='none',
+                        style={'backgroundColor': '#2b3035', 'color': '#fff'}
+                    )
+                ], width=12)
+            ], className="mb-2"),
+            html.P("Compare the trading volume with another stock or ETF.", 
+                  style={'color': '#ccc', 'fontSize': '12px'})
+        ]
+    
+def update_symbol(n_clicks, symbol):
+    """Update the current symbol when search button is clicked with the value from the input"""
+    if symbol:
+        # Strip whitespace and convert to uppercase for consistency
+        symbol = symbol.upper().strip()
+        # Replace any potential special characters that shouldn't be in a ticker
+        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.'])
+        print(f"User searched for symbol: {symbol}")
+        return symbol
+    return 'SPY'
+
+def format_symbol_input(value):
+    """Format the symbol input as the user types"""
+    if value:
+        # Convert to uppercase
+        value = value.upper().strip()
+        # Only allow alphanumeric, dash, and dot characters
+        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.'])
+    return value
+
+def update_macd_stores(fast, slow, signal):
+    """Update store values when MACD parameters change in UI"""
+    return fast or 12, slow or 26, signal or 9
+
+def update_force_store(smoothing):
+    """Update store value when Force Index parameter changes in UI"""
+    return smoothing or 2
+
+def update_adx_stores(period, components):
+    """Update store values when ADX parameters change in UI"""
+    adx_period = period or 13
+    components = components or ['adx', 'di_plus', 'di_minus']
+    return adx_period, components
+
+def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
+    """Fetch volume data for comparison stock"""
+    if comparison_symbol == 'none':
+        return None
+        
+    try:
+        print(f"Fetching comparison volume data for {comparison_symbol}")
+        ticker = yf.Ticker(comparison_symbol)
+        
+        # Use a slightly extended period to ensure we get enough data
+        if isinstance(start_date, pd.Timestamp):
+            start_str = (start_date - pd.Timedelta(days=5)).strftime('%Y-%m-%d')
+        else:
+            start_str = (pd.Timestamp(start_date) - pd.Timedelta(days=5)).strftime('%Y-%m-%d')
+            
+        if isinstance(end_date, pd.Timestamp):
+            end_str = (end_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            end_str = (pd.Timestamp(end_date) + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+            
+        # Fetch the data
+        comp_data = ticker.history(start=start_str, end=end_str, interval='1d')
+        
+        if comp_data.empty:
+            return None
+            
+        comp_data.reset_index(inplace=True)
+        
+        # Handle Date/Datetime column
+        if 'Date' in comp_data.columns:
+            comp_data['Date'] = pd.to_datetime(comp_data['Date']).dt.tz_localize(None)
+        elif 'Datetime' in comp_data.columns:
+            comp_data = comp_data.rename(columns={'Datetime': 'Date'})
+            comp_data['Date'] = pd.to_datetime(comp_data['Date']).dt.tz_localize(None)
+            
+        # Return only Date and Volume columns
+        return comp_data[['Date', 'Volume']].copy()
+    except Exception as e:
+        print(f"Error fetching comparison volume: {e}")
+        return None
+
+def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period):
+    """Update stock data periodically or when symbol/timeframe/parameters change"""
+    error_msg = []
+    error_class = "alert alert-warning fade show d-none"  # Hidden by default
+    
+    try:
+        symbol = symbol or 'SPY'
+        timeframe = timeframe or '1mo'
+        ema_periods = ema_periods or [13, 26]
+        # Use default values if the components don't exist in the layout
+        macd_fast = 12 if macd_fast is None else macd_fast
+        macd_slow = 26 if macd_slow is None else macd_slow
+        macd_signal = 9 if macd_signal is None else macd_signal
+        force_smoothing = 2 if force_smoothing is None else force_smoothing
+        adx_period = 13 if adx_period is None else adx_period
+        
+        print(f"Fetching data for {symbol} with timeframe {timeframe}")
+        print(f"Custom parameters - EMA: {ema_periods}, MACD: {macd_fast}/{macd_slow}/{macd_signal}, Force: {force_smoothing}, ADX: {adx_period}")
+        
+        # Track if we're using sample data
+        using_sample_data = False
+        
+        # Get extended data for proper indicator calculation
+        try:
+            # Check cache first
+            cached_result = _get_cached_data(symbol, timeframe)
+            if cached_result is not None:
+                print(f"Using cached data for {symbol} {timeframe}")
+                full_data, start_date, end_date, is_minute_data = cached_result
+            else:
+                full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe)
+                _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)  # Cache the result
+        except Exception as data_error:
+            print(f"Error fetching data for {symbol}: {data_error}")
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)  # Fall back to SPY
+            error_msg = [
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                f"Could not fetch data for symbol '{symbol}'. Using sample data instead. ",
+                html.Span("Please check if the symbol is valid and try again.", className="small")
+            ]
+            error_class = "alert alert-warning fade show"
+            using_sample_data = True
+        
+        # Check if we have empty data for 1D view (market closed) - this is normal, don't show errors
+        if timeframe == "1d" and len(full_data) == 0:
+            print(f"Market is closed for 1D view - returning empty data without error messages")
+            return [], [], "alert alert-warning fade show d-none"  # Hidden error class
+        
+        # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
+        fast_mode = len(full_data) > 1000  # Use fast mode for large datasets to speed up calculations
+        df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, fast_mode)
+        
+        # Ensure both the Date column and start_date have the same timezone status (both naive)
+        # Make sure the Date column is timezone-naive for comparison
+        df_with_indicators['Date'] = pd.to_datetime(df_with_indicators['Date']).dt.tz_localize(None)
+        
+        # Convert start_date to a timezone-naive datetime if it has timezone info
+        if hasattr(start_date, 'tz') and start_date.tz is not None:
+            start_date = start_date.tz_localize(None)
+        
+        # Now trim to the requested period
+        df_final = df_with_indicators[df_with_indicators['Date'] >= start_date].copy()
+        
+        if not using_sample_data and (len(df_final) < 5):
+            # For 1D view, if we have no data it's likely because market is closed - don't show error
+            if timeframe == "1d":
+                print(f"No data for {symbol} in 1D view - market likely closed, not showing error")
+                return [], [], "alert alert-warning fade show d-none"  # Hidden error class
+            
+            print(f"Insufficient data for {symbol}, using sample data")
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)
+            df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, fast_mode=True)
+            
+            # Ensure timezone-naive comparison
+            df_with_indicators['Date'] = pd.to_datetime(df_with_indicators['Date']).dt.tz_localize(None)
+            if hasattr(start_date, 'tz') and start_date.tz is not None:
+                start_date = start_date.tz_localize(None)
+                
+            df_final = df_with_indicators[df_with_indicators['Date'] >= start_date].copy()
+            error_msg = [
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                f"Insufficient data available for symbol '{symbol}'. Using sample data instead. ",
+                html.Span("The symbol may be too new, delisted, or incorrectly entered.", className="small")
+            ]
+            error_class = "alert alert-warning fade show"
+            
+        print(f"Final data shape: {df_final.shape} (from {start_date} to {end_date})")
+        return df_final.to_dict('records'), error_msg, error_class
+        
+    except Exception as e:
+        print(f"Error in update_data: {e}")
+        # Return error state instead of sample data
+        error_msg = [
+            html.I(className="fas fa-exclamation-triangle me-2"),
+            f"An error occurred: {str(e)}. Please check your internet connection and try again."
+        ]
+        error_class = "alert alert-danger fade show"
+        return [], error_msg, error_class
+
+def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands):
+    """Update the main chart with different visualization types and indicators"""
+    try:
+        if not data:
+            print("No data available for main chart")
+            return go.Figure()
+        
+        df = pd.DataFrame(data)
+        df['Date'] = pd.to_datetime(df['Date'])
+        
+        symbol = symbol or 'SPY'
+        chart_type = chart_type or 'candlestick'
+        show_ema = show_ema or []
+        ema_periods = ema_periods or [13, 26]
+        atr_bands = atr_bands or []
+        
+        print(f"Rendering chart for {symbol}, type: {chart_type}")
+        print(f"EMA settings: show={show_ema}, periods={ema_periods}")
+        print(f"ATR bands: {atr_bands}")
+        
+        # Detect if data contains intraday (minute) timepoints
+        is_intraday = False
+        if len(df) > 1:
+            # Check if time difference between points is less than a day
+            time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
+            is_intraday = time_diff < 24*60*60
+            
+        print(f"Data type: {'intraday' if is_intraday else 'daily'}")
+        
+        # Create figure with dark theme
+        fig = go.Figure()
+        
+        # Add different chart types based on selection
+        if chart_type == 'candlestick':
+            # Standard candlestick
+            fig.add_trace(
+                go.Candlestick(
+                    x=df['Date'],
+                    open=df['Open'],
+                    high=df['High'],
+                    low=df['Low'],
+                    close=df['Close'],
+                    name=symbol,
+                    increasing_line_color='#00ff88',  # Green for up candles
+                    decreasing_line_color='#ff4444',  # Red for down candles
+                    increasing_fillcolor='rgba(0, 255, 136, 0.4)',
+                    decreasing_fillcolor='rgba(255, 68, 68, 0.4)',
+                    line=dict(width=1),
+                    opacity=0.9
+                )
+            )
+        
+        elif chart_type == 'japanese':
+            # Japanese style candlesticks
+            fig.add_trace(
+                go.Candlestick(
+                    x=df['Date'],
+                    open=df['Open'],
+                    high=df['High'],
+                    low=df['Low'],
+                    close=df['Close'],
+                    name=symbol,
+                    increasing_line_color='#00d4aa',  # Teal for up candles
+                    decreasing_line_color='#ff6b6b',  # Coral red for down candles
+                    increasing_fillcolor='rgba(0, 212, 170, 0.5)',
+                    decreasing_fillcolor='rgba(255, 107, 107, 0.5)',
+                    line=dict(width=1.5)
+                )
+            )
+        
+        elif chart_type == 'mountain':
+            # Enhanced mountain chart with custom coloring
+            
+            # Calculate first price for scaling reference
+            first_price = df['Close'].iloc[0] if len(df) > 0 else 0
+            
+            # Set colors for mountain chart
+            line_color = '#00d4aa'  # Teal line
+            fill_color = 'rgba(0, 212, 170, 0.2)'  # Semi-transparent teal
+            
+            # Add the main price trace with fill to zero (standard area chart)
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['Close'],
+                    mode='lines',
+                    name=f'{symbol} Close',
+                    line=dict(color=line_color, width=2),
+                    fill='tozeroy',  # Standard fill to zero/bottom of chart
+                    fillcolor=fill_color,
+                    hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Change: %{customdata:.2f}%<extra></extra>',
+                    customdata=[(price/first_price - 1) * 100 for price in df['Close']]  # Show % change from first value
+                )
+            )
+        
+        # Add EMA indicators if enabled AND NOT in intraday mode
+        if 'show' in show_ema and not is_intraday:
+            colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
+            for i, period in enumerate(ema_periods):
+                ema_col = f'EMA_{period}'
+                if ema_col in df.columns:
+                    color = colors[i % len(colors)]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df[ema_col],
+                            mode='lines',
+                            name=f'EMA {period}',
+                            line=dict(color=color, width=2)
+                        )
+                    )
+        
+        # Add ATR bands if selected
+        if atr_bands and 'ATR' in df.columns:
+            for band_str in atr_bands:
+                try:
+                    band_multiplier = float(band_str)
+                    upper_band = df['Close'] + (df['ATR'] * band_multiplier)
+                    lower_band = df['Close'] - (df['ATR'] * band_multiplier)
+                    
+                    # Upper band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=upper_band,
+                            mode='lines',
+                            name=f'+{band_multiplier} ATR',
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
+                        )
+                    )
+                    
+                    # Lower band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=lower_band,
+                            mode='lines',
+                            name=f'-{band_multiplier} ATR',
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
+                        )
+                    )
+                except Exception as e:
+                    print(f"Error plotting ATR band {band_str}: {e}")
+
+        # Add previous day's closing price as horizontal line
+        # Only for intraday charts
+        if is_intraday and len(df) > 1:
+            try:
+                prev_close = df['Close'].iloc[0]  # Approximate prev close as first value
+                fig.add_shape(
+                    type="line", line_color="rgba(255, 255, 255, 0.5)", line_width=1, line_dash="dash",
+                    x0=df['Date'].min(), x1=df['Date'].max(), y0=prev_close, y1=prev_close,
+                    annotation_text=f"Prev Close: ${prev_close:.2f}",
+                    annotation_position="top right",
+                    annotation_font_size=10,
+                    annotation_font_color="rgba(255, 255, 255, 0.8)",
+                    row=1
+                )
+            except Exception as e:
+                print(f"Could not add previous close line: {e}")
+
+        # Calculate dynamic title with price and percentage changes
+        title_text = symbol
+        title_color = '#00d4aa'  # Default color
+        
+        if len(df) > 0:
+            current_price = df['Close'].iloc[-1]
+            
+            # For percentage calculation, use the first price of the dataset as reference
+            if len(df) > 1:
+                if is_intraday:
+                    # For 1D view, compare with opening price (approximates previous close)
+                    reference_price = df['Open'].iloc[0]
+                else:
+                    # For other timeframes, compare with first price in the dataset
+                    reference_price = df['Close'].iloc[0]
+                
+                price_change = current_price - reference_price
+                percent_change = (price_change / reference_price) * 100
+                
+                # Determine arrow and color based on percentage change
+                if percent_change > 0:
+                    arrow = "↗"
+                    title_color = '#00ff88'  # Green for positive percentage
+                elif percent_change < 0:
+                    arrow = "↘"
+                    title_color = '#ff4444'  # Red for negative percentage
+                else:
+                    arrow = "→"
+                    title_color = '#ffaa00'  # Yellow/orange for neutral
+                
+                # Get current time in HH:MM:SS format
+                from datetime import datetime
+                current_time = datetime.now().strftime('%H:%M:%S')
+                
+                # Format title: SYMBOL - PRICE$ (arrow change, %change) [Updated HH:MM:SS]
+                title_text = f"{symbol} - ${current_price:.2f} ({arrow} ${abs(price_change):.2f}, {percent_change:+.2f}%) [Last updated {current_time}]"
+            else:
+                # Single data point case with current time
+                from datetime import datetime
+                current_time = datetime.now().strftime('%H:%M:%S')
+                title_text = f"{symbol} - ${current_price:.2f} [Last updated {current_time}]"
+
+        # Update layout for dark theme
+        layout_settings = {
+            'title': title_text,
+            'height': 430, # Adjusted to match the 55vh in the layout
+            'showlegend': True,
+            'xaxis_rangeslider_visible': False,
+            'template': 'plotly_dark',
+            'paper_bgcolor': '#1e1e1e',
+            'plot_bgcolor': '#1e1e1e',
+            'font': dict(color='#ffffff'),
+            'title_font': dict(color=title_color, size=20),
+            'margin': dict(l=40, r=40, t=50, b=20) # Compact margins
+        }
+        
+        # For all chart types, calculate the appropriate y-axis range
+        if len(df) > 0:
+            # Get the min and max values from the data for consistent y-axis across chart types
+            if 'Low' in df.columns and 'High' in df.columns:
+                # For candlestick data, use full price range (High/Low)
+                y_min = df['Low'].min()
+                y_max = df['High'].max()
+            else:
+                # For line data only, use Close prices
+                y_min = df['Close'].min()
+                y_max = df['Close'].max()
+            
+            # Add a buffer (1%) for better visualization
+            y_range_buffer = (y_max - y_min) * 0.05
+            y_min = y_min - y_range_buffer
+            y_max = y_max + y_range_buffer
+            
+            print(f"Setting chart y-axis range: min={y_min:.2f}, max={y_max:.2f}")
+            
+            # Set y-axis range explicitly
+            layout_settings['yaxis'] = dict(
+                range=[y_min, y_max],
+                autorange=False,
+                fixedrange=False  # Allow zooming on y-axis
+            )
+            
+        fig.update_layout(**layout_settings)
+        
+        # Update axes colors and explicitly exclude weekends
+        fig.update_xaxes(
+            gridcolor='#444', 
+            zerolinecolor='#444',
+            rangebreaks=[
+                # Don't show weekends (Saturday=6, Sunday=0)
+                dict(bounds=["sat", "mon"])
+            ]
+        )
+        
+        # Configure y-axis appearance
+        yaxis_config = {
+            'gridcolor': '#444', 
+            'zerolinecolor': '#444'
+        }
+        
+        # Don't override our explicit y-axis settings from layout_settings
+        # Just apply styling configs here
+        fig.update_yaxes(**yaxis_config)
+        
+        return fig
+
+    except Exception as e:
+        print(f"Error in update_main_chart: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return a simple error message chart
+        fig = go.Figure()
+        fig.add_annotation(
+            text=f"Error loading chart: {str(e)}",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False,
+            font=dict(size=16, color="red")
+        )
+        fig.update_layout(
+            template='plotly_dark',
+            paper_bgcolor='#1e1e1e',
+            plot_bgcolor='#1e1e1e'
+        )
+        return fig
+
+def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_comparison=None):
+    """Update the consolidated chart below main chart"""
+    if not data:
+        return go.Figure()
+    
+    # Ensure we have a valid volume comparison value
+    volume_comparison = volume_comparison or 'none'
+    
+    df = pd.DataFrame(data)
+    df['Date'] = pd.to_datetime(df['Date'])
+    
+    fig = go.Figure()
+    
+    if chart_type == 'volume':
+        # Get min and max dates for the main data
+        min_date = df['Date'].min()
+        max_date = df['Date'].max()
+        
+        # If comparison is selected, fetch and prepare comparison data
+        comparison_data = None
+        if volume_comparison != 'none':
+            comparison_data = get_comparison_volume(volume_comparison, None, min_date, max_date)
+        
+        if comparison_data is not None:
+            # Calculate average volumes for comparison
+            avg_volume_main = df['Volume'].mean()
+            avg_volume_comp = comparison_data['Volume'].mean()
+            
+            # Determine which is more liquid (higher volume)
+            main_is_higher = avg_volume_main > avg_volume_comp
+            
+            # Set colors based on liquidity
+            main_color = 'rgba(0, 212, 170, 0.6)' if main_is_higher else 'rgba(255, 68, 68, 0.6)'
+            comp_color = 'rgba(255, 68, 68, 0.6)' if main_is_higher else 'rgba(0, 212, 170, 0.6)'
+            
+            # Scale volumes for better comparison (normalize to percentage of their average)
+            df['Volume_Scaled'] = df['Volume'] / avg_volume_main
+            comparison_data['Volume_Scaled'] = comparison_data['Volume'] / avg_volume_comp
+            
+            # Add main volume bars
+            fig.add_trace(
+                go.Bar(
+                    x=df['Date'],
+                    y=df['Volume_Scaled'],
+                    name=f'{symbol} Volume',
+                    marker_color=main_color,
+                    opacity=0.9
+                )
+            )
+            
+            # Add comparison volume bars
+            fig.add_trace(
+                go.Bar(
+                    x=comparison_data['Date'],
+                    y=comparison_data['Volume_Scaled'],
+                    name=f'{volume_comparison} Volume',
+                    marker_color=comp_color,
+                    opacity=0.7
+                )
+            )
+            
+            # Update y-axis title to reflect scaling
+            title = f'{symbol} vs {volume_comparison} Volume (Normalized)'
+            yaxis_title = 'Normalized Volume'
+        else:
+            # Regular single-stock volume chart
+            fig.add_trace(
+                go.Bar(
+                    x=df['Date'],
+                    y=df['Volume'],
+                    name='Volume',
+                    marker_color='rgba(0, 212, 170, 0.6)'
+                )
+            )
+            title = f'{symbol} Trading Volume'
+            yaxis_title = 'Volume'
+        
+    elif chart_type == 'macd':
+        # MACD chart with histogram
+        if 'MACD_hist' in df.columns:
+            colors = ['#00ff88' if (val is not None and val >= 0) else '#ff4444' for val in df['MACD_hist']]
+            fig.add_trace(
+                go.Bar(
+                    x=df['Date'],
+                    y=df['MACD_hist'],
+                    name='MACD Histogram',
+                    marker_color=colors,
+                    opacity=0.7
+                )
+            )
+            
+        if 'MACD' in df.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['MACD'],
+                    mode='lines',
+                    name='MACD',
+                    line=dict(color='#3366cc', width=2)
+                )
+            )
+            
+        if 'MACD_signal' in df.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['MACD_signal'],
+                    mode='lines',
+                    name='MACD Signal',
+                    line=dict(color='#ff4444', width=2)
+                )
+            )
+        title = f'{symbol} MACD'
+        yaxis_title = 'MACD'
+        
+    elif chart_type == 'force':
+        # Force Index as histogram
+        if 'Force_Index' in df.columns:
+            colors = ['#00ff88' if (val is not None and val >= 0) else '#ff4444' for val in df['Force_Index']]
+            fig.add_trace(
+                go.Bar(
+                    x=df['Date'],
+                    y=df['Force_Index'],
+                    name='Force Index',
+                    marker_color=colors,
+                    opacity=0.8
+                )
+            )
+        title = f'{symbol} Force Index'
+        yaxis_title = 'Force Index'
+        
+    elif chart_type == 'ad':
+        # A/D Line
+        if 'AD_Line' in df.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['AD_Line'],
+                    mode='lines',
+                    name='A/D Line',
+                    line=dict(color='#ff9900', width=2)
+                )
+            )
+        title = f'{symbol} Accumulation/Distribution Line'
+        yaxis_title = 'A/D Line'
+    
+    elif chart_type == 'adx':
+        # ADX, DI+, and DI-
+        adx_components = adx_components or ['adx', 'di_plus', 'di_minus']  # Default to show all
+        
+        # ADX Line (purple)
+        if 'ADX' in df.columns and ('adx' in adx_components or not adx_components):
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['ADX'],
+                    mode='lines',
+                    name='ADX',
+                    line=dict(color='#9c27b0', width=2)  # Purple color
+                )
+            )
+        
+        # DI+ (green)
+        if 'DI_plus' in df.columns and ('di_plus' in adx_components or not adx_components):
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['DI_plus'],
+                    mode='lines',
+                    name='DI+',
+                    line=dict(color='#00ff88', width=2)  # Green color
+                )
+            )
+        
+        # DI- (red)
+        if 'DI_minus' in df.columns and ('di_minus' in adx_components or not adx_components):
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['DI_minus'],
+                    mode='lines',
+                    name='DI-',
+                    line=dict(color='#ff4444', width=2)  # Red color
+                )
+            )
+        
+        # Add reference line at ADX=25 (strong trend threshold)
+        fig.add_hline(
+            y=25,
+            line_dash="dot",
+            line_color="rgba(255, 255, 255, 0.5)",
+            row=2, col=1,
+            annotation_text="Strong Trend (25)",
+            annotation_position="top right",
+            annotation_font_size=10
+        )
+        
+        title = f'{symbol} ADX/DMI'
+        yaxis_title = 'Value'
+    
+    else:
+        title = f'{symbol} Indicator'
+        yaxis_title = 'Value'
+    
+    fig.update_layout(
+        title=title,
+        xaxis_title='Date',
+        yaxis_title=yaxis_title,
+        height=330,  # Increased by 50% to match the 45vh in the layout
+        showlegend=True,
+        template='plotly_dark',
+        paper_bgcolor='#1e1e1e',
+        plot_bgcolor='#1e1e1e',
+        font=dict(color='#ffffff'),
+        title_font=dict(color='#00d4aa'),
+        margin=dict(l=40, r=40, t=40, b=20) # Compact margins
+    )
+    
+    # Update axes colors and explicitly exclude weekends
+    fig.update_xaxes(
+        gridcolor='#444', 
+        zerolinecolor='#444',
+        rangebreaks=[
+            # Don't show weekends (Saturday=6, Sunday=0)
+            dict(bounds=["sat", "mon"])
+        ]
+    )
+    fig.update_yaxes(gridcolor='#444', zerolinecolor='#444')
+    
+    return fig
+
+def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None):
+    """Update a combined chart with main price chart on top and indicator chart below"""
+    try:
+        if not data:
+            print("No data available for combined chart")
+            return go.Figure()
+        
+        df = pd.DataFrame(data)
+        df['Date'] = pd.to_datetime(df['Date'])
+        
+        symbol = symbol or 'SPY'
+        chart_type = chart_type or 'candlestick'
+        show_ema = show_ema or []
+        ema_periods = ema_periods or [13, 26]
+        atr_bands = atr_bands or []
+        lower_chart_type = lower_chart_type or 'volume'
+        
+        print(f"Rendering combined chart for {symbol}")
+        print(f"Main chart type: {chart_type}, Lower chart: {lower_chart_type}")
+        
+        # Handle empty data (e.g., when market is closed for 1D view)
+        if df.empty:
+            print("No data available - rendering empty chart")
+            fig = go.Figure()
+            
+            # Add message for empty chart
+            if lower_chart_type == 'volume' and len([col for col in df.columns if col.startswith('1d') or col == 'Date']) == 0:
+                message = "US Market is currently closed.<br>1D view will show real-time data when market opens (9:30 AM - 4:00 PM ET)."
+            else:
+                message = f"No data available for {symbol}"
+            
+            fig.add_annotation(
+                text=message,
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, xanchor='center', yanchor='middle',
+                showarrow=False,
+                font=dict(size=16, color="#00d4aa"),
+                bgcolor="rgba(0, 0, 0, 0.8)",
+                bordercolor="#444",
+                borderwidth=1
+            )
+            
+            fig.update_layout(
+                template='plotly_dark',
+                paper_bgcolor='#1e1e1e',
+                plot_bgcolor='#1e1e1e',
+                height=800,
+                margin=dict(l=40, r=40, t=60, b=40),
+                title=f'{symbol} - Market Closed',
+                title_font=dict(color='#ffaa00', size=18)  # Orange for market closed
+            )
+            
+            return fig
+        
+        # Check if we are using 1D timeframe (based on data frequency)
+        is_intraday = False
+        if len(df) > 2:
+            time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
+            is_intraday = time_diff < 3600  # Less than 1 hour between points
+        
+        # Create subplots with shared x-axis
+        fig = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.03,
+            row_heights=[0.7, 0.3],  # 70% for main chart, 30% for lower chart
+            subplot_titles=(None, None),  # Remove titles for cleaner look
+            specs=[[{"secondary_y": False}], [{"secondary_y": False}]]
+        )
+        
+        # === MAIN CHART (Row 1) ===
+        if chart_type in ['candlestick', 'japanese']:
+            # Candlestick chart
+            fig.add_trace(
+                go.Candlestick(
+                    x=df['Date'],
+                    open=df['Open'],
+                    high=df['High'],
+                    low=df['Low'],
+                    close=df['Close'],
+                    name=symbol,
+                    increasing_line_color='#00ff88',
+                    decreasing_line_color='#ff4444',
+                    increasing_fillcolor='#00ff88',
+                    decreasing_fillcolor='#ff4444'
+                ),
+                row=1, col=1
+            )
+        elif chart_type == 'mountain':
+            # Mountain (area) chart
+            if len(df) >= 2:
+                price_start = df['Close'].iloc[0]
+                price_end = df['Close'].iloc[-1]
+                is_uptrend = price_end >= price_start
+                
+                line_color = '#00d4aa'  # Teal line
+                fill_color = 'rgba(0, 212, 170, 0.2)'  # Semi-transparent teal
+            else:
+                line_color = '#00d4aa'
+                fill_color = 'rgba(0, 212, 170, 0.3)'
+            
+            first_price = df['Close'].iloc[0]
+            
+            # For subplots, we need to specify the fill properly
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['Close'],
+                    mode='lines',
+                    name=f'{symbol} Close',
+                    line=dict(color=line_color, width=2),
+                    fill='tonexty',  # Fill to next y (which will be the baseline we add)
+                    fillcolor=fill_color,
+                    hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Change: %{customdata:.2f}%<extra></extra>',
+                    customdata=[(price/first_price - 1) * 100 for price in df['Close']]  # Show % change from first value
+                ),
+                row=1, col=1
+            )
+            
+            # Add a baseline trace for proper fill (invisible)
+            y_min_baseline = df['Close'].min() * 0.95  # Set baseline slightly below minimum
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=[y_min_baseline] * len(df),
+                    mode='lines',
+                    line=dict(color='rgba(0,0,0,0)', width=0),  # Invisible line
+                    showlegend=False,
+                    hoverinfo='skip'
+                ),
+                row=1, col=1
+            )
+        
+        # Add EMA indicators if enabled AND NOT in intraday mode
+        if 'show' in show_ema and not is_intraday:
+            colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
+            for i, period in enumerate(ema_periods):
+                ema_col = f'EMA_{period}'
+                if ema_col in df.columns:
+                    color = colors[i % len(colors)]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df[ema_col],
+                            mode='lines',
+                            name=f'EMA {period}',
+                            line=dict(color=color, width=1.5),
+                            opacity=0.8
+                        ),
+                        row=1, col=1
+                    )
+        
+        # Add ATR bands if enabled
+        if atr_bands and 'ATR' in df.columns:
+            for band_str in atr_bands:
+                try:
+                    band_multiplier = float(band_str)
+                    upper_band = df['Close'] + (df['ATR'] * band_multiplier)
+                    lower_band = df['Close'] - (df['ATR'] * band_multiplier)
+                    
+                    # Upper band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=upper_band,
+                            mode='lines',
+                            name=f'+{band_multiplier} ATR',
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Lower band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=lower_band,
+                            mode='lines',
+                            name=f'-{band_multiplier} ATR',
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
+                        ),
+                        row=1, col=1
+                    )
+                except ValueError:
+                    continue
+        
+        # Add previous day's close line for 1D charts
+        if is_intraday and len(df) > 0:
+            # For 1D view, try to get previous day's close price
+            try:
+                # For intraday data, we need to fetch previous trading day's close
+                # We'll use a simple approximation - the opening price is often close to previous close
+                prev_close = df['Open'].iloc[0] if len(df) > 0 else df['Close'].iloc[0]
+                
+                # Add horizontal line for previous day's close
+                fig.add_hline(
+                    y=prev_close,
+                    line_dash="dot",
+                    line_color="rgba(255, 255, 255, 0.6)",
+                    line_width=1,
+                    annotation_text=f"Prev Close: ${prev_close:.2f}",
+                    annotation_position="top right",
+                    annotation_font_size=10,
+                    annotation_font_color="rgba(255, 255, 255, 0.8)",
+                    row=1
+                )
+            except Exception as e:
+                print(f"Could not add previous close line: {e}")
+
+        # Calculate dynamic title with price and percentage changes
+        title_text = symbol
+        title_color = '#00d4aa'  # Default color
+        
+        if len(df) > 0:
+            current_price = df['Close'].iloc[-1]
+            
+            # For percentage calculation, use the first price of the dataset as reference
+            if len(df) > 1:
+                if is_intraday:
+                    # For 1D view, compare with opening price (approximates previous close)
+                    reference_price = df['Open'].iloc[0]
+                else:
+                    # For other timeframes, compare with first price in the dataset
+                    reference_price = df['Close'].iloc[0]
+                
+                price_change = current_price - reference_price
+                percent_change = (price_change / reference_price) * 100
+                
+                # Determine arrow and color based on percentage change
+                if percent_change > 0:
+                    arrow = "↗"
+                    title_color = '#00ff88'  # Green for positive percentage
+                elif percent_change < 0:
+                    arrow = "↘"
+                    title_color = '#ff4444'  # Red for negative percentage
+                else:
+                    arrow = "→"
+                    title_color = '#ffaa00'  # Yellow/orange for neutral
+                
+                # Get current time in HH:MM:SS format
+                from datetime import datetime
+                current_time = datetime.now().strftime('%H:%M:%S')
+                
+                # Format title: SYMBOL - PRICE$ (arrow change, %change) [Updated HH:MM:SS]
+                title_text = f"{symbol} - ${current_price:.2f} ({arrow} ${abs(price_change):.2f}, {percent_change:+.2f}%) [Updated {current_time}]"
+            else:
+                # Single data point case with current time
+                from datetime import datetime
+                current_time = datetime.now().strftime('%H:%M:%S')
+                title_text = f"{symbol} - ${current_price:.2f} [Updated {current_time}]"
+
+        # Update layout for dark theme
+        layout_settings = {
+            'title': title_text,
+            'height': 430, # Adjusted to match the 55vh in the layout
+            'showlegend': True,
+            'xaxis_rangeslider_visible': False,
+            'template': 'plotly_dark',
+            'paper_bgcolor': '#1e1e1e',
+            'plot_bgcolor': '#1e1e1e',
+            'font': dict(color='#ffffff'),
+            'title_font': dict(color=title_color, size=20),
+            'margin': dict(l=40, r=40, t=50, b=20) # Compact margins
+        }
+        
+        # For all chart types, calculate the appropriate y-axis range
+        if len(df) > 0:
+            # Get the min and max values from the data for consistent y-axis across chart types
+            if 'Low' in df.columns and 'High' in df.columns:
+                # For candlestick data, use full price range (High/Low)
+                y_min = df['Low'].min()
+                y_max = df['High'].max()
+            else:
+                # For line data only, use Close prices
+                y_min = df['Close'].min()
+                y_max = df['Close'].max()
+            
+            # Add a buffer (1%) for better visualization
+            y_range_buffer = (y_max - y_min) * 0.05
+            y_min = y_min - y_range_buffer
+            y_max = y_max + y_range_buffer
+            
+            print(f"Setting chart y-axis range: min={y_min:.2f}, max={y_max:.2f}")
+            
+            # Set y-axis range explicitly
+            layout_settings['yaxis'] = dict(
+                range=[y_min, y_max],
+                autorange=False,
+                fixedrange=False  # Allow zooming on y-axis
+            )
+            
+        fig.update_layout(**layout_settings)
+        
+        # Update axes colors and explicitly exclude weekends
+        fig.update_xaxes(
+            gridcolor='#444', 
+            zerolinecolor='#444',
+            rangebreaks=[
+                # Don't show weekends (Saturday=6, Sunday=0)
+                dict(bounds=["sat", "mon"])
+            ]
+        )
+        
+        # Configure y-axis appearance
+        yaxis_config = {
+            'gridcolor': '#444', 
+            'zerolinecolor': '#444'
+        }
+        
+        # Don't override our explicit y-axis settings from layout_settings
+        # Just apply styling configs here
+        fig.update_yaxes(**yaxis_config)
+        
+        # Generate a stable uirevision that doesn't change with EMA parameters
+        # This ensures rangeslider position persists across EMA changes
+        stable_uirevision = f"{symbol}_{chart_type}_{lower_chart_type}"
+        
+        # Update layout with dynamic title and colors
+        fig.update_layout(
+            height=800,  # Set explicit height for combined chart
+            showlegend=True,
+            template='plotly_dark',
+            paper_bgcolor='#1e1e1e',
+            plot_bgcolor='#1e1e1e',
+            font=dict(color='#ffffff'),
+            title=title_text,  # Dynamic title with price and changes
+            title_font=dict(color=title_color, size=18),  # Dynamic color based on performance
+            margin=dict(l=40, r=40, t=60, b=40),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            # Configure rangeslider to appear below the lower chart
+            xaxis=dict(
+                domain=[0, 1],
+                anchor='y',
+                rangeslider=dict(visible=False)  # Disable rangeslider on main chart
+            ),
+            xaxis2=dict(
+                domain=[0, 1],
+                anchor='y2',
+                rangeslider=dict(
+                    visible=True,
+                    thickness=0.05,  # Make it thinner
+                    bgcolor='#2d3035',
+                    bordercolor='#444',
+                    borderwidth=1
+                ),
+                # Preserve rangeslider position across updates with stable uirevision
+                uirevision=stable_uirevision
+            ),
+            # Preserve zoom and pan state across updates with stable uirevision
+            uirevision=stable_uirevision
+        )
+        
+        # Calculate consistent y-axis range for main chart
+        if len(df) > 0:
+            # Get the min and max values from the data for consistent y-axis across chart types
+            if 'Low' in df.columns and 'High' in df.columns:
+                # For candlestick data, use full price range (High/Low)
+                y_min = df['Low'].min()
+                y_max = df['High'].max()
+            else:
+                # For line data only, use Close prices
+                y_min = df['Close'].min()
+                y_max = df['Close'].max()
+            
+            # Add a buffer (3%) for better visualization
+            y_range_buffer = (y_max - y_min) * 0.03
+            y_min = y_min - y_range_buffer
+            y_max = y_max + y_range_buffer
+            
+            # Set y-axis range explicitly for main chart
+            fig.update_yaxes(
+                range=[y_min, y_max],
+                autorange=False,
+                fixedrange=False,
+                row=1, col=1
+            )
+        
+        # Update x-axes (shared x-axis for synchronized zooming)
+        fig.update_xaxes(
+            gridcolor='#444', 
+            zerolinecolor='#444',
+            rangebreaks=[
+                dict(bounds=["sat", "mon"])  # Exclude weekends
+            ],
+            # Enable synchronized zooming and panning
+            matches='x',  # All x-axes will match the first x-axis
+            # Preserve zoom state across updates with stable uirevision
+            uirevision=stable_uirevision
+        )
+        
+        # Preserve zoom/pan state if relayout_data contains range information
+        if relayout_data and 'xaxis.range[0]' in relayout_data and 'xaxis.range[1]' in relayout_data:
+            try:
+                # Apply the preserved x-axis range
+                x_range = [relayout_data['xaxis.range[0]'], relayout_data['xaxis.range[1]']]
+                fig.update_xaxes(range=x_range)
+                print(f"Preserved x-axis range: {x_range}")
+            except Exception as e:
+                print(f"Could not preserve x-axis range: {e}")
+        elif relayout_data and 'xaxis2.range[0]' in relayout_data and 'xaxis2.range[1]' in relayout_data:
+            try:
+                # Apply the preserved x-axis range from the lower chart
+                x_range = [relayout_data['xaxis2.range[0]'], relayout_data['xaxis2.range[1]']]
+                fig.update_xaxes(range=x_range)
+                print(f"Preserved x-axis range from lower chart: {x_range}")
+            except Exception as e:
+                print(f"Could not preserve x-axis range from lower chart: {e}")
+        
+        # Update y-axes styling
+        fig.update_yaxes(gridcolor='#444', zerolinecolor='#444')
+        
+        # Update subplot titles
+        fig.update_annotations(font_color='#00d4aa')
+        
+        # Add lower chart in row 2 based on selected indicator type
+        print(f"Adding lower chart: {lower_chart_type}")
+        
+        if lower_chart_type == 'volume':
+            # Volume chart (default)
+            colors = []
+            for i in range(len(df)):
+                if i > 0 and df['Close'].iloc[i] > df['Close'].iloc[i-1]:
+                    colors.append('#00ff88')  # Green volume for price up
+                else:
+                    colors.append('#ff4444')  # Red volume for price down
+            
+            fig.add_trace(
+                go.Bar(
+                    x=df['Date'],
+                    y=df['Volume'],
+                    name='Volume',
+                    marker=dict(color=colors),
+                    opacity=0.8,
+                    hovertemplate='%{x}<br>Volume: %{y:,.0f}<extra></extra>'
+                ),
+                row=2, col=1
+            )
+            
+            # Add comparison volume if selected
+            if volume_comparison and volume_comparison != 'none':
+                # Get comparison volume data
+                comparison_data = get_comparison_volume(volume_comparison, None, df['Date'].min(), df['Date'].max())
+                
+                if comparison_data is not None and not comparison_data.empty:
+                    # Merge the data on Date
+                    merged_data = pd.merge(
+                        df[['Date', 'Volume']], 
+                        comparison_data, 
+                        on='Date', 
+                        how='inner',
+                        suffixes=('', '_comp')
+                    )
+                    
+                    if not merged_data.empty:
+                        # Calculate average volumes for normalization
+                        avg_volume_main = merged_data['Volume'].mean()
+                        avg_volume_comp = merged_data['Volume_comp'].mean()
+                        
+                        # Normalize volumes to make them comparable
+                        if avg_volume_main > 0 and avg_volume_comp > 0:
+                            # Normalize both volumes to show relative changes
+                            merged_data['Volume_Norm'] = merged_data['Volume'] / avg_volume_main
+                            merged_data['Volume_Comp_Norm'] = merged_data['Volume_comp'] / avg_volume_comp
+                            
+                            # Display the comparison volume
+                            fig.add_trace(
+                                go.Bar(
+                                    x=merged_data['Date'],
+                                    y=merged_data['Volume_Comp_Norm'],
+                                    name=f'{volume_comparison} Vol',
+                                    marker=dict(color='#ff4444'),  # Red for comparison
+                                    opacity=0.7,
+                                    hovertemplate='%{x}<br>' + f'{volume_comparison} Vol: ' + '%{y:.2f}x<extra></extra>'
+                                ),
+                                row=2, col=1
+                            )
+                            
+                            # Update the primary volume data to use the normalized values
+                            # and update its appearance to be green for contrast
+                            for trace in fig.data:
+                                if trace.name == 'Volume':
+                                    trace.y = merged_data['Volume_Norm']
+                                    trace.marker.color = '#00ff88'  # Green for primary
+                                    trace.hovertemplate = '%{x}<br>' + f'{symbol} Vol: ' + '%{y:.2f}x<extra></extra>'
+                            
+                            # Update the y-axis title
+                            fig.update_yaxes(
+                                title_text=f"Relative Volume ({symbol} vs {volume_comparison})",
+                                row=2, col=1
+                            )
+        
+        elif lower_chart_type == 'macd':
+            # MACD indicator chart
+            if 'MACD' in df.columns and 'MACD_signal' in df.columns and 'MACD_hist' in df.columns:
+                # MACD line
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['MACD'],
+                        name='MACD',
+                        line=dict(color='#00ffff', width=1.5)
+                    ),
+                    row=2, col=1
+                )
+                
+                # Signal line
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['MACD_signal'],
+                        name='Signal',
+                        line=dict(color='#ff00ff', width=1.5)
+                    ),
+                    row=2, col=1
+                )
+                
+                # MACD histogram as bars
+                colors = []
+                for val in df['MACD_hist']:  # Changed from MACD_histogram to MACD_hist
+                    if val >= 0:
+                        colors.append('#00ff88')  # Green for positive
+                    else:
+                        colors.append('#ff4444')  # Red for negative
+                
+                fig.add_trace(
+                    go.Bar(
+                        x=df['Date'],
+                        y=df['MACD_hist'],  # Changed from MACD_histogram to MACD_hist
+                        name='Histogram',
+                        marker=dict(color=colors),
+                        opacity=0.7
+                    ),
+                    row=2, col=1
+                )
+                
+                # Set y-axis title for MACD
+                fig.update_yaxes(title_text="MACD", row=2, col=1)
+            
+        elif lower_chart_type == 'force':
+            # Force Index chart
+            if 'Force_Index' in df.columns:
+                colors = []
+                for val in df['Force_Index']:
+                    if val >= 0:
+                        colors.append('#00ff88')  # Green for positive force
+                    else:
+                        colors.append('#ff4444')  # Red for negative force
+                
+                fig.add_trace(
+                    go.Bar(
+                        x=df['Date'],
+                        y=df['Force_Index'],
+                        name='Force Index',
+                        marker=dict(color=colors),
+                        opacity=0.7
+                    ),
+                    row=2, col=1
+                )
+                
+                # Set y-axis title for Force Index
+                fig.update_yaxes(title_text="Force Index", row=2, col=1)
+                
+        elif lower_chart_type == 'ad':
+            # A/D Line chart
+            if 'AD' in df.columns:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['AD'],
+                        name='A/D Line',
+                        line=dict(color='#00d4aa', width=2),
+                        fill='tozeroy',
+                        fillcolor='rgba(0, 212, 170, 0.2)'
+                    ),
+                    row=2, col=1
+                )
+                
+                # Set y-axis title for A/D Line
+                fig.update_yaxes(title_text="A/D Line", row=2, col=1)
+                
+        elif lower_chart_type == 'adx':
+            # ADX/DMI chart
+            adx_components = adx_components or ['adx', 'di_plus', 'di_minus']
+            
+            # ADX line (strength of trend)
+            if 'ADX' in df.columns and 'adx' in adx_components:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['ADX'],
+                        name='ADX',
+                        line=dict(color='#9900ff', width=2)  # Changed to purple
+                    ),
+                    row=2, col=1
+                )
+            
+            # +DI line (bullish trend strength)
+            if 'DI_plus' in df.columns and 'di_plus' in adx_components:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['DI_plus'],
+                        name='+DI',
+                        line=dict(color='#00ff88', width=1.5)
+                    ),
+                    row=2, col=1
+                )
+            
+            # -DI line (bearish trend strength)
+            if 'DI_minus' in df.columns and 'di_minus' in adx_components:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['DI_minus'],
+                        name='-DI',
+                        line=dict(color='#ff4444', width=1.5)
+                    ),
+                    row=2, col=1
+                )
+            
+            # Add reference line at ADX=25 (strong trend threshold)
+            fig.add_hline(
+                y=25,
+                line_dash="dot",
+                line_color="rgba(255, 255, 255, 0.5)",
+                row=2, col=1,
+                annotation_text="Strong Trend (25)",
+                annotation_position="top right",
+                annotation_font_size=10
+            )
+            
+            # Set y-axis title for ADX/DMI
+            fig.update_yaxes(title_text="ADX/DMI", row=2, col=1)
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Error in combined chart: {e}")
+        import traceback
+        traceback.print_exc()
+        return go.Figure()
+
+def update_symbol_status(symbol):
+    """Update symbol status display based on current symbol"""
+    if not symbol or symbol == 'SPY':
+        return "SPY - S&P 500 ETF", {'color': '#00d4aa', 'fontSize': '14px'}
+    else:
+        return f"{symbol}", {'color': '#fff', 'fontSize': '14px'}
+
+def update_indicator_options(timeframe):
+    """Update indicator options based on timeframe"""
+    is_intraday = timeframe == '1d'
+    
+    # Hide EMA options for intraday
+    ema_style = {'display': 'none'} if is_intraday else {'display': 'block'}
+    
+    # Lower chart options - remove Force Index for intraday
+    if is_intraday:
+        lower_options = [
+            {'label': 'Volume', 'value': 'volume'},
+            {'label': 'MACD', 'value': 'macd'},
+            {'label': 'A/D Line', 'value': 'ad'},
+            {'label': 'ADX/DMI', 'value': 'adx'}
+        ]
+    else:
+        lower_options = [
+            {'label': 'Volume', 'value': 'volume'},
+            {'label': 'MACD', 'value': 'macd'},
+            {'label': 'Force Index', 'value': 'force'},
+            {'label': 'A/D Line', 'value': 'ad'},
+            {'label': 'ADX/DMI', 'value': 'adx'}
+        ]
+    
+    return ema_style, ema_style, lower_options
