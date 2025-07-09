@@ -47,6 +47,13 @@ custom_css = """
     font-family: 'Inter', sans-serif !important;
 }
 
+/* Update button hover effect */
+#update-insights-stock-button:hover {
+    background-color: transparent !important;
+    border-color: #00d4aa !important;
+    color: #00d4aa !important;
+}
+
 /* Background colors and text colors */
 body, .card, .card-header, .card-body, .nav-tabs, .tab-content, .tab-pane {
     background-color: #000000 !important;
@@ -719,10 +726,33 @@ app.layout = dbc.Container([
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
                                         dbc.Card([
-                                            dbc.CardHeader(html.H4("💡 Insights", className="text-center", style={'color': '#00d4aa'})),
-                                            dbc.CardBody([
-                                                # Current Stock Display (read-only)
-                                                dbc.Label("Stock Symbol to Analyze:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                            dbc.CardHeader(html.H4("💡 Insights", className="text-center", style={'color': '#00d4aa'})),                            dbc.CardBody([
+                                # Warning message with documentation link
+                                html.Div([
+                                    html.Span("⚠️", style={'color': '#ffc107', 'fontSize': '18px', 'marginRight': '8px'}),
+                                    html.Span("Handle with care! Read the ", style={'color': '#fff', 'fontWeight': '500'}),
+                                    html.A(
+                                        "documentation",
+                                        href="https://github.com/jacorvillo/stock_market_dashboard",
+                                        target="_blank",
+                                        style={
+                                            'color': '#00d4aa',
+                                            'textDecoration': 'underline',
+                                            'fontWeight': 'bold'
+                                        }
+                                    ),
+                                    html.Span(" first", style={'color': '#fff', 'fontWeight': '500'})
+                                ], style={
+                                    'backgroundColor': '#1a1a1a',
+                                    'border': '1px solid #ffc107',
+                                    'borderRadius': '8px',
+                                    'padding': '12px 16px',
+                                    'marginBottom': '20px',
+                                    'textAlign': 'center'
+                                }),
+                                
+                                # Current Stock Display (read-only)
+                                dbc.Label("Stock Symbol to Analyze:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
                                                 dbc.Row([
                                                     dbc.Col([
                                                         dbc.Input(
@@ -1778,7 +1808,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Red for negative changes
                 {
                     'if': {
-                        'filter_query': '{price_change_pct} contains "-"',
+                                               'filter_query': '{price_change_pct} contains "-"',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#4d1a1a',
@@ -1828,7 +1858,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         
         # Create summary info
         scan_type = "Random Sample" if random_sample else "Filtered Scan"
-        universes_str = ", ".join(universe_selection or ['sp500']).upper()
+        universes_str = ", ".join(universe_selection or ['sp500']).upper();
         
         success_msg = dbc.Alert([
             html.H6([
