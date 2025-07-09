@@ -9,7 +9,8 @@ A free Python Dash toolbox for real-time stock market visualization with indicat
 - Sidebar with stock symbol search and timeframe selection
 - (Ongoing): Technical indicators (e.g., RSI, %R, OBV)
 
-> [!success] Current indicators available:
+> [!TIP] 
+> Current indicators available:
 > - EMA (Exponential Moving Average)*: Two EMAs and the Value Zone between them
 > - Volume: Volume bars with optional comparison to another market
 > - MACD (Moving Average Convergence Divergence)*: MACD line, signal line, and histogram
@@ -49,7 +50,8 @@ Open `http://localhost:8050` in your browser to view the dashboard.
 
 - [ ] (Short term) Implement additional technical indicators
 
-> [!Summary] Indicators in development:
+> [!IMPORTANT] 
+> Indicators in development:
 > - %R (Williams %R)
 > - New High/New Low index
 > - Consensus and commitment indicators
