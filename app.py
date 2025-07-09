@@ -31,8 +31,14 @@ from functions import (
     update_indicator_options
 )
 
-# Custom CSS for dark theme
+# Custom CSS for dark theme with full black background and Inter font
 custom_css = """
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+    font-family: 'Inter', sans-serif !important;
+}
+
 .dash-dropdown .Select-control {
     background-color: #000000 !important;
     border-color: #444 !important;
@@ -59,8 +65,59 @@ custom_css = """
 }
 
 body {
-    background-color: #1e1e1e !important;
+    background-color: #000000 !important;
     color: #fff !important;
+}
+
+/* Additional customizations for consistency */
+.card {
+    background-color: #000000 !important;
+    border-color: #444 !important;
+}
+
+.card-header {
+    background-color: #000000 !important;
+    border-bottom: 1px solid #333 !important;
+}
+
+.card-body {
+    background-color: #000000 !important;
+}
+
+.btn {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Improve readability of text on black background */
+h1, h2, h3, h4, h5, h6 {
+    color: #fff !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 600 !important;
+}
+
+.form-control, .form-select {
+    background-color: #000000 !important;
+    border-color: #444 !important;
+    color: #fff !important;
+}
+
+/* Make scrollbars match theme */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00d4aa;
 }
 """
 
@@ -98,11 +155,11 @@ app.index_string = '''
 app.layout = dbc.Container([
     # Sidebar toggle button (fixed position)
     dbc.Button(
-        html.I(className="fas fa-bars"), 
+        "☰", 
         id="sidebar-toggle-button", 
         color="secondary", 
         className="mb-3",
-        style={"position": "fixed", "top": "20px", "left": "20px", "zIndex": "1000"}
+        style={"position": "fixed", "top": "20px", "left": "20px", "zIndex": "1000", "fontSize": "20px", "fontWeight": "bold", "padding": "5px 12px"}
     ),
     
     # Main content row with sidebar and charts
@@ -110,10 +167,9 @@ app.layout = dbc.Container([
         # Sidebar column with collapse functionality
         dbc.Col(
             dbc.Collapse(
-                html.Div(style={'height': '95vh', 'overflow-y': 'auto'}, children=[
-                dbc.Card([
-                    dbc.CardHeader(html.H4("🔍 Stock Search", className="text-center", style={'color': '#00d4aa'})),
-                    dbc.CardBody([
+                html.Div(style={'height': '95vh', 'overflow-y': 'auto'}, children=[            dbc.Card([
+                dbc.CardHeader(html.H4("🔍 Stock Search", className="text-center", style={'color': '#00d4aa'})),
+                dbc.CardBody([
                     dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold'}),
                     dbc.Row([
                         dbc.Col([
@@ -164,7 +220,7 @@ app.layout = dbc.Container([
                         className="mb-3",
                         style={'backgroundColor': '#000000', 'color': '#fff'}
                     )
-                ], style={'backgroundColor': '#1e1e1e'})
+                ], style={'backgroundColor': '#000000'})
             ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
             
             # EMA and ATR Settings Card (Main Chart Settings)
@@ -207,7 +263,7 @@ app.layout = dbc.Container([
                         inline=True,
                         style={'color': '#fff'}
                     )
-                ], style={'backgroundColor': '#1e1e1e'})
+                ], style={'backgroundColor': '#000000'})
             ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
             
             # Lower Chart Selection Card (moved up)
@@ -236,7 +292,7 @@ app.layout = dbc.Container([
                     html.Div(id='lower-chart-settings', children=[
                         # Settings will be dynamically generated based on selection
                     ])
-                ], style={'backgroundColor': '#1e1e1e'})
+                ], style={'backgroundColor': '#000000'})
             ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                 ]),
                 id="sidebar-collapse",
@@ -264,7 +320,7 @@ app.layout = dbc.Container([
                     'alignItems': 'center', 
                     'justifyContent': 'center', 
                     'flexDirection': 'column',
-                    'backgroundColor': '#1e1e1e',
+                    'backgroundColor': '#000000',
                     'borderRadius': '8px',
                     'padding': '20px',
                     'border': '1px solid #333'
@@ -275,7 +331,7 @@ app.layout = dbc.Container([
                            style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
                     html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
                         dbc.Button(
-                            [html.I(className="fas fa-history me-2"), "View Previous Session"],
+                            "⏮️ View Previous Session",
                             id="view-yesterday-btn",
                             color="danger",
                             outline=True
@@ -284,7 +340,7 @@ app.layout = dbc.Container([
                 ]
             ),
             # Combined chart with main price chart on top and indicator chart below
-            dcc.Graph(id='combined-chart', style={'backgroundColor': '#1e1e1e', 'height': '90vh'})
+            dcc.Graph(id='combined-chart', style={'backgroundColor': '#000000', 'height': '90vh'})
         ], width=9, id="chart-col")
     ]), # Added missing closing bracket for dbc.Row
     
@@ -300,7 +356,7 @@ app.layout = dbc.Container([
     dcc.Store(id='current-symbol-store', data='SPY'),
     dcc.Store(id='ema-periods-store', data=[13, 26])
     
-], fluid=True, style={'backgroundColor': '#1e1e1e', 'minHeight': '100vh'})
+], fluid=True, style={'backgroundColor': '#000000', 'minHeight': '100vh'})
 
 # Callback to update dynamic lower chart settings based on selection
 @callback(
@@ -508,7 +564,7 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
         fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, 
                                    atr_bands, lower_chart_type, adx_components, 
                                    volume_comparison, relayout_data, timeframe)
-        return fig, {'backgroundColor': '#1e1e1e', 'height': '90vh'}, 'd-none'
+        return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
 
 # Callback to update symbol status message
 @callback(
@@ -565,7 +621,7 @@ def update_combined_chart_volume_comparison(volume_comparison, data, symbol, cha
         else:
             # Normal case - show the chart and hide the message
             fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe)
-            return fig, {'backgroundColor': '#1e1e1e', 'height': '90vh'}, 'd-none'
+            return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
     else:
         # Return no update if not volume chart
         raise PreventUpdate

@@ -87,14 +87,14 @@ def get_stock_data(symbol="SPY", period="1y"):
                 prev_day = prev_day - pd.Timedelta(days=1)
             
             # Fetch minute data for a period that includes the previous trading day
-            # Use "1mo" period to ensure we get the previous trading day's data
+            # Use "5d" period to ensure we get the previous trading day's data
             ticker = yf.Ticker(symbol)
             try:
-                data = ticker.history(period="1mo", interval="1m", timeout=5)
+                data = ticker.history(period="5d", interval="1m", timeout=5)
                 
                 if data.empty:
                     # Fallback to daily data and then filter
-                    data = ticker.history(period="1mo", interval="1d", timeout=5)
+                    data = ticker.history(period="5d", interval="1d", timeout=5)
                     if data.empty:
                         raise Exception(f"No data available for {symbol}")
                 
@@ -1034,8 +1034,8 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             'showlegend': True,
             'xaxis_rangeslider_visible': False,
             'template': 'plotly_dark',
-            'paper_bgcolor': '#1e1e1e',
-            'plot_bgcolor': '#1e1e1e',
+            'paper_bgcolor': '#000000',
+            'plot_bgcolor': '#000000',
             'font': dict(color='#ffffff'),
             'title_font': dict(color=title_color, size=20),
             'margin': dict(l=40, r=40, t=50, b=20) # Compact margins
@@ -1107,8 +1107,8 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         )
         fig.update_layout(
             template='plotly_dark',
-            paper_bgcolor='#1e1e1e',
-            plot_bgcolor='#1e1e1e'
+            paper_bgcolor='#000000',
+            plot_bgcolor='#000000'
         )
         return fig, False
 
@@ -1323,8 +1323,8 @@ def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_c
         height=330,  # Increased by 50% to match the 45vh in the layout
         showlegend=True,
         template='plotly_dark',
-        paper_bgcolor='#1e1e1e',
-        plot_bgcolor='#1e1e1e',
+        paper_bgcolor='#000000',
+        plot_bgcolor='#000000',
         font=dict(color='#ffffff'),
         title_font=dict(color='#00d4aa'),
         margin=dict(l=40, r=40, t=40, b=20) # Compact margins
@@ -1382,8 +1382,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             
             fig.update_layout(
                 template='plotly_dark',
-                paper_bgcolor='#1e1e1e',
-                plot_bgcolor='#1e1e1e',
+                paper_bgcolor='#000000',
+                plot_bgcolor='#000000',
                 height=800,
                 margin=dict(l=40, r=40, t=60, b=40),
                 title=f'{symbol} - Market Closed',
@@ -1669,8 +1669,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             'showlegend': True,
             'xaxis_rangeslider_visible': False,
             'template': 'plotly_dark',
-            'paper_bgcolor': '#1e1e1e',
-            'plot_bgcolor': '#1e1e1e',
+            'paper_bgcolor': '#000000',
+            'plot_bgcolor': '#000000',
             'font': dict(color='#ffffff'),
             'title_font': dict(color=title_color, size=20),
             'margin': dict(l=40, r=40, t=50, b=20) # Compact margins
@@ -1731,8 +1731,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             height=800,  # Set explicit height for combined chart
             showlegend=True,
             template='plotly_dark',
-            paper_bgcolor='#1e1e1e',
-            plot_bgcolor='#1e1e1e',
+            paper_bgcolor='#000000',
+            plot_bgcolor='#000000',
             font=dict(color='#ffffff'),
             title=dict(
                 text=title_text,  # Dynamic title with price and changes
