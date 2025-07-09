@@ -1954,7 +1954,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                         x=df['Date'],
                         y=df['MACD'],
                         name='MACD',
-                        line=dict(color='#00ffff', width=1.5)
+                        line=dict(color='#00ff88', width=1.5)
                     ),
                     row=2, col=1
                 )
@@ -1965,7 +1965,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                         x=df['Date'],
                         y=df['MACD_signal'],
                         name='Signal',
-                        line=dict(color='#ff00ff', width=1.5)
+                        line=dict(color='#ff4444', width=1.5)
                     ),
                     row=2, col=1
                 )
