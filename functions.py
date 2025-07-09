@@ -60,8 +60,8 @@ def get_stock_data(symbol="SPY", period="1y"):
             print(f"Invalid symbol format: {symbol}, using SPY instead")
             symbol = "SPY"
             
-        # Check if intraday (1d) data is requested
-        is_intraday = period == "1d"
+        # Check if intraday (1d or yesterday) data is requested
+        is_intraday = period in ["1d", "yesterday"]
         
         # Get current time in CEST (user's timezone)
         now_cest = datetime.now()
@@ -86,31 +86,123 @@ def get_stock_data(symbol="SPY", period="1y"):
         
         print(f"Market status: {'WEEKEND' if is_weekend else 'OPEN' if is_market_open else 'PRE-MARKET' if is_pre_market else 'AFTER-MARKET'}")
         
+        # Handle "yesterday" period first - always fetch previous trading day data
+        if period == "yesterday":
+            print(f"Yesterday period requested - fetching previous trading day minute data")
+            
+            # Calculate the previous trading day (skip weekends and go back to last business day)
+            current_date = now_cest.date()
+            
+            # Go back one day and find the previous business day
+            prev_day = current_date - pd.Timedelta(days=1)
+            while prev_day.weekday() > 4:  # 5=Saturday, 6=Sunday
+                prev_day = prev_day - pd.Timedelta(days=1)
+            
+            print(f"Previous trading day: {prev_day}")
+            
+            # Fetch minute data for a period that includes the previous trading day
+            # We'll use "5d" period to ensure we get the previous trading day's data
+            ticker = yf.Ticker(symbol)
+            try:
+                print(f"Fetching minute data for previous trading day for {symbol}")
+                data = ticker.history(period="5d", interval="1m", timeout=5)
+                
+                if data.empty:
+                    print(f"No minute data available for {symbol}")
+                    # Fallback to daily data and then filter
+                    data = ticker.history(period="5d", interval="1d", timeout=5)
+                    if data.empty:
+                        raise Exception(f"No data available for {symbol}")
+                
+                data.reset_index(inplace=True)
+                
+                # Handle the Date/Datetime column and convert to CEST
+                if 'Datetime' in data.columns:
+                    data = data.rename(columns={'Datetime': 'Date'})
+                
+                # Convert from ET to CEST (add 6 hours for summer time)
+                data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
+                data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
+                
+                print(f"Fetched {len(data)} data points, converted to CEST")
+                print(f"Data range: {data['Date'].min()} to {data['Date'].max()} (CEST)")
+                
+                # Filter to only show data from the previous trading day in CEST
+                data = data[data['Date'].dt.date == prev_day]
+                
+                if data.empty:
+                    print(f"No data for previous trading day ({prev_day}) after timezone conversion")
+                    # Return empty dataset if no data for yesterday
+                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    start_date = pd.Timestamp(prev_day)
+                    end_date = pd.Timestamp(prev_day)
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                
+                # Filter to market hours (15:30 to 22:00 CEST, which is 9:30 AM to 4:00 PM ET)
+                data = data[
+                    (data['Date'].dt.time >= pd.Timestamp('15:30:00').time()) &
+                    (data['Date'].dt.time <= pd.Timestamp('22:00:00').time())
+                ]
+                
+                print(f"Filtered to market hours: {len(data)} points")
+                
+                if data.empty:
+                    print(f"No market hours data for previous trading day ({prev_day})")
+                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    start_date = pd.Timestamp(prev_day)
+                    end_date = pd.Timestamp(prev_day)
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                
+                # Set start and end dates for the display
+                start_date = data['Date'].min()
+                end_date = data['Date'].max()
+                is_minute_data = True
+                
+                print(f"Final yesterday dataset: {len(data)} points from {start_date} to {end_date} (CEST)")
+                return data, start_date, end_date, is_minute_data
+                
+            except Exception as e:
+                print(f"Error fetching yesterday minute data for {symbol}: {e}")
+                # Return empty dataset on error
+                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                start_date = pd.Timestamp(prev_day)
+                end_date = pd.Timestamp(prev_day)
+                is_minute_data = True
+                return empty_df, start_date, end_date, is_minute_data
+        
         # Handle intraday data differently - get minute data for 1-day period
         if is_intraday:
-            # For 1D view: Show empty chart when market is closed, real-time data when open
-            
-            print(f"1D view requested - Market is {'WEEKEND' if is_weekend else 'OPEN' if is_market_open else 'PRE-MARKET' if is_pre_market else 'AFTER-MARKET'}")
-            print(f"Current ET time: {now_et.strftime('%Y-%m-%d %H:%M:%S')} (Hour: {now_et.hour}, Minute: {now_et.minute})")
-            print(f"Is weekend: {is_weekend}, Is market open: {is_market_open}")
-            
-            if is_weekend:
-                print(f"Weekend detected - returning empty dataset for 1D view")
-                # Return empty dataset when it's weekend
-                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-                start_date = now_cest
-                end_date = now_cest
-                is_minute_data = True
-                return empty_df, start_date, end_date, is_minute_data
-            elif is_pre_market or is_after_market:
-                print(f"Market is closed (pre/after hours) - returning empty dataset for 1D view")
-                # During trading days but outside market hours, return empty dataset
-                # This ensures we only show data during active market hours
-                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-                start_date = now_cest
-                end_date = now_cest
-                is_minute_data = True
-                return empty_df, start_date, end_date, is_minute_data
+            # Special handling for "yesterday" period - always fetch previous trading day data
+            if period == "yesterday":
+                print(f"Yesterday period requested - bypassing market hours check")
+                # Skip to the "yesterday" handling logic later in the function
+                pass
+            else:
+                # For 1D view: Show empty chart when market is closed, real-time data when open
+                
+                print(f"1D view requested - Market is {'WEEKEND' if is_weekend else 'OPEN' if is_market_open else 'PRE-MARKET' if is_pre_market else 'AFTER-MARKET'}")
+                print(f"Current ET time: {now_et.strftime('%Y-%m-%d %H:%M:%S')} (Hour: {now_et.hour}, Minute: {now_et.minute})")
+                print(f"Is weekend: {is_weekend}, Is market open: {is_market_open}")
+                
+                if is_weekend:
+                    print(f"Weekend detected - returning empty dataset for 1D view")
+                    # Return empty dataset when it's weekend
+                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                elif is_pre_market or is_after_market:
+                    print(f"Market is closed (pre/after hours) - returning empty dataset for 1D view")
+                    # During trading days but outside market hours, return empty dataset
+                    # This ensures we only show data during active market hours
+                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
             
             # Market is open - fetch real-time minute data for today only
             print(f"Market is OPEN - fetching real-time minute data for today")
@@ -276,7 +368,7 @@ def get_stock_data(symbol="SPY", period="1y"):
         
         # For intraday data, add a marker to identify this as minute-level data
         is_minute_data = False
-        if period == "1d" and is_intraday and len(data) > 0:
+        if period in ["1d", "yesterday"] and is_intraday and len(data) > 0:
             # Check if the data has minute granularity (check time differences)
             time_diffs = pd.Series(data['Date'].diff().dropna())
             if len(time_diffs) > 0:
@@ -291,7 +383,7 @@ def get_stock_data(symbol="SPY", period="1y"):
             print(f"Using daily-level data for {symbol} with {len(full_data)} points")
         
         # Cache non-intraday data for faster ticker switching (don't cache intraday as it needs real-time updates)
-        if period != "1d":
+        if period not in ["1d", "yesterday"]:
             _cache_data(symbol, period, full_data, start_date, end_date, is_minute_data)
         
         # After indicator calculation, we'll trim to the requested period
@@ -635,9 +727,9 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             error_class = "alert alert-warning fade show"
             using_sample_data = True
         
-        # Check if we have empty data for 1D view (market closed) - this is normal, don't show errors
-        if timeframe == "1d" and len(full_data) == 0:
-            print(f"Market is closed for 1D view - returning empty data without error messages")
+        # Check if we have empty data for 1D or yesterday view (market closed) - this is normal, don't show errors
+        if timeframe in ["1d", "yesterday"] and len(full_data) == 0:
+            print(f"Market is closed for {timeframe} view - returning empty data without error messages")
             return [], [], "alert alert-warning fade show d-none"  # Hidden error class
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
@@ -656,9 +748,9 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         df_final = df_with_indicators[df_with_indicators['Date'] >= start_date].copy()
         
         if not using_sample_data and (len(df_final) < 5):
-            # For 1D view, if we have no data it's likely because market is closed - don't show error
-            if timeframe == "1d":
-                print(f"No data for {symbol} in 1D view - market likely closed, not showing error")
+            # For 1D or yesterday view, if we have no data it's likely because market is closed - don't show error
+            if timeframe in ["1d", "yesterday"]:
+                print(f"No data for {symbol} in {timeframe} view - market likely closed, not showing error")
                 return [], [], "alert alert-warning fade show d-none"  # Hidden error class
             
             print(f"Insufficient data for {symbol}, using sample data")
@@ -1868,7 +1960,7 @@ def update_symbol_status(symbol):
 
 def update_indicator_options(timeframe):
     """Update indicator options based on timeframe"""
-    is_intraday = timeframe == '1d'
+    is_intraday = timeframe in ['1d', 'yesterday']
     
     # Hide EMA options for intraday
     ema_style = {'display': 'none'} if is_intraday else {'display': 'block'}
