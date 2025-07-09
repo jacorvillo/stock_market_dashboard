@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "symbol": "OKTA",
+      "price": 99.15,
+      "volume": 3249453,
+      "volume_vs_avg": 1.08,
+      "ema_13": 99.0,
+      "ema_26": 101.31,
+      "in_value_zone": true,
+      "above_ema_13": true,
+      "above_ema_26": false,
+      "ema_trend": "bearish",
+      "rsi": 50.76,
+      "macd_signal": "bullish",
+      "atr_pct": 2.39,
+      "price_change_pct": 1.66,
+      "last_updated": "2025-07-09T23:27:46.414310"
+    }
+  ],
+  "last_full_update": "2025-07-09T23:27:46.968012",
+  "total_symbols": 1,
+  "universe_info": {
+    "sp500": 100,
+    "nasdaq100": 40,
+    "dow30": 30,
+    "etfs": 31,
+    "growth": 40,
+    "dividend": 30
+  }
+}
