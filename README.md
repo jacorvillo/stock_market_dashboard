@@ -57,8 +57,8 @@ Open `http://localhost:8050` in your browser to view the dashboard.
 > - Consensus and commitment indicators
 > - Others
 
-- (Short term) Improve UI/UX design
-- (Short/long term) Add signals (buy/sell) based on technical indicators, both in the chart and as alerts
+- [x] Improve UI/UX design
+- [ ] (Short/long term) Insights: signals (buy/sell) based on technical indicators, both in the chart and as alerts
 
 - [ ] (Longer term) Add stock scanner functionality to filter stocks based on technical indicators and other criteria
 - [ ] (Longer term) Add popular system trading strategies (Triple Screen Trading System, Impulse System, Channel trading)
