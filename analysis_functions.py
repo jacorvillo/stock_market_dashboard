@@ -1448,11 +1448,11 @@ def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_c
     
     return fig
 
-def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None, use_impulse_system=False):
+def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None, use_impulse_system=False, bollinger_bands=None, autoenvelope=None):
     """Update a combined chart with main price chart on top and indicator chart below"""
     try:
         if not data:
-            return go.Figure()
+            return go.Figure(), {'display': 'none'}, 'd-block'
         
         df = pd.DataFrame(data)
         df['Date'] = pd.to_datetime(df['Date'])
@@ -1463,6 +1463,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
         lower_chart_type = lower_chart_type or 'volume'
+        bollinger_bands = bollinger_bands or {'show': False, 'period': 20, 'stddev': 2}
+        autoenvelope = autoenvelope or {'show': False, 'period': 20, 'percent': 3}
         
         # Handle empty data (e.g., when market is closed for 1D view)
         if df.empty:
@@ -1495,7 +1497,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 title_font=dict(color='#ffaa00', size=18)  # Orange for market closed
             )
             
-            return fig
+            return fig, {'display': 'none'}, 'd-block'
         
         # Check if we are using 1D timeframe (based on data frequency)
         # Determine if this is intraday data using both timeframe parameter and data frequency
@@ -1747,6 +1749,116 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     )
                 except ValueError:
                     continue
+        
+        # Add Bollinger Bands if enabled
+        if bollinger_bands and bollinger_bands.get('show'):
+            try:
+                period = bollinger_bands.get('period', 20)
+                stddev = bollinger_bands.get('stddev', 2)
+                
+                # Calculate Bollinger Bands - requires at least 'period' number of data points
+                if len(df) > period:
+                    # Calculate the middle band (Simple Moving Average)
+                    df['BB_middle'] = df['Close'].rolling(window=period).mean()
+                    
+                    # Calculate standard deviation
+                    rolling_std = df['Close'].rolling(window=period).std()
+                    
+                    # Calculate upper and lower bands
+                    df['BB_upper'] = df['BB_middle'] + (rolling_std * stddev)
+                    df['BB_lower'] = df['BB_middle'] - (rolling_std * stddev)
+                    
+                    # Upper band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['BB_upper'],
+                            mode='lines',
+                            name=f'BB +{stddev}σ',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot')  # Purple
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Middle band (SMA)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['BB_middle'],
+                            mode='lines',
+                            name=f'BB SMA({period})',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1)  # Purple
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Lower band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['BB_lower'],
+                            mode='lines',
+                            name=f'BB -{stddev}σ',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot')  # Purple
+                        ),
+                        row=1, col=1
+                    )
+            except Exception as e:
+                print(f"Error calculating Bollinger Bands: {e}")
+        
+        # Add Autoenvelope if enabled
+        if autoenvelope and autoenvelope.get('show'):
+            try:
+                period = autoenvelope.get('period', 20)
+                percent = autoenvelope.get('percent', 3)
+                
+                # Calculate Autoenvelope - requires at least 'period' number of data points
+                if len(df) > period:
+                    # Calculate the middle line (Simple Moving Average)
+                    df['AE_middle'] = df['Close'].rolling(window=period).mean()
+                    
+                    # Calculate upper and lower bands (percentage based)
+                    multiplier = percent / 100
+                    df['AE_upper'] = df['AE_middle'] * (1 + multiplier)
+                    df['AE_lower'] = df['AE_middle'] * (1 - multiplier)
+                    
+                    # Upper band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['AE_upper'],
+                            mode='lines',
+                            name=f'Env +{percent}%',
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot')  # Blue
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Middle band (SMA)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['AE_middle'],
+                            mode='lines',
+                            name=f'Env SMA({period})',
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1)  # Blue
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Lower band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['AE_lower'],
+                            mode='lines',
+                            name=f'Env -{percent}%',
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot')  # Blue
+                        ),
+                        row=1, col=1
+                    )
+            except Exception as e:
+                print(f"Error calculating Autoenvelope: {e}")
         
         # Add previous day's close line for intraday charts (Today or Previous Market Period)
         if is_intraday and len(df) > 0:
@@ -2569,11 +2681,11 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     borderpad=4
                 )
         
-        return fig
+        return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
         
     except Exception as e:
-        pass
-        return go.Figure()
+        print(f"Error updating combined chart: {e}")
+        return go.Figure(), {'display': 'none'}, 'd-block'
 
 def update_symbol_status(symbol):
     """Update symbol status display based on current symbol"""
