@@ -772,28 +772,7 @@ app.layout = dbc.Container([
                                                             },
                                                             className="text-uppercase"
                                                         )
-                                                    ], width=8),
-                                                    dbc.Col([
-                                                        dbc.Button(
-                                                            [
-                                                                html.Span("🔄", style={'marginRight': '5px', 'fontSize': '14px'}),
-                                                                html.Span("Update", style={'fontWeight': 'bold', 'fontSize': '14px'})
-                                                            ],
-                                                            id="update-insights-stock-button",
-                                                            color="info",
-                                                            outline=True,
-                                                            size="sm",
-                                                            className="w-100",
-                                                            style={
-                                                                'borderColor': '#00d4aa',
-                                                                'color': '#00d4aa',
-                                                                'borderRadius': '8px',
-                                                                'padding': '12px 8px',
-                                                                'fontWeight': 'bold',
-                                                                'transition': 'all 0.3s ease'
-                                                            }
-                                                        )
-                                                    ], width=4)
+                                                    ], width=12)
                                                 ], className="mb-3"),
                                                 html.Div(
                                                     id='insights-current-stock-display',
