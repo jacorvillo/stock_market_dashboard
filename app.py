@@ -675,6 +675,8 @@ app.layout = dbc.Container([
                                                 
                                                 html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
                                                 
+                                                dbc.Label("Price Channels:", style={'color': '#00d4aa', 'fontWeight': 'bold', 'fontSize': '16px', 'marginBottom': '15px'}),
+                                                
                                                 # ATR Bands Section
                                                 dbc.Label("ATR Volatility Bands:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
                                                 dbc.Checklist(
@@ -701,8 +703,71 @@ app.layout = dbc.Container([
                                                     ],
                                                     value=[],
                                                     inline=False,  # Stack vertically for better mobile experience
-                                                    style={'color': '#fff'}
-                                                )
+                                                    style={'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
+                                                
+                                                # Bollinger Bands Section
+                                                dbc.Label("Bollinger Bands:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Checklist(
+                                                            id='bollinger-bands',
+                                                            options=[
+                                                                {
+                                                                    'label': html.Div([
+                                                                        html.Span("Show Bollinger Bands", style={'color': '#fff', 'fontWeight': '500'})
+                                                                    ]),
+                                                                    'value': 'show'
+                                                                }
+                                                            ],
+                                                            value=[],
+                                                            style={'color': '#fff'},
+                                                            className="mb-2"
+                                                        )
+                                                    ], width=12),
+                                                    dbc.Col([
+                                                        dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='bollinger-period', type='number', value=20, min=5, max=50, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6),
+                                                    dbc.Col([
+                                                        dbc.Label("StdDev:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='bollinger-stddev', type='number', value=2, min=1, max=4, step=0.5, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6)
+                                                ], className="mb-3"),
+                                                
+                                                # Autoenvelope Section
+                                                dbc.Label("Autoenvelope:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Checklist(
+                                                            id='autoenvelope',
+                                                            options=[
+                                                                {
+                                                                    'label': html.Div([
+                                                                        html.Span("Show Autoenvelope", style={'color': '#fff', 'fontWeight': '500'})
+                                                                    ]),
+                                                                    'value': 'show'
+                                                                }
+                                                            ],
+                                                            value=[],
+                                                            style={'color': '#fff'},
+                                                            className="mb-2"
+                                                        )
+                                                    ], width=12),
+                                                    dbc.Col([
+                                                        dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='autoenvelope-period', type='number', value=20, min=5, max=50, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6),
+                                                    dbc.Col([
+                                                        dbc.Label("Percent:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='autoenvelope-percent', type='number', value=3, min=1, max=10, step=0.5, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6)
+                                                ])
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
                                         
@@ -1050,7 +1115,10 @@ app.layout.children.extend([
     dcc.Store(id='adx-period-store', data=13),
     dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus']),
     dcc.Store(id='stochastic-period-store', data=5),
-    dcc.Store(id='rsi-period-store', data=13)
+    dcc.Store(id='rsi-period-store', data=13),
+    # New stores for Bollinger Bands and Autoenvelope
+    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 20, 'stddev': 2}),
+    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 20, 'percent': 3})
 ])
 
 # Callback to update store values when UI elements are present
@@ -1099,6 +1167,38 @@ def update_stochastic_store_callback(period):
     """Call update_stochastic_store function from functions module"""
     return update_stochastic_store(period)
 
+# Callback to update Bollinger Bands store
+@callback(
+    Output('bollinger-bands-store', 'data'),
+    [Input('bollinger-bands', 'value'),
+     Input('bollinger-period', 'value'),
+     Input('bollinger-stddev', 'value')],
+    prevent_initial_call=True
+)
+def update_bollinger_store_callback(show, period, stddev):
+    """Update Bollinger Bands settings"""
+    return {
+        'show': 'show' in show if show else False,
+        'period': period,
+        'stddev': stddev
+    }
+
+# Callback to update Autoenvelope store
+@callback(
+    Output('autoenvelope-store', 'data'),
+    [Input('autoenvelope', 'value'),
+     Input('autoenvelope-period', 'value'),
+     Input('autoenvelope-percent', 'value')],
+    prevent_initial_call=True
+)
+def update_autoenvelope_store_callback(show, period, percent):
+    """Update Autoenvelope settings"""
+    return {
+        'show': 'show' in show if show else False,
+        'period': period,
+        'percent': percent
+    }
+
 # Callback to update RSI period store
 @callback(
     Output('rsi-period-store', 'data'),
@@ -1145,11 +1245,13 @@ def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow
      Input('lower-chart-selection', 'value'),
      Input('adx-components-store', 'data'),
      Input('timeframe-dropdown', 'value'),
-     Input('impulse-system-toggle', 'value')],
+     Input('impulse-system-toggle', 'value'),
+     Input('bollinger-bands-store', 'data'),
+     Input('autoenvelope-store', 'data')],
     [State('combined-chart', 'relayoutData')],
     prevent_initial_call=False
 )
-def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, relayout_data):
+def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Call update_combined_chart function from functions module"""
     # Try to get volume comparison value, but don't require it
     ctx = dash.callback_context
@@ -1158,6 +1260,14 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
     # Check if impulse system is enabled
     use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
     
+    # Pass the figure, chart style, and market closed message
+    figure, style, market_closed = update_combined_chart(
+        data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
+        lower_chart_type, adx_components, volume_comparison, relayout_data, 
+        timeframe, use_impulse_system, bollinger_bands, autoenvelope
+    )
+    
+    return figure, style, market_closed
     # Create a basic empty figure for when we're not showing the chart
     empty_fig = go.Figure()
     
@@ -1220,10 +1330,12 @@ def update_indicator_options_callback(timeframe):
      State('adx-components-store', 'data'),
      State('timeframe-dropdown', 'value'),
      State('impulse-system-toggle', 'value'),
+     State('bollinger-bands-store', 'data'),
+     State('autoenvelope-store', 'data'),
      State('combined-chart', 'relayoutData')],
     prevent_initial_call=True
 )
-def update_combined_chart_volume_comparison(volume_comparison, data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, relayout_data):
+def update_combined_chart_volume_comparison(volume_comparison, data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Update combined chart when volume comparison changes"""
     # Check if impulse system is enabled
     use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
@@ -1240,7 +1352,7 @@ def update_combined_chart_volume_comparison(volume_comparison, data, symbol, cha
             return empty_fig, {'display': 'none'}, 'd-block'
         else:
             # Normal case - show the chart and hide the message
-            fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe, use_impulse_system)
+            fig, style, market_closed = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe, use_impulse_system, bollinger_bands, autoenvelope)
             return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
     else:
         # Return no update if not volume chart
