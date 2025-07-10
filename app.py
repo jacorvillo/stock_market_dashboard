@@ -751,49 +751,8 @@ app.layout = dbc.Container([
                                     'textAlign': 'center'
                                 }),
                                 
-                                # Current Stock Display (read-only)
-                                dbc.Label("Stock Symbol to Analyze:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
-                                                dbc.Row([
-                                                    dbc.Col([
-                                                        dbc.Input(
-                                                            id='insights-stock-input',
-                                                            placeholder="Enter any US stock symbol (e.g., AAPL, TSLA, SPY)",
-                                                            value="SPY",
-                                                            type="text",
-                                                            style={
-                                                                'backgroundColor': '#000000', 
-                                                                'color': '#fff',
-                                                                'border': '2px solid #00d4aa',
-                                                                'borderRadius': '8px',
-                                                                'padding': '12px 16px',
-                                                                'fontSize': '16px',
-                                                                'fontWeight': '500',
-                                                                'textAlign': 'center'
-                                                            },
-                                                            className="text-uppercase"
-                                                        )
-                                                    ], width=12)
-                                                ], className="mb-3"),
-                                                html.Div(
-                                                    id='insights-current-stock-display',
-                                                    style={
-                                                        'backgroundColor': '#1a1a1a',
-                                                        'border': '1px solid #333',
-                                                        'borderRadius': '6px',
-                                                        'padding': '8px 12px',
-                                                        'marginBottom': '20px',
-                                                        'textAlign': 'center',
-                                                        'fontSize': '12px',
-                                                        'color': '#ccc'
-                                                    },
-                                                    children=[
-                                                        html.Span("Currently analyzing: "),
-                                                        html.Strong("SPY", style={'color': '#00d4aa'})
-                                                    ]
-                                                ),
-                                                
-                                                # Trading Style Selection
-                                                dbc.Label("Trading Style:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '15px'}),
+                                # Trading Style Selection
+                                dbc.Label("Trading Style:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '15px'}),
                                                 dbc.RadioItems(
                                                     id='insights-trading-style',
                                                     options=[
@@ -829,6 +788,30 @@ app.layout = dbc.Container([
                                                     style={'color': '#fff'},
                                                     className="mb-4"
                                                 ),
+                                                
+                                                # Stock Symbol Input (moved below trading style)
+                                                dbc.Label("Stock Symbol to Analyze:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Input(
+                                                            id='insights-stock-input',
+                                                            placeholder="Enter any US stock symbol (e.g., AAPL, TSLA, SPY)",
+                                                            value="SPY",
+                                                            type="text",
+                                                            style={
+                                                                'backgroundColor': '#000000', 
+                                                                'color': '#fff',
+                                                                'border': '3px solid #00d4aa',
+                                                                'borderRadius': '8px',
+                                                                'padding': '12px 16px',
+                                                                'fontSize': '16px',
+                                                                'fontWeight': '500',
+                                                                'textAlign': 'center'
+                                                            },
+                                                            className="text-uppercase"
+                                                        )
+                                                    ], width=12)
+                                                ], className="mb-3"),
                                                 
                                                 # Run Insights Button
                                                 html.Div([
@@ -1297,39 +1280,27 @@ def update_status_indicator_callback(symbol):
 # Callback to handle insights analysis
 @callback(
     [Output('insights-status', 'children'),
-     Output('insights-results', 'children'),
-     Output('insights-current-stock-display', 'children')],
+     Output('insights-results', 'children')],
     [Input('run-insights-button', 'n_clicks'),
-     Input('update-insights-stock-button', 'n_clicks')],
+     Input('insights-stock-input', 'n_submit')],
     [State('insights-stock-input', 'value'),
      State('insights-trading-style', 'value')],
     prevent_initial_call=True
 )
-def run_insights_analysis(run_clicks, update_clicks, insights_symbol, trading_style):
-    """Handle the insights analysis when the button is clicked"""
+def run_insights_analysis(run_clicks, n_submit, insights_symbol, trading_style):
+    """Handle the insights analysis when the button is clicked or Enter is pressed"""
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
     
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
     # Use insights symbol or fallback to SPY
     symbol = (insights_symbol or 'SPY').strip().upper()
-    
-    # Update the display when Update button is clicked
-    if button_id == 'update-insights-stock-button':
-        updated_display = [
-            html.Span("Currently analyzing: "),
-            html.Strong(symbol, style={'color': '#00d4aa'})
-        ]
-        return [[], [], updated_display]
     
     # Validate trading style for analysis
     if not trading_style:
         return [
             dbc.Alert("Please select a trading style", color="warning", className="mt-2"),
-            [],
-            dash.no_update
+            []
         ]
     
     try:
@@ -1390,7 +1361,7 @@ def run_insights_analysis(run_clicks, update_clicks, insights_symbol, trading_st
             html.Span(f"Analysis completed for {symbol}", style={'color': '#28a745'})
         ])
         
-        return [success_status, results, dash.no_update]
+        return [success_status, results]
         
     except Exception as e:
         # Handle any errors gracefully
@@ -1399,7 +1370,7 @@ def run_insights_analysis(run_clicks, update_clicks, insights_symbol, trading_st
             html.Span(f"Error analyzing {symbol}: {str(e)}", style={'color': '#dc3545'})
         ])
         
-        return [error_status, [], dash.no_update]
+        return [error_status, []]
 
 
 def create_insights_results_layout(insights_data, trading_style):
