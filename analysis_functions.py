@@ -1582,47 +1582,64 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         elif chart_type == 'mountain':
             # Mountain (area) chart
             if len(df) >= 2:
-                price_start = df['Close'].iloc[0]
-                price_end = df['Close'].iloc[-1]
+                # Determine if the overall trend is up or down based on open vs close comparison
+                # For mountain charts, we'll use the entire chart period (first vs last)
+                price_start = df['Open'].iloc[0]  # First day's open
+                price_end = df['Close'].iloc[-1]  # Last day's close
                 is_uptrend = price_end >= price_start
                 
-                line_color = '#00d4aa'  # Teal line
-                fill_color = 'rgba(0, 212, 170, 0.2)'  # Semi-transparent teal
+                # Set colors based on overall trend (green for up, red for down)
+                if is_uptrend:
+                    line_color = '#00ff88'  # Green line
+                    fill_color = 'rgba(0, 255, 136, 0.2)'  # Semi-transparent green
+                else:
+                    line_color = '#ff4444'  # Red line 
+                    fill_color = 'rgba(255, 68, 68, 0.2)'  # Semi-transparent red
+                
+                # Calculate percent change from first value for hover info
+                first_price = df['Open'].iloc[0]
+                df['pct_change'] = [(price/first_price - 1) * 100 for price in df['Close']]
+                
+                # Add the area chart with appropriate coloring
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['Close'],
+                        mode='lines',
+                        name=f'{symbol} Close',
+                        line=dict(color=line_color, width=2),
+                        fill='tozeroy',
+                        fillcolor=fill_color,
+                        hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Open: $%{customdata[0]:.2f}<br>Change: %{customdata[1]:.2f}%<extra></extra>',
+                        customdata=np.column_stack((df['Open'], df['pct_change']))
+                    ),
+                    row=1, col=1
+                )
             else:
-                line_color = '#00d4aa'
-                fill_color = 'rgba(0, 212, 170, 0.3)'
+                # Default case for very small datasets
+                line_color = '#00d4aa'  # Default teal line
+                fill_color = 'rgba(0, 212, 170, 0.2)'  # Semi-transparent teal
             
-            first_price = df['Close'].iloc[0]
-            
-            # For subplots, we need to specify the fill properly
-            fig.add_trace(
-                go.Scatter(
-                    x=df['Date'],
-                    y=df['Close'],
-                    mode='lines',
-                    name=f'{symbol} Close',
-                    line=dict(color=line_color, width=2),
-                    fill='tonexty',  # Fill to next y (which will be the baseline we add)
-                    fillcolor=fill_color,
-                    hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Change: %{customdata:.2f}%<extra></extra>',
-                    customdata=[(price/first_price - 1) * 100 for price in df['Close']]  # Show % change from first value
-                ),
-                row=1, col=1
-            )
-            
-            # Add a baseline trace for proper fill (invisible)
-            y_min_baseline = df['Close'].min() * 0.95  # Set baseline slightly below minimum
-            fig.add_trace(
-                go.Scatter(
-                    x=df['Date'],
-                    y=[y_min_baseline] * len(df),
-                    mode='lines',
-                    line=dict(color='rgba(0,0,0,0)', width=0),  # Invisible line
-                    showlegend=False,
-                    hoverinfo='skip'
-                ),
-                row=1, col=1
-            )
+            # If we reach this code, it means we're in the fallback case for empty data
+            # or when there's no separation between up/down trends
+            if 'line_color' in locals() and 'fill_color' in locals():
+                first_price = df['Close'].iloc[0]
+                
+                # Create a simple fallback chart with the default color
+                fig.add_trace(
+                    go.Scatter(
+                        x=df['Date'],
+                        y=df['Close'],
+                        mode='lines',
+                        name=f'{symbol} Close',
+                        line=dict(color=line_color, width=2),
+                        fill='tozeroy',
+                        fillcolor=fill_color,
+                        hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Change: %{customdata:.2f}%<extra></extra>',
+                        customdata=[(price/first_price - 1) * 100 for price in df['Close']]  # Show % change from first value
+                    ),
+                    row=1, col=1
+                )
         
         # Add EMA indicators if enabled AND NOT in intraday mode
         if 'show' in show_ema and not is_intraday:
