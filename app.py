@@ -32,6 +32,9 @@ from analysis_functions import (
     update_stock_status_indicator
 )
 
+# Import Impulse System functions
+from impulse_functions import calculate_impulse_system, get_impulse_colors
+
 # Import scanner functions
 from scanner_functions import StockScanner, get_preset_filter, get_available_presets
 
@@ -587,7 +590,27 @@ app.layout = dbc.Container([
                                                     value='candlestick',
                                                     className="mb-3",
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
-                                                )
+                                                ),
+                                                
+                                                # Impulse System Toggle
+                                                html.Div([
+                                                    dbc.Checklist(
+                                                        options=[
+                                                            {"label": "Use Impulse System", "value": 1}
+                                                        ],
+                                                        value=[],
+                                                        id="impulse-system-toggle",
+                                                        switch=True,
+                                                        className="mb-2"
+                                                    ),
+                                                    dbc.FormText([
+                                                        "Colors candles based on EMA trend & MACD momentum: ",
+                                                        html.Span("■", style={'color': '#00ff88', 'fontWeight': 'bold'}), " Bullish, ", 
+                                                        html.Span("■", style={'color': '#ff4444', 'fontWeight': 'bold'}), " Bearish, ", 
+                                                        html.Span("■", style={'color': '#00d4ff', 'fontWeight': 'bold'}), " Neutral"
+                                                    ],
+                                                    style={'fontSize': '11px', 'color': '#aaa'})
+                                                ], className="mb-3")
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
                                         
@@ -1121,15 +1144,19 @@ def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow
      Input('atr-bands', 'value'),
      Input('lower-chart-selection', 'value'),
      Input('adx-components-store', 'data'),
-     Input('timeframe-dropdown', 'value')],
+     Input('timeframe-dropdown', 'value'),
+     Input('impulse-system-toggle', 'value')],
     [State('combined-chart', 'relayoutData')],
     prevent_initial_call=False
 )
-def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, relayout_data):
+def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, relayout_data):
     """Call update_combined_chart function from functions module"""
     # Try to get volume comparison value, but don't require it
     ctx = dash.callback_context
     volume_comparison = 'none'  # Default value
+    
+    # Check if impulse system is enabled
+    use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
     
     # Create a basic empty figure for when we're not showing the chart
     empty_fig = go.Figure()
@@ -1162,7 +1189,8 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
         # Pass relayout data to preserve zoom/pan state
         fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, 
                                    atr_bands, lower_chart_type, adx_components, 
-                                   volume_comparison, relayout_data, timeframe)
+                                   volume_comparison, relayout_data, timeframe, 
+                                   use_impulse_system)
         return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
 
 # Callback to hide EMA options for 1D timeframe
@@ -1191,11 +1219,14 @@ def update_indicator_options_callback(timeframe):
      State('lower-chart-selection', 'value'),
      State('adx-components-store', 'data'),
      State('timeframe-dropdown', 'value'),
+     State('impulse-system-toggle', 'value'),
      State('combined-chart', 'relayoutData')],
     prevent_initial_call=True
 )
-def update_combined_chart_volume_comparison(volume_comparison, data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, relayout_data):
+def update_combined_chart_volume_comparison(volume_comparison, data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, relayout_data):
     """Update combined chart when volume comparison changes"""
+    # Check if impulse system is enabled
+    use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
     # Only trigger when volume chart is selected
     if lower_chart_type == 'volume':
         volume_comparison = volume_comparison or 'none'
@@ -1209,7 +1240,7 @@ def update_combined_chart_volume_comparison(volume_comparison, data, symbol, cha
             return empty_fig, {'display': 'none'}, 'd-block'
         else:
             # Normal case - show the chart and hide the message
-            fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe)
+            fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe, use_impulse_system)
             return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
     else:
         # Return no update if not volume chart

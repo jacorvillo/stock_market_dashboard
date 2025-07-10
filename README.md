@@ -13,7 +13,7 @@ This dashboard provides real-time US stock data from Yahoo Finance with multiple
 As of now, the dashboard includes:
 
 - **Scanner**: Find stocks based on technical indicators and other criteria
-- **Analysis** (Ongoing): View real-time stock data at multiple timeframes with technical indicators
+- **Analysis** (Ongoing): View real-time stock data at multiple timeframes with technical indicators. Includes Impulse System visualization
 - **Insights** (Ongoing): Get buy/sell signals based on different technical indicators
 
 > [!TIP] 

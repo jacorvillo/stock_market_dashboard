@@ -803,7 +803,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         error_class = "alert alert-danger fade show"
         return [], error_msg, error_class
 
-def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, timeframe=None):
+def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, timeframe=None, use_impulse_system=False):
     """Update the main chart with different visualization types and indicators
     Returns: (figure, is_in_value_zone)"""
     try:
@@ -818,6 +818,13 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         show_ema = show_ema or []
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
+        
+        # Process Impulse System if enabled (for candlestick charts only)
+        impulse_df = None
+        if use_impulse_system and chart_type == 'candlestick' and len(df) > 1:
+            # Import here to avoid circular imports
+            from impulse_functions import calculate_impulse_system
+            impulse_df = calculate_impulse_system(df, ema_period=ema_periods[0] if ema_periods else 13)
         
         # Detect if data contains intraday (minute) timepoints
         # First check if timeframe is explicitly intraday
@@ -841,23 +848,58 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         
         # Add different chart types based on selection
         if chart_type == 'candlestick':
-            # Standard candlestick
-            fig.add_trace(
-                go.Candlestick(
-                    x=df['Date'],
-                    open=df['Open'],
-                    high=df['High'],
-                    low=df['Low'],
-                    close=df['Close'],
-                    name=symbol,
-                    increasing_line_color='#00ff88',  # Green for up candles
-                    decreasing_line_color='#ff4444',  # Red for down candles
-                    increasing_fillcolor='rgba(0, 255, 136, 0.4)',
-                    decreasing_fillcolor='rgba(255, 68, 68, 0.4)',
-                    line=dict(width=1),
-                    opacity=0.9
+            # Standard candlestick (with or without Impulse System)
+            if use_impulse_system and impulse_df is not None:
+                # Use impulse system coloring (groupby date and create separate traces)
+                from impulse_functions import get_impulse_colors
+                
+                # Create a separate trace for each impulse color
+                for color in ['green', 'red', 'blue']:
+                    # Filter data for this color
+                    color_data = impulse_df[impulse_df['impulse_color'] == color]
+                    
+                    # Skip if no data for this color
+                    if len(color_data) == 0:
+                        continue
+                    
+                    # Get appropriate colors for this impulse color
+                    colors = get_impulse_colors(color)
+                    
+                    # Add trace for this color group
+                    fig.add_trace(
+                        go.Candlestick(
+                            x=color_data['Date'],
+                            open=color_data['Open'],
+                            high=color_data['High'],
+                            low=color_data['Low'],
+                            close=color_data['Close'],
+                            name=f"{symbol} ({color})",
+                            increasing_line_color=colors['increasing_line_color'],
+                            decreasing_line_color=colors['decreasing_line_color'],
+                            increasing_fillcolor=colors['increasing_fillcolor'],
+                            decreasing_fillcolor=colors['decreasing_fillcolor'],
+                            line=dict(width=1),
+                            opacity=0.9
+                        )
+                    )
+            else:
+                # Standard candlestick without impulse system
+                fig.add_trace(
+                    go.Candlestick(
+                        x=df['Date'],
+                        open=df['Open'],
+                        high=df['High'],
+                        low=df['Low'],
+                        close=df['Close'],
+                        name=symbol,
+                        increasing_line_color='#00ff88',  # Green for up candles
+                        decreasing_line_color='#ff4444',  # Red for down candles
+                        increasing_fillcolor='rgba(0, 255, 136, 0.4)',
+                        decreasing_fillcolor='rgba(255, 68, 68, 0.4)',
+                        line=dict(width=1),
+                        opacity=0.9
+                    )
                 )
-            )
         
         elif chart_type == 'japanese':
             # Japanese style candlesticks
@@ -1406,7 +1448,7 @@ def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_c
     
     return fig
 
-def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None):
+def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None, use_impulse_system=False):
     """Update a combined chart with main price chart on top and indicator chart below"""
     try:
         if not data:
@@ -1481,21 +1523,60 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # === MAIN CHART (Row 1) ===
         if chart_type in ['candlestick', 'japanese']:
             # Candlestick chart
-            fig.add_trace(
-                go.Candlestick(
-                    x=df['Date'],
-                    open=df['Open'],
-                    high=df['High'],
-                    low=df['Low'],
-                    close=df['Close'],
-                    name=symbol,
-                    increasing_line_color='#00ff88',
-                    decreasing_line_color='#ff4444',
-                    increasing_fillcolor='#00ff88',
-                    decreasing_fillcolor='#ff4444'
-                ),
-                row=1, col=1
-            )
+            if use_impulse_system and chart_type == 'candlestick':
+                # Use Impulse System for coloring (imported at function level to avoid circular imports)
+                from impulse_functions import calculate_impulse_system, get_impulse_colors
+                
+                # Add Impulse System coloring to the dataframe
+                impulse_df = calculate_impulse_system(df, ema_period=ema_periods[0] if ema_periods else 13)
+                
+                # Create a separate trace for each impulse color
+                for color in ['green', 'red', 'blue']:
+                    # Filter data for this color
+                    color_data = impulse_df[impulse_df['impulse_color'] == color]
+                    
+                    # Skip if no data for this color
+                    if len(color_data) == 0:
+                        continue
+                        
+                    # Get appropriate colors for this impulse color
+                    colors = get_impulse_colors(color)
+                    
+                    # Add trace for this color group
+                    fig.add_trace(
+                        go.Candlestick(
+                            x=color_data['Date'],
+                            open=color_data['Open'],
+                            high=color_data['High'],
+                            low=color_data['Low'],
+                            close=color_data['Close'],
+                            name=f"{symbol} ({color})",
+                            increasing_line_color=colors['increasing_line_color'],
+                            decreasing_line_color=colors['decreasing_line_color'],
+                            increasing_fillcolor=colors['increasing_fillcolor'],
+                            decreasing_fillcolor=colors['decreasing_fillcolor'],
+                            line=dict(width=1),
+                            opacity=0.9
+                        ),
+                        row=1, col=1
+                    )
+            else:
+                # Standard candlestick without impulse system
+                fig.add_trace(
+                    go.Candlestick(
+                        x=df['Date'],
+                        open=df['Open'],
+                        high=df['High'],
+                        low=df['Low'],
+                        close=df['Close'],
+                        name=symbol,
+                        increasing_line_color='#00ff88',
+                        decreasing_line_color='#ff4444',
+                        increasing_fillcolor='#00ff88',
+                        decreasing_fillcolor='#ff4444'
+                    ),
+                    row=1, col=1
+                )
         elif chart_type == 'mountain':
             # Mountain (area) chart
             if len(df) >= 2:
