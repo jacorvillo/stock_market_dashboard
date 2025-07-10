@@ -2,3 +2,4 @@
 .vscode/tasks.json
 __pycache__/app.cpython-312.pyc
 __pycache__/functions.cpython-312.pyc
+scanner_cache.json
