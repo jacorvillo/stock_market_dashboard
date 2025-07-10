@@ -23,7 +23,7 @@ import time
 import random
 
 # Import technical analysis functions from existing functions.py
-from functions import calculate_indicators
+from analysis_functions import calculate_indicators
 
 class StockScanner:
     def __init__(self, cache_file='scanner_cache.json'):

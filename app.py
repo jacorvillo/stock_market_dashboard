@@ -14,7 +14,7 @@ import ta
 import json
 
 # Import functions from functions.py
-from functions import (
+from analysis_functions import (
     get_stock_data, 
     calculate_indicators,
     update_lower_chart_settings,
