@@ -85,16 +85,16 @@ def get_stock_data(symbol="SPY", period="1y"):
             prev_day = current_date - pd.Timedelta(days=1)
             while prev_day.weekday() > 4:  # 5=Saturday, 6=Sunday
                 prev_day = prev_day - pd.Timedelta(days=1)
-            
-            # Fetch minute data for a period that includes the previous trading day
-            # Use "5d" period to ensure we get the previous trading day's data
+                
+            # Fetch minute data for a period that includes multiple previous trading days for indicator calculation
+            # Use "7d" period to ensure we get enough data for accurate indicator calculations
             ticker = yf.Ticker(symbol)
             try:
-                data = ticker.history(period="5d", interval="1m", timeout=5)
+                data = ticker.history(period="7d", interval="1m", timeout=5)
                 
                 if data.empty:
                     # Fallback to daily data and then filter
-                    data = ticker.history(period="5d", interval="1d", timeout=5)
+                    data = ticker.history(period="7d", interval="1d", timeout=5)
                     if data.empty:
                         raise Exception(f"No data available for {symbol}")
                 
@@ -108,8 +108,14 @@ def get_stock_data(symbol="SPY", period="1y"):
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
                 
-                # Filter to only show data from the previous trading day in CEST
-                data = data[data['Date'].dt.date == prev_day]
+                # Keep the full dataset for indicator calculation
+                full_data_for_indicators = data.copy()
+                
+                # Filter to only show data from the previous trading day in CEST for display
+                display_data = data[data['Date'].dt.date == prev_day]
+                
+                # Replace the display data with filtered data but keep full dataset for indicator calculation
+                data = display_data
                 
                 if data.empty:
                     # Return empty dataset if no data for yesterday
@@ -174,11 +180,12 @@ def get_stock_data(symbol="SPY", period="1y"):
             
             # Market is open - fetch real-time minute data for today only
             
-            # Fetch today's minute data using yfinance
+            # Fetch minute data using yfinance - Include PREVIOUS DAYS' data for proper indicator calculation
             ticker = yf.Ticker(symbol)
             try:
-                # For intraday, use "1d" period with "1m" interval to get today's data
-                data = ticker.history(period="1d", interval="1m", timeout=3)  # Reduced timeout for faster response
+                # For intraday, fetch 5 days of minute data to include previous market periods
+                # This ensures indicators have enough historical data to calculate properly from market open
+                data = ticker.history(period="5d", interval="1m", timeout=5)  # Extended period for indicators
                 
                 # Convert timestamps to CEST timezone for display
                 data.reset_index(inplace=True)
@@ -195,9 +202,23 @@ def get_stock_data(symbol="SPY", period="1y"):
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
                 
-                # Filter to only show data from today in CEST
+                # Store the full dataset for indicator calculation
+                full_data_for_indicators = data.copy()
+                
+                # Filter to only show data from today in CEST for display
                 today_cest = now_cest.date()
-                data = data[data['Date'].dt.date == today_cest]
+                display_data = data[data['Date'].dt.date == today_cest]
+                
+                # If today's data is empty, return empty dataset
+                if display_data.empty:
+                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                    
+                # Use display_data for UI but keep all data for indicator calculation
+                data = display_data
                 
                 if data.empty:
                     empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
@@ -718,7 +739,25 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
         fast_mode = len(full_data) > 1000  # Use fast mode for large datasets to speed up calculations
-        df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
+        
+        # For intraday data (1d and yesterday), we need to separate display data from indicator calculation data
+        # This ensures all indicators have sufficient historical data to calculate properly from market open
+        if timeframe in ["1d", "yesterday"]:
+            # For intraday views, we want to use the full dataset that includes previous days for indicator calculation
+            # But we still want to limit what's actually displayed to just today/yesterday
+            # start_date and end_date control what's displayed, but we calculate on the full_data
+            display_start_date = start_date  # Save the display start date
+            display_end_date = end_date      # Save the display end date
+            
+            # Calculate indicators using the extended historical dataset
+            df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
+            
+            # After calculation, restore the original display dates
+            start_date = display_start_date
+            end_date = display_end_date
+        else:
+            # For non-intraday views, just calculate normally
+            df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
         
         # Ensure both the Date column and start_date have the same timezone status (both naive)
         # Make sure the Date column is timezone-naive for comparison
@@ -728,7 +767,8 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         if hasattr(start_date, 'tz') and start_date.tz is not None:
             start_date = start_date.tz_localize(None)
         
-        # Now trim to the requested period
+        # Now trim to the requested period - for intraday, this will show only today's data
+        # but the indicators will be calculated using the extended historical data
         df_final = df_with_indicators[df_with_indicators['Date'] >= start_date].copy()
         
         if not using_sample_data and (len(df_final) < 5):
