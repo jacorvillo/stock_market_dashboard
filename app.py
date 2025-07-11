@@ -978,8 +978,8 @@ app.layout = dbc.Container([
                     'border': '1px solid #333'
                 },
                 children=[
-                    html.H2("US markets are closed right now", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
-                    html.H5("Come back during market hours (9:30AM - 4:00PM ET)", 
+                    html.H2("The market for this stock is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
+                    html.H5("Try again during market hours, or view the previous session.", 
                            style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
                     html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
                         dbc.Button(
@@ -1260,48 +1260,19 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
     # Check if impulse system is enabled
     use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
     
-    # Pass the figure, chart style, and market closed message
-    figure, style, market_closed = update_combined_chart(
-        data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
-        lower_chart_type, adx_components, volume_comparison, relayout_data, 
-        timeframe, use_impulse_system, bollinger_bands, autoenvelope
-    )
-    
-    return figure, style, market_closed
-    # Create a basic empty figure for when we're not showing the chart
-    empty_fig = go.Figure()
-    
-    # Check if we're in "Today" mode and data is empty (markets closed)
+    # Always show the Today view, even if empty
     if timeframe == '1d' and (not data or len(data) == 0):
-        now_local = datetime.now()
-        
-        # Determine if the market should be open right now based on ET time
-        # Convert local time to ET (assuming CEST, which is UTC+2, while ET in summer is UTC-4)
-        et_time = now_local - timedelta(hours=6)  # Rough adjustment from CEST to ET
-        is_weekend = et_time.weekday() >= 5  # Saturday=5, Sunday=6
-        
-        # Market hours: 9:30 AM - 4:00 PM ET, weekdays only
-        is_market_hours = (
-            not is_weekend and
-            ((et_time.hour > 9 or (et_time.hour == 9 and et_time.minute >= 30)) and
-             (et_time.hour < 16))
-        )
-        
-        # Only show the "markets closed" message during times when markets would normally be open
-        if is_market_hours:
-            # Market should be open, but no data - likely a holiday or issue
-            return empty_fig, {'display': 'none'}, 'd-block'
-        else:
-            # Outside normal market hours, show a message that reflects that
-            return empty_fig, {'display': 'none'}, 'd-block'
+        # Show the market closed message and show the (empty) chart
+        empty_fig = go.Figure()
+        return empty_fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-block'
     else:
         # Normal case - show the chart and hide the message
-        # Pass relayout data to preserve zoom/pan state
-        fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, 
-                                   atr_bands, lower_chart_type, adx_components, 
-                                   volume_comparison, relayout_data, timeframe, 
-                                   use_impulse_system)
-        return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
+        fig, style, market_closed = update_combined_chart(
+            data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
+            lower_chart_type, adx_components, volume_comparison, relayout_data, 
+            timeframe, use_impulse_system, bollinger_bands, autoenvelope
+        )
+        return fig, style, market_closed
 
 # Callback to hide EMA options for 1D timeframe
 @callback(
