@@ -26,7 +26,7 @@ This dashboard provides real-time US stock data from Yahoo Finance with multiple
 > - **Bollinger Bands**: Volatility bands
 > - **Autoenvelope**: Percentage-based envelope
 > - **ATR Bands**: Average True Range volatility bands
-> - **Impulse System visualization-++
+> - **Impulse System visualization**
 >
 > *All indicators support multiple timeframes and customizable parameters*
 
