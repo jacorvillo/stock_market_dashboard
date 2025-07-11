@@ -1021,7 +1021,7 @@ app.layout = dbc.Container([
                 id="sidebar-collapse",
                 is_open=True
             ),
-            width=3,
+            width=2,
             id="sidebar-col",
             style={"paddingLeft": "0", "paddingRight": "0", "marginLeft": "0", "marginRight": "0"}
         ),
@@ -1106,22 +1106,19 @@ app.layout = dbc.Container([
                     )
                 ]
             )
-        ], width=9, id="chart-col", style={"paddingLeft": "0", "paddingRight": "0", "marginLeft": "0", "marginRight": "0"})
+        ], width=10, id="chart-col", style={"paddingLeft": "0", "paddingRight": "0", "marginLeft": "0", "marginRight": "0"})
     ], style={"marginLeft": "0", "marginRight": "0", "paddingLeft": "0", "paddingRight": "0"}), # End of dbc.Row
     
-    # Auto-refresh component - Optimized interval
     dcc.Interval(
         id='interval-component',
         interval=30*1000,  # Update every 30 seconds - balanced for performance
         n_intervals=0
     ),
-    
-    # Store components for data and symbol
     dcc.Store(id='stock-data-store'),
     dcc.Store(id='current-symbol-store', data='SPY'),
     dcc.Store(id='ema-periods-store', data=[13, 26]),
     dcc.Store(id='irl-equity-store'),
-])
+], fluid=True)  # Make container full width
 
 # Callback to update dynamic lower chart settings based on selection
 @callback(
