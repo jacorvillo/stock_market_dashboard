@@ -1028,52 +1028,73 @@ app.layout = dbc.Container([
         
         # Charts column
         dbc.Col([
-            # Intraday warning message component
-            html.Div(
-                id="intraday-warning-message",
-                className="alert alert-warning fade show d-none",
-                children=[]
-            ),
-            # Error message component
-            html.Div(
-                id="chart-error-message", 
-                className="alert alert-warning fade show d-none",
-                children=[]
-            ),
-            # Market closed message - hidden by default
-            html.Div(
-                id="market-closed-message",
-                className="d-none",
-                style={
-                    'height': '90vh', 
-                    'display': 'flex', 
-                    'alignItems': 'center', 
-                    'justifyContent': 'center', 
-                    'flexDirection': 'column',
-                    'backgroundColor': '#000000',
-                    'borderRadius': '8px',
-                    'padding': '20px',
-                    'border': '1px solid #333'
-                },
-                children=[
-                    html.H2("The market for this stock is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
-                    html.H5("Try again during market hours, or view the previous session.", 
-                           style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
-                    html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
-                        dbc.Button(
-                            "⏮️ View Previous Session",
-                            id="view-yesterday-btn",
-                            color="danger",
-                            outline=True
-                        )
-                    ])
-                ]
-            ),
             # Main content area that switches between chart and scanner results
             html.Div(
                 id="main-content-area",
                 style={'height': '90vh', 'backgroundColor': '#000000', 'position': 'relative'},
                 children=[
+                    # Intraday warning message component (positioned absolutely)
+                    html.Div(
+                        id="intraday-warning-message",
+                        className="alert alert-warning fade show d-none",
+                        style={
+                            'position': 'absolute',
+                            'top': '10px',
+                            'left': '10px',
+                            'right': '10px',
+                            'zIndex': 1001,
+                            'margin': '0'
+                        },
+                        children=[]
+                    ),
+                    # Error message component (positioned absolutely)
+                    html.Div(
+                        id="chart-error-message", 
+                        className="alert alert-warning fade show d-none",
+                        style={
+                            'position': 'absolute',
+                            'top': '10px',
+                            'left': '10px',
+                            'right': '10px',
+                            'zIndex': 1001,
+                            'margin': '0'
+                        },
+                        children=[]
+                    ),
+                    # Market closed message - hidden by default (positioned absolutely)
+                    html.Div(
+                        id="market-closed-message",
+                        className="d-none",
+                        style={
+                            'position': 'absolute',
+                            'top': '0',
+                            'left': '0',
+                            'width': '100%',
+                            'height': '100%', 
+                            'display': 'flex', 
+                            'alignItems': 'center', 
+                            'justifyContent': 'center', 
+                            'flexDirection': 'column',
+                            'backgroundColor': '#000000',
+                            'borderRadius': '8px',
+                            'padding': '20px',
+                            'border': '1px solid #333',
+                            'zIndex': 1002
+                        },
+                        children=[
+                            html.H2("The market for this stock is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
+                            html.H5("Try again during market hours, or view the previous session.", 
+                                   style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
+                            html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
+                                dbc.Button(
+                                    "⏮️ View Previous Session",
+                                    id="view-yesterday-btn",
+                                    color="danger",
+                                    outline=True
+                                )
+                            ])
+                        ]
+                    ),
                     # Scanner Results Area (hidden by default, positioned absolutely)
                     html.Div(
                         id="scanner-results-area",
