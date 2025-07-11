@@ -944,8 +944,8 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                 )
             )
         
-        # Add EMA indicators if enabled AND NOT in intraday mode
-        if 'show' in show_ema and not is_intraday:
+        # Add EMA indicators if enabled (remove 'not is_intraday' condition)
+        if 'show' in show_ema:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
             
             # First, add the Value Zone fill if we have exactly 2 EMAs
@@ -1624,8 +1624,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 row=1, col=1
             )
         
-        # Add EMA indicators if enabled AND NOT in intraday mode
-        if 'show' in show_ema and not is_intraday:
+        # Add EMA indicators if enabled (remove 'not is_intraday' condition)
+        if 'show' in show_ema:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
             
             # First, add the Value Zone fill if we have exactly 2 EMAs
@@ -2696,12 +2696,11 @@ def update_symbol_status(symbol):
 
 def update_indicator_options(timeframe):
     """Update indicator options based on timeframe"""
-    is_intraday = timeframe in ['1d', 'yesterday']
-    
-    # Hide EMA options for intraday
-    ema_style = {'display': 'none'} if is_intraday else {'display': 'block'}
+    # Always show EMA controls for all timeframes
+    ema_style = {'display': 'block'}
     
     # Lower chart options - remove Force Index for intraday
+    is_intraday = timeframe in ['1d', 'yesterday']
     if is_intraday:
         lower_options = [
             {'label': 'Volume', 'value': 'volume'},
@@ -2723,7 +2722,6 @@ def update_indicator_options(timeframe):
             {'label': 'RSI', 'value': 'rsi'},
             {'label': 'OBV', 'value': 'obv'}
         ]
-    
     return ema_style, ema_style, lower_options
 
 def check_value_zone_status(df, ema_periods):
