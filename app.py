@@ -970,6 +970,12 @@ app.layout = dbc.Container([
         
         # Charts column
         dbc.Col([
+            # Intraday warning message component
+            html.Div(
+                id="intraday-warning-message",
+                className="alert alert-warning fade show d-none",
+                children=[]
+            ),
             # Error message component
             html.Div(
                 id="chart-error-message", 
@@ -1282,7 +1288,9 @@ def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast
 @callback(
     [Output('combined-chart', 'figure'),
      Output('combined-chart', 'style'),
-     Output('market-closed-message', 'className')],
+     Output('market-closed-message', 'className'),
+     Output('intraday-warning-message', 'children'),
+     Output('intraday-warning-message', 'className')],
     [Input('stock-data-store', 'data'),
      Input('current-symbol-store', 'data'),
      Input('chart-type-dropdown', 'value'),
@@ -1292,7 +1300,7 @@ def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast
      Input('lower-chart-selection', 'value'),
      Input('adx-components-store', 'data'),
      Input('timeframe-dropdown', 'value'),
-     Input('frequency-dropdown', 'value'),  # <-- add this line
+     Input('frequency-dropdown', 'value'),
      Input('impulse-system-toggle', 'value'),
      Input('bollinger-bands-store', 'data'),
      Input('autoenvelope-store', 'data')],
@@ -1301,26 +1309,42 @@ def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast
 )
 def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, frequency, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Call update_combined_chart function from functions module"""
-    # Try to get volume comparison value, but don't require it
     ctx = dash.callback_context
     volume_comparison = 'none'  # Default value
-    
-    # Check if impulse system is enabled
     use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
-    
+    unreliable_warning = None
+    unreliable_class = 'alert alert-warning fade show d-none'
+
+    # Check for unreliable indicators in intraday views
+    is_intraday = timeframe in ['1d', 'yesterday']
+    if data and is_intraday:
+        import pandas as pd
+        df = pd.DataFrame(data)
+        unreliable_present = False
+        if 'unreliable_indicators' in df.columns:
+            unreliable_present = bool(df['unreliable_indicators'].any())
+        if unreliable_present:
+            unreliable_warning = (
+                html.Div([
+                    html.Span("⚠️", style={'color': '#ffc107', 'fontSize': '18px', 'marginRight': '8px'}),
+                    html.Span("Indicator lines (EMA, MACD, RSI, Stochastic, ADX) may be unreliable for the first bars of the session due to limited lookback data.", style={'color': '#fff', 'fontWeight': '500'}),
+                    html.Br(),
+                    html.Span("This is normal for intraday charts. The lines become reliable as more data accumulates.", style={'color': '#aaa', 'fontSize': '12px'})
+                ]),
+            )
+            unreliable_class = 'alert alert-warning fade show'
+
     # Always show the Today view, even if empty
     if timeframe == '1d' and (not data or len(data) == 0):
-        # Show the market closed message and show the (empty) chart
         empty_fig = go.Figure()
-        return empty_fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-block'
+        return empty_fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-block', unreliable_warning, unreliable_class
     else:
-        # Normal case - show the chart and hide the message
         fig, style, market_closed = update_combined_chart(
             data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
             lower_chart_type, adx_components, volume_comparison, relayout_data, 
             timeframe, use_impulse_system, bollinger_bands, autoenvelope
         )
-        return fig, style, market_closed
+        return fig, style, market_closed, unreliable_warning, unreliable_class
 
 # Callback to hide EMA options for 1D timeframe
 @callback(

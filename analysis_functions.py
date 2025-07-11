@@ -419,25 +419,39 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             # In fast mode, only calculate the most essential indicators
             ema_periods = ema_periods[:2] if len(ema_periods) > 2 else ema_periods  # Limit to 2 EMAs max
         
+        # Track unreliable rows for warning (for intraday)
+        unreliable_mask = pd.Series(False, index=df.index)
+        indicator_columns = []
+
         # Custom EMA periods (optimized for speed)
         for period in ema_periods:
-            if min_length >= max(period, 10):  # Require minimum 10 data points
-                df[f'EMA_{period}'] = ta.trend.EMAIndicator(df['Close'], window=min(period, min_length//2)).ema_indicator()
+            col = f'EMA_{period}'
+            if min_length >= max(period, 10):
+                ema_series = ta.trend.EMAIndicator(df['Close'], window=period).ema_indicator()
+                ema_series = ema_series.fillna(method='bfill')
+                df[col] = ema_series
+                indicator_columns.append(col)
+                unreliable_mask |= ema_series.isna()
             else:
-                df[f'EMA_{period}'] = df['Close']  # Use close price as fallback
-        
+                df[col] = df['Close'].ffill()
+                indicator_columns.append(col)
+
         # MACD with custom parameters
+        macd_cols = ['MACD', 'MACD_signal', 'MACD_hist']
         if min_length >= max(macd_fast, macd_slow):
             macd = ta.trend.MACD(df['Close'], window_fast=macd_fast, window_slow=macd_slow, window_sign=macd_signal)
-            df['MACD'] = macd.macd()
-            df['MACD_signal'] = macd.macd_signal()
-            df['MACD_hist'] = macd.macd_diff()
+            macd_macd = macd.macd().fillna(method='bfill')
+            macd_signal = macd.macd_signal().fillna(method='bfill')
+            macd_hist = macd.macd_diff().fillna(method='bfill')
+            df['MACD'] = macd_macd
+            df['MACD_signal'] = macd_signal
+            df['MACD_hist'] = macd_hist
+            unreliable_mask |= macd.macd().isna() | macd.macd_signal().isna() | macd.macd_diff().isna()
         else:
-            # Fill with zeros for small datasets
             df['MACD'] = 0
             df['MACD_signal'] = 0
             df['MACD_hist'] = 0
-        
+
         # Force Index with smoothing
         if min_length >= 2:
             force_raw = ta.volume.ForceIndexIndicator(df['Close'], df['Volume']).force_index()
@@ -447,69 +461,78 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
                 df['Force_Index'] = force_raw
         else:
             df['Force_Index'] = 0
-        
+
         # A/D Line (Accumulation/Distribution)
         if min_length >= 1:
             ad_line = ta.volume.AccDistIndexIndicator(df['High'], df['Low'], df['Close'], df['Volume']).acc_dist_index()
-            # Store as both AD and AD_Line for compatibility
             df['AD'] = ad_line
             df['AD_Line'] = ad_line
         else:
             df['AD'] = 0
             df['AD_Line'] = 0
-            
+
         # ADX, DI+, and DI- indicators
-        adx_period = max(1, min(adx_period, 50))  # Ensure period is between 1-50
+        adx_cols = ['ADX', 'DI_plus', 'DI_minus']
+        adx_period = max(1, min(adx_period, 50))
         if min_length >= max(14, adx_period):
             adx_indicator = ta.trend.ADXIndicator(df['High'], df['Low'], df['Close'], window=adx_period)
-            df['ADX'] = adx_indicator.adx()
-            df['DI_plus'] = adx_indicator.adx_pos()
-            df['DI_minus'] = adx_indicator.adx_neg()
+            adx = adx_indicator.adx().fillna(method='bfill')
+            di_plus = adx_indicator.adx_pos().fillna(method='bfill')
+            di_minus = adx_indicator.adx_neg().fillna(method='bfill')
+            df['ADX'] = adx
+            df['DI_plus'] = di_plus
+            df['DI_minus'] = di_minus
+            unreliable_mask |= adx_indicator.adx().isna() | adx_indicator.adx_pos().isna() | adx_indicator.adx_neg().isna()
         else:
-            # Fill with default values for small datasets
-            df['ADX'] = 25  # Neutral ADX value
+            df['ADX'] = 25
             df['DI_plus'] = 25
             df['DI_minus'] = 25
-            
+
         # ATR for bands calculation
         if min_length >= 14:
             df['ATR'] = ta.volatility.AverageTrueRange(df['High'], df['Low'], df['Close'], window=14).average_true_range()
         else:
             df['ATR'] = (df['High'] - df['Low']).rolling(window=min(14, min_length)).mean()
-        
+
         # Slow Stochastic (%K and %D)
-        stoch_period = max(1, min(stoch_period, 50))  # Ensure period is between 1-50
+        stoch_cols = ['Stoch_K', 'Stoch_D']
+        stoch_period = max(1, min(stoch_period, 50))
         if min_length >= max(14, stoch_period):
             stoch_indicator = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=stoch_period, smooth_window=3)
-            df['Stoch_K'] = stoch_indicator.stoch()  # %K line
-            df['Stoch_D'] = stoch_indicator.stoch_signal()  # %D line (smoothed %K)
+            stoch_k = stoch_indicator.stoch().fillna(method='bfill')
+            stoch_d = stoch_indicator.stoch_signal().fillna(method='bfill')
+            df['Stoch_K'] = stoch_k
+            df['Stoch_D'] = stoch_d
+            unreliable_mask |= stoch_indicator.stoch().isna() | stoch_indicator.stoch_signal().isna()
         else:
-            # Fill with neutral values for small datasets
-            df['Stoch_K'] = 50  # Neutral stochastic value
+            df['Stoch_K'] = 50
             df['Stoch_D'] = 50
-        
+
         # Relative Strength Index (RSI)
-        rsi_period = max(1, min(rsi_period, 50))  # Ensure period is between 1-50
+        rsi_period = max(1, min(rsi_period, 50))
         if min_length >= max(14, rsi_period):
             rsi_indicator = ta.momentum.RSIIndicator(df['Close'], window=rsi_period)
-            df['RSI'] = rsi_indicator.rsi()
+            rsi = rsi_indicator.rsi().fillna(method='bfill')
+            df['RSI'] = rsi
+            unreliable_mask |= rsi_indicator.rsi().isna()
         else:
-            # Fill with neutral values for small datasets
-            df['RSI'] = 50  # Neutral RSI value
-        
+            df['RSI'] = 50
+
         # On Balance Volume (OBV)
         if min_length >= 1:
             obv_indicator = ta.volume.OnBalanceVolumeIndicator(df['Close'], df['Volume'])
             df['OBV'] = obv_indicator.on_balance_volume()
         else:
-            # Fill with zeros for small datasets
             df['OBV'] = 0
-        
+
         # Fill any remaining NaN values with 0 or forward fill
         numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D', 'RSI', 'OBV']]
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = df[col].ffill().fillna(0)
+
+        # Add unreliable flag to DataFrame for UI warning
+        df['unreliable_indicators'] = unreliable_mask.values
         
         return df
         
