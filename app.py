@@ -71,7 +71,7 @@ body, .card, .card-header, .card-body, .nav-tabs, .tab-content, .tab-pane {
 
 /* Card styling */
 .card, .card-header {
-    border-color: #444 !important;
+    border-color: #000 !important;
 }
 
 .card-header {

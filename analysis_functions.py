@@ -52,9 +52,9 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
         
         # Sanitize symbol for safety
         symbol = symbol.strip().upper()
-        if not symbol or not all(c.isalnum() or c in ['-', '.'] for c in symbol):
-            symbol = "SPY"
-            
+        if not symbol or not all(c.isalnum() or c in ['-', '.', '/', '^', '='] for c in symbol):
+            return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False  # Return empty DataFrame instead of falling back to SPY
+        
         # Check if intraday (1d or yesterday) data is requested
         is_intraday = period in ["1d", "yesterday"]
         
@@ -96,10 +96,10 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                     # Fallback to daily data and then filter
                     data = ticker.history(period="7d", interval="1d", timeout=5)
                     if data.empty:
-                        raise Exception(f"No data available for {symbol}")
+                        return pd.DataFrame(), pd.Timestamp(prev_day), pd.Timestamp(prev_day), True  # Return empty DataFrame instead of falling back to SPY
                 
                 data.reset_index(inplace=True)
-                
+        
                 # Handle the Date/Datetime column and convert to CEST
                 if 'Datetime' in data.columns:
                     data = data.rename(columns={'Datetime': 'Date'})
@@ -266,19 +266,9 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
         
         if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
-            # Fallback to SPY if current symbol fails
-            if symbol != "SPY":
-                ticker = yf.Ticker("SPY")
-                interval_arg = frequency if frequency else None
-                if interval_arg:
-                    data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout
-                else:
-                    data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout
-                if data.empty:
-                    raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
-            else:
-                raise Exception(f"Could not fetch data for {symbol}")
-            
+            # Return empty DataFrame instead of falling back to SPY
+            return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False
+        
         data.reset_index(inplace=True)
         
         # Handle the Date/Datetime column
@@ -361,31 +351,9 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
         return full_data, start_date, end_date, is_minute_data
         
     except Exception as e:
-        # Try SPY as fallback
-        try:
-            if symbol != "SPY":
-                ticker = yf.Ticker("SPY")
-                data = ticker.history(period="1y", timeout=5)
-                if not data.empty:
-                    data.reset_index(inplace=True)
-                    if 'Date' in data.columns:
-                        data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
-                    elif 'Datetime' in data.columns:
-                        data = data.rename(columns={'Datetime': 'Date'})
-                        data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
-                    
-                    end_date = data['Date'].max()
-                    start_date = end_date - pd.DateOffset(months=1)  # Default to 1 month
-                    is_minute_data = False
-                    return data, start_date, end_date, is_minute_data
-            
-            # If SPY also fails, raise error
-            raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
-            
-        except Exception as fallback_error:
-            raise Exception(f"No data available for {symbol}")
+        # Return empty DataFrame instead of trying SPY fallback
+        return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False
 
-# Function to calculate technical indicators with custom parameters
 def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, stoch_period=5, rsi_period=13, fast_mode=False):
     """Calculate technical indicators for the stock data with custom parameters
     fast_mode: If True, calculates only essential indicators for faster ticker switching"""
@@ -649,8 +617,8 @@ def update_symbol(n_clicks, symbol):
     if symbol:
         # Strip whitespace and convert to uppercase for consistency
         symbol = symbol.upper().strip()
-        # Replace any potential special characters that shouldn't be in a ticker
-        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.'])
+        # Allow alphanumeric, dash, dot, slash, caret, and equals
+        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.', '/', '^', '='])
         return symbol
     return 'SPY'
 
@@ -659,8 +627,8 @@ def format_symbol_input(value):
     if value:
         # Convert to uppercase
         value = value.upper().strip()
-        # Only allow alphanumeric, dash, and dot characters
-        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.'])
+        # Allow alphanumeric, dash, dot, slash, caret, and equals
+        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.', '/', '^', '='])
     return value
 
 def update_macd_stores(fast, slow, signal):
