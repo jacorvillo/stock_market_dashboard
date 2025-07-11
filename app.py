@@ -2256,7 +2256,6 @@ def list_irl_open_positions(data):
             dbc.Row([
                 dbc.Col(html.Div(f"{stock} | Amount: {amt} | Stop: {stop} | Target: {target}")),
                 dbc.Col([
-                    dbc.Input(id={'type': 'irl-close-price', 'index': idx}, placeholder="Close price", type="number", size="sm", style={'width': '100px', 'display': 'inline-block', 'marginRight': '5px'}),
                     dbc.Button("Close", id={'type': 'irl-close-btn', 'index': idx}, color="danger", size="sm", style={'display': 'inline-block'})
                 ], width=5)
             ], className="mb-2")
@@ -2268,11 +2267,11 @@ def list_irl_open_positions(data):
     Output('irl-equity-store', 'data', allow_duplicate=True),
     Output('irl-open-position-status', 'children', allow_duplicate=True),
     Input({'type': 'irl-close-btn', 'index': ALL}, 'n_clicks'),
-    State({'type': 'irl-close-price', 'index': ALL}, 'value'),
     State('irl-equity-store', 'data'),
     prevent_initial_call=True
 )
-def close_irl_position(close_n, close_prices, data):
+def close_irl_position(close_n, data):
+    import yfinance as yf
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
@@ -2289,12 +2288,13 @@ def close_irl_position(close_n, close_prices, data):
         return dash.no_update, "Invalid position."
     pos_idx = df[open_mask].index[idx]
     stock = df.at[pos_idx, 'stocks_in_positions']
-    price = close_prices[idx]
-    if not price:
-        return dash.no_update, "Please enter a close price."
+    # Fetch current price using yfinance
     try:
-        df2 = close_position(df, stock, float(price))
-        return df2.to_dict('records'), f"Closed {stock} at {price}"
+        ticker = yf.Ticker(stock)
+        price_series = ticker.history(period='1d')['Close']
+        price = float(price_series.iloc[-1])
+        df2 = close_position(df, stock, price)
+        return df2.to_dict('records'), f"Closed {stock} at {price:.2f} (current price)"
     except Exception as e:
         return dash.no_update, f"Error: {e}"
 
