@@ -12,6 +12,7 @@ import dash_bootstrap_components as dbc
 import yfinance as yf
 import ta
 import json
+from dash.dash_table.Format import Format, Group, Scheme, Symbol
 
 # Import functions from functions.py
 from analysis_functions import (
@@ -371,13 +372,13 @@ app.layout = dbc.Container([
                                                         dbc.Select(
                                                             id='volume-preset',
                                                             options=[
-                                                                {'label': 'Any Volume', 'value': 0},
-                                                                {'label': 'Light Trading (> 100K)', 'value': 100000},
-                                                                {'label': 'Moderate Trading (> 500K)', 'value': 500000},
-                                                                {'label': 'Active Trading (> 1M)', 'value': 1000000},
-                                                                {'label': 'High Volume (> 5M)', 'value': 5000000}
+                                                                {'label': 'Any Volume', 'value': '0'},
+                                                                {'label': 'Light Trading (> 100K)', 'value': '100000'},
+                                                                {'label': 'Moderate Trading (> 500K)', 'value': '500000'},
+                                                                {'label': 'Active Trading (> 1M)', 'value': '1000000'},
+                                                                {'label': 'High Volume (> 5M)', 'value': '5000000'}
                                                             ],
-                                                            value=500000,
+                                                            value='500000',
                                                             className="mb-3"
                                                         )
                                                     ], title="📊 Volume & Activity", item_id="volume-section"),
@@ -441,12 +442,12 @@ app.layout = dbc.Container([
                                                                 dbc.Select(
                                                                     id='result-limit',
                                                                     options=[
-                                                                        {'label': 'Top 10', 'value': 10},
-                                                                        {'label': 'Top 25', 'value': 25},
-                                                                        {'label': 'Top 50', 'value': 50},
-                                                                        {'label': 'Top 100', 'value': 100}
+                                                                        {'label': 'Top 10', 'value': '10'},
+                                                                        {'label': 'Top 25', 'value': '25'},
+                                                                        {'label': 'Top 50', 'value': '50'},
+                                                                        {'label': 'Top 100', 'value': '100'}
                                                                     ],
-                                                                    value=25,
+                                                                    value='25',
                                                                     size='sm'
                                                                 )
                                                             ], width=6),
@@ -1107,7 +1108,7 @@ def update_ema_periods_callback(ema0, ema1, current_emas):
 
 # Create hidden divs to store values when not visible in UI
 # These will be shared across callbacks
-app.layout.children.extend([
+store_components = [
     dcc.Store(id='macd-fast-store', data=12),
     dcc.Store(id='macd-slow-store', data=26),
     dcc.Store(id='macd-signal-store', data=9),
@@ -1119,7 +1120,9 @@ app.layout.children.extend([
     # New stores for Bollinger Bands and Autoenvelope
     dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 20, 'stddev': 2}),
     dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 20, 'percent': 3})
-])
+]
+
+app.layout.children.extend(store_components)
 
 # Callback to update store values when UI elements are present
 @callback(
@@ -1807,14 +1810,26 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         random_sample = False
         if ctx.triggered:
             # Check if this was triggered by preset-random indirectly
-            if not elder_filters and rsi_preset == 'any' and volume_preset == 0:
-                random_sample = 25
-        
+            if not elder_filters and rsi_preset == 'any' and (str(volume_preset) == '0' or volume_preset == 0):
+                random_sample = True
+
+        # Convert result_limit and volume_preset to int if they are strings
+        try:
+            result_limit_int = int(result_limit)
+        except Exception:
+            result_limit_int = 25
+        try:
+            volume_preset_int = int(volume_preset)
+        except Exception:
+            volume_preset_int = 500000
+        if volume_preset != volume_preset_int:
+            volume_preset = volume_preset_int
+
         # Run the scan
         results_df = scanner.scan_stocks(
             filters=filters if not random_sample else None,
             universes=universe_selection or ['sp500'],
-            max_results=result_limit or 25,
+            max_results=result_limit_int,
             sort_by=sort_by or 'volume',
             random_sample=random_sample
         )
@@ -1838,33 +1853,33 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         
         # Create results table
         table_data = results_df.copy()
-        
-        # Format data for display
-        for col in ['price', 'ema_13', 'ema_26']:
-            if col in table_data.columns:
-                table_data[col] = table_data[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
-        
+
+        # Add display columns for formatted output, keep original columns for sorting
+        if 'price' in table_data.columns:
+            table_data['price_display'] = table_data['price'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+        if 'ema_13' in table_data.columns:
+            table_data['ema_13_display'] = table_data['ema_13'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+        if 'ema_26' in table_data.columns:
+            table_data['ema_26_display'] = table_data['ema_26'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
         if 'volume' in table_data.columns:
-            table_data['volume'] = table_data['volume'].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "N/A")
-        
+            table_data['volume_display'] = table_data['volume'].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "N/A")
         if 'price_change_pct' in table_data.columns:
-            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A")
-        
+            table_data['price_change_pct_display'] = table_data['price_change_pct'].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A")
         if 'rsi' in table_data.columns:
-            table_data['rsi'] = table_data['rsi'].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
-        
-        # Create data table
+            table_data['rsi_display'] = table_data['rsi'].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
+
+        # Create data table with numeric columns for sorting and display
         table = dash_table.DataTable(
             id='scan-results-table',
             data=table_data.to_dict('records'),
             columns=[
                 {'name': 'Symbol', 'id': 'symbol', 'type': 'text'},
-                {'name': 'Price', 'id': 'price', 'type': 'text'},
-                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'text'},
-                {'name': 'Volume', 'id': 'volume', 'type': 'text'},
-                {'name': 'RSI', 'id': 'rsi', 'type': 'text'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'text'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'text'},
+                {'name': 'Price', 'id': 'price', 'type': 'numeric'},
+                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
+                {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
+                {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
+                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
+                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'In Value Zone', 'id': 'in_value_zone', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'}
@@ -1892,7 +1907,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Green for positive changes
                 {
                     'if': {
-                        'filter_query': '{price_change_pct} contains "+"',
+                        'filter_query': '{price_change_pct} > 0',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -1901,7 +1916,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Red for negative changes
                 {
                     'if': {
-                                               'filter_query': '{price_change_pct} contains "-"',
+                        'filter_query': '{price_change_pct} < 0',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#4d1a1a',
