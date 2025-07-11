@@ -1812,6 +1812,62 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 'fontWeight': 'bold',
                 'border': '1px solid #00d4aa'
             },
+            style_data_conditional=[
+                # Green for positive changes
+                {
+                    'if': {
+                        'filter_query': '{price_change_pct} > 0',
+                        'column_id': 'price_change_pct'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Red for negative changes
+                {
+                    'if': {
+                        'filter_query': '{price_change_pct} < 0',
+                        'column_id': 'price_change_pct'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # Highlight bullish trend
+                {
+                    'if': {
+                        'filter_query': '{ema_trend} = bullish',
+                        'column_id': 'ema_trend'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Highlight bearish trend
+                {
+                    'if': {
+                        'filter_query': '{ema_trend} = bearish',
+                        'column_id': 'ema_trend'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # Highlight value zone stocks
+                {
+                    'if': {
+                        'filter_query': '{in_value_zone} = True',
+                        'column_id': 'in_value_zone'
+                    },
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4aa'
+                },
+                # Make symbol column clickable and prominent
+                {
+                    'if': {'column_id': 'symbol'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4aa',
+                    'fontWeight': 'bold',
+                    'cursor': 'pointer',
+                    'textDecoration': 'underline'
+                }
+            ],
             sort_action="native",
             page_size=20,
             page_action="native"
