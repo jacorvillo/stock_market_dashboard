@@ -1472,8 +1472,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
         lower_chart_type = lower_chart_type or 'volume'
-        bollinger_bands = bollinger_bands or {'show': False, 'period': 20, 'stddev': 2}
-        autoenvelope = autoenvelope or {'show': False, 'period': 20, 'percent': 3}
+        bollinger_bands = bollinger_bands or {'show': False, 'period': 26, 'stddev': 2}
+        autoenvelope = autoenvelope or {'show': False, 'period': 26, 'percent': 6}
         
         # Handle empty data (e.g., when market is closed for 1D view)
         if df.empty:
@@ -1762,33 +1762,29 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # Add Bollinger Bands if enabled
         if bollinger_bands and bollinger_bands.get('show'):
             try:
-                period = bollinger_bands.get('period', 20)
+                period = bollinger_bands.get('period', 26)
                 stddev = bollinger_bands.get('stddev', 2)
-                
                 # Calculate Bollinger Bands - requires at least 'period' number of data points
                 if len(df) > period:
                     # Calculate the middle band (Simple Moving Average)
                     df['BB_middle'] = df['Close'].rolling(window=period).mean()
-                    
                     # Calculate standard deviation
                     rolling_std = df['Close'].rolling(window=period).std()
-                    
                     # Calculate upper and lower bands
                     df['BB_upper'] = df['BB_middle'] + (rolling_std * stddev)
                     df['BB_lower'] = df['BB_middle'] - (rolling_std * stddev)
-                    
                     # Upper band
                     fig.add_trace(
                         go.Scatter(
                             x=df['Date'],
                             y=df['BB_upper'],
                             mode='lines',
-                            name=f'BB +{stddev}σ',
-                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot')  # Purple
+                            name=f'BB +{stddev}\u03c3',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot'),  # Purple
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Middle band (SMA)
                     fig.add_trace(
                         go.Scatter(
@@ -1796,19 +1792,20 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['BB_middle'],
                             mode='lines',
                             name=f'BB SMA({period})',
-                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1)  # Purple
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1),  # Purple
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Lower band
                     fig.add_trace(
                         go.Scatter(
                             x=df['Date'],
                             y=df['BB_lower'],
                             mode='lines',
-                            name=f'BB -{stddev}σ',
-                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot')  # Purple
+                            name=f'BB -{stddev}\u03c3',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot'),  # Purple
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
@@ -1818,19 +1815,16 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # Add Autoenvelope if enabled
         if autoenvelope and autoenvelope.get('show'):
             try:
-                period = autoenvelope.get('period', 20)
-                percent = autoenvelope.get('percent', 3)
-                
+                period = autoenvelope.get('period', 26)
+                percent = autoenvelope.get('percent', 6)
                 # Calculate Autoenvelope - requires at least 'period' number of data points
                 if len(df) > period:
                     # Calculate the middle line (Simple Moving Average)
                     df['AE_middle'] = df['Close'].rolling(window=period).mean()
-                    
                     # Calculate upper and lower bands (percentage based)
                     multiplier = percent / 100
                     df['AE_upper'] = df['AE_middle'] * (1 + multiplier)
                     df['AE_lower'] = df['AE_middle'] * (1 - multiplier)
-                    
                     # Upper band
                     fig.add_trace(
                         go.Scatter(
@@ -1838,11 +1832,11 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['AE_upper'],
                             mode='lines',
                             name=f'Env +{percent}%',
-                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot')  # Blue
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot'),  # Blue
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Middle band (SMA)
                     fig.add_trace(
                         go.Scatter(
@@ -1850,11 +1844,11 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['AE_middle'],
                             mode='lines',
                             name=f'Env SMA({period})',
-                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1)  # Blue
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1),  # Blue
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Lower band
                     fig.add_trace(
                         go.Scatter(
@@ -1862,7 +1856,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['AE_lower'],
                             mode='lines',
                             name=f'Env -{percent}%',
-                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot')  # Blue
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot'),  # Blue
+                            showlegend=False
                         ),
                         row=1, col=1
                     )

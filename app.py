@@ -742,7 +742,7 @@ app.layout = dbc.Container([
                                                     ], width=12),
                                                     dbc.Col([
                                                         dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                        dbc.Input(id='bollinger-period', type='number', value=20, min=5, max=50, size='sm',
+                                                        dbc.Input(id='bollinger-period', type='number', value=26, min=5, max=50, size='sm',
                                                                   style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
                                                     ], width=6),
                                                     dbc.Col([
@@ -773,12 +773,12 @@ app.layout = dbc.Container([
                                                     ], width=12),
                                                     dbc.Col([
                                                         dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                        dbc.Input(id='autoenvelope-period', type='number', value=20, min=5, max=50, size='sm',
+                                                        dbc.Input(id='autoenvelope-period', type='number', value=26, min=5, max=50, size='sm',
                                                                   style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
                                                     ], width=6),
                                                     dbc.Col([
                                                         dbc.Label("Percent:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                        dbc.Input(id='autoenvelope-percent', type='number', value=3, min=1, max=10, step=0.5, size='sm',
+                                                        dbc.Input(id='autoenvelope-percent', type='number', value=6, min=1, max=10, step=0.5, size='sm',
                                                                   style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
                                                     ], width=6)
                                                 ])
@@ -1131,8 +1131,8 @@ app.layout.children.extend([
     dcc.Store(id='stochastic-period-store', data=5),
     dcc.Store(id='rsi-period-store', data=13),
     # New stores for Bollinger Bands and Autoenvelope
-    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 20, 'stddev': 2}),
-    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 20, 'percent': 3})
+    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 26, 'stddev': 2}),
+    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 26, 'percent': 6})
 ])
 
 # Callback to update store values when UI elements are present
