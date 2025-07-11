@@ -1,0 +1,3 @@
+equity,open_positions,amount_invested,stop_price,value_at_entry,stocks_in_positions,stock_price_at_entry,stock_price_at_close,net_gain_loss_amount,net_gain_loss_percent,target_price
+1000.0,,,,,,,,,,
+980.0,1.0,20.0,310.85,20.0,TSLA,20.0,,,,330.0

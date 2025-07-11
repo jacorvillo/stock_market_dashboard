@@ -45,7 +45,7 @@ from scanner_functions import StockScanner, get_preset_filter, get_available_pre
 from insights_functions import TechnicalInsights, generate_insights_summary
 
 # Import IRL trading functions
-from irl_trading_functions import open_position, close_position
+from irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df
 
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
@@ -308,7 +308,7 @@ app.layout = dbc.Container([
                         children=[
                             # Stock Scanner Tab
                             dbc.Tab(
-                                label="🔍 Scanner",
+                                label="🔍",
                                 tab_id="scanner-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
@@ -504,7 +504,7 @@ app.layout = dbc.Container([
                             ),
                             # Stock Search Tab (Analysis)
                             dbc.Tab(
-                                label="🛠️ Analysis",
+                                label="🛠️",
                                 tab_id="stock-search-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
@@ -831,7 +831,7 @@ app.layout = dbc.Container([
                             ),
                             # Insights Tab
                             dbc.Tab(
-                                label="💡 Insights",
+                                label="💡",
                                 tab_id="insights-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
@@ -967,7 +967,7 @@ app.layout = dbc.Container([
                             ),
                             # IRL Trade Tab
                             dbc.Tab(
-                                label="💸 IRL Trade",
+                                label="💸",
                                 tab_id="irl-trade-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
@@ -1022,7 +1022,8 @@ app.layout = dbc.Container([
                 is_open=True
             ),
             width=3,
-            id="sidebar-col"
+            id="sidebar-col",
+            style={"paddingLeft": "0", "paddingRight": "0", "marginLeft": "0", "marginRight": "0"}
         ),
         
         # Charts column
@@ -1105,8 +1106,8 @@ app.layout = dbc.Container([
                     )
                 ]
             )
-        ], width=9, id="chart-col")
-    ]), # Added missing closing bracket for dbc.Row
+        ], width=9, id="chart-col", style={"paddingLeft": "0", "paddingRight": "0", "marginLeft": "0", "marginRight": "0"})
+    ], style={"marginLeft": "0", "marginRight": "0", "paddingLeft": "0", "paddingRight": "0"}), # End of dbc.Row
     
     # Auto-refresh component - Optimized interval
     dcc.Interval(
@@ -2162,21 +2163,9 @@ def switch_view_on_tab_change(active_tab):
         }
     raise PreventUpdate
 
-# === IRL TRADE CALLBACKS ===
+# === IRL TRADE CALLBACKS (CSV version) ===
 
-# Helper to load the NetCDF file
-IRL_NETCDF_PATH = 'equity_data.nc'
-
-def load_irl_ds():
-    if os.path.exists(IRL_NETCDF_PATH):
-        return xr.load_dataset(IRL_NETCDF_PATH)
-    else:
-        # Create a new one if not exists
-        import create_equity_file
-        return xr.load_dataset(IRL_NETCDF_PATH)
-
-def save_irl_ds(ds):
-    ds.to_netcdf(IRL_NETCDF_PATH)
+CSV_FILE = 'equity_data.csv'
 
 # Callback: Load equity on tab open or after trade
 @callback(
@@ -2187,12 +2176,12 @@ def save_irl_ds(ds):
     prevent_initial_call=False
 )
 def update_irl_equity_store(tab, open_n, close_n):
-    # Only update if IRL tab is active or trade action
     ctx = dash.callback_context
     if tab == 'irl-trade-tab' or ctx.triggered:
-        ds = load_irl_ds()
-        # Convert to dict for dcc.Store (xarray to_dict is compatible)
-        return ds.to_dict()
+        if not os.path.exists(CSV_FILE):
+            import create_equity_file
+        df = load_trading_df()
+        return df.to_dict('records')
     raise PreventUpdate
 
 # Callback: Display equity (color-coded, hideable)
@@ -2206,12 +2195,11 @@ def update_irl_equity_store(tab, open_n, close_n):
 def display_irl_equity(data, hide_n):
     if not data:
         return "No equity data.", {'display': 'block'}
-    ds = xr.Dataset.from_dict(data)
-    eq = float(ds['equity'].values[-1])
-    prev_eq = float(ds['equity'].values[-2]) if len(ds['equity'].values) > 1 else eq
+    df = pd.DataFrame(data)
+    eq = float(df['equity'].iloc[-1])
+    prev_eq = float(df['equity'].iloc[-2]) if len(df) > 1 else eq
     color = '#00ff88' if eq >= prev_eq else '#ff4444'
     style = {'color': color, 'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '10px'}
-    # Hide if button pressed odd times
     if hide_n and hide_n % 2 == 1:
         style['display'] = 'none'
     return f"Current Equity: ${eq:,.2f}", style
@@ -2227,22 +2215,24 @@ def display_irl_equity(data, hide_n):
     State('irl-amount-input', 'value'),
     State('irl-stop-input', 'value'),
     State('irl-target-input', 'value'),
+    State('irl-stock-symbol-input', 'value'),
+    State('irl-amount-input', 'value'),
+    State('irl-stop-input', 'value'),
+    State('irl-target-input', 'value'),
+    State('irl-stock-symbol-input', 'value'),
     prevent_initial_call=True
 )
-def open_irl_position(n, data, symbol, side, amount, stop, target):
+def open_irl_position(n, data, symbol, side, amount, stop, target, *_):
     if not n:
         raise PreventUpdate
     if not symbol or not amount or not stop or not target:
         return "Please fill all fields.", dash.no_update
-    ds = xr.Dataset.from_dict(data) if data else load_irl_ds()
-    # For sell, amount is negative
+    df = pd.DataFrame(data) if data else load_trading_df()
     amt = float(amount) if side == 'buy' else -float(amount)
+    # For demo, use amount as price_at_entry (replace with real price if available)
     try:
-        ds2 = open_position(ds, symbol.upper(), amt, price_at_entry=amt/float(amount) if float(amount)!=0 else 1, stop_price=float(stop))
-        # Set target price in the last record
-        ds2['target_price'].values[-1] = float(target)
-        save_irl_ds(ds2)
-        return "Position opened!", ds2.to_dict()
+        df2 = open_position(df, symbol.upper(), amt, price_at_entry=float(amount), stop_price=float(stop), target_price=float(target))
+        return "Position opened!", df2.to_dict('records')
     except Exception as e:
         return f"Error: {e}", dash.no_update
 
@@ -2255,26 +2245,25 @@ def open_irl_position(n, data, symbol, side, amount, stop, target):
 def list_irl_open_positions(data):
     if not data:
         return "No positions."
-    ds = xr.Dataset.from_dict(data)
-    open_mask = (ds['open_positions'].values == 1.0)
+    df = pd.DataFrame(data)
+    open_mask = (df['open_positions'] == 1.0)
     if not open_mask.any():
         return "No open positions."
     items = []
-    for idx in range(len(ds['open_positions'].values)):
-        if open_mask[idx]:
-            stock = ds['stocks_in_positions'].values[idx]
-            amt = ds['amount_invested'].values[idx]
-            stop = ds['stop_price'].values[idx]
-            target = ds['target_price'].values[idx] if 'target_price' in ds else None
-            items.append(
-                dbc.Row([
-                    dbc.Col(html.Div(f"{stock} | Amount: {amt} | Stop: {stop} | Target: {target}")),
-                    dbc.Col([
-                        dbc.Input(id={'type': 'irl-close-price', 'index': idx}, placeholder="Close price", type="number", size="sm", style={'width': '100px', 'display': 'inline-block', 'marginRight': '5px'}),
-                        dbc.Button("Close", id={'type': 'irl-close-btn', 'index': idx}, color="danger", size="sm", style={'display': 'inline-block'})
-                    ], width=5)
-                ], className="mb-2")
-            )
+    for idx in df[open_mask].index:
+        stock = df.at[idx, 'stocks_in_positions']
+        amt = df.at[idx, 'amount_invested']
+        stop = df.at[idx, 'stop_price']
+        target = df.at[idx, 'target_price']
+        items.append(
+            dbc.Row([
+                dbc.Col(html.Div(f"{stock} | Amount: {amt} | Stop: {stop} | Target: {target}")),
+                dbc.Col([
+                    dbc.Input(id={'type': 'irl-close-price', 'index': idx}, placeholder="Close price", type="number", size="sm", style={'width': '100px', 'display': 'inline-block', 'marginRight': '5px'}),
+                    dbc.Button("Close", id={'type': 'irl-close-btn', 'index': idx}, color="danger", size="sm", style={'display': 'inline-block'})
+                ], width=5)
+            ], className="mb-2")
+        )
     return items
 
 # Callback: Close position
@@ -2290,28 +2279,25 @@ def close_irl_position(close_n, close_prices, data):
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
-    # Find which button was pressed
     for i, n in enumerate(close_n):
         if n:
             idx = i
             break
     else:
         raise PreventUpdate
-    ds = xr.Dataset.from_dict(data) if data else load_irl_ds()
-    # Get stock and price
-    open_mask = (ds['open_positions'].values == 1.0)
+    df = pd.DataFrame(data) if data else load_trading_df()
+    open_mask = (df['open_positions'] == 1.0)
     open_idxs = [i for i, v in enumerate(open_mask) if v]
     if idx >= len(open_idxs):
         return dash.no_update, "Invalid position."
-    pos_idx = open_idxs[idx]
-    stock = ds['stocks_in_positions'].values[pos_idx]
+    pos_idx = df[open_mask].index[idx]
+    stock = df.at[pos_idx, 'stocks_in_positions']
     price = close_prices[idx]
     if not price:
         return dash.no_update, "Please enter a close price."
     try:
-        ds2 = close_position(ds, stock, float(price))
-        save_irl_ds(ds2)
-        return ds2.to_dict(), f"Closed {stock} at {price}"
+        df2 = close_position(df, stock, float(price))
+        return df2.to_dict('records'), f"Closed {stock} at {price}"
     except Exception as e:
         return dash.no_update, f"Error: {e}"
 

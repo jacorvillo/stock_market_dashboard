@@ -1,7 +1,6 @@
-import xarray as xr
+import pandas as pd
 import numpy as np
 
-# Define the data fields
 fields = [
     'equity',
     'open_positions',
@@ -16,33 +15,12 @@ fields = [
     'target_price',
 ]
 
-# Prepare the data: only 'equity' has a value, the rest are empty arrays
-# We'll use float arrays for all except 'stocks_in_positions', which could be string/object
-# For simplicity, all arrays will be float, and 'stocks_in_positions' will be an empty string array
+# Create initial row: equity=1000, rest empty/NaN
+row = {f: np.nan for f in fields}
+row['equity'] = 1000.0
 
-data = {
-    'equity': (['records'], np.array([1000.0])),
-    'open_positions': (['records'], np.array([np.nan])),
-    'amount_invested': (['records'], np.array([np.nan])),
-    'stop_price': (['records'], np.array([np.nan])),
-    'value_at_entry': (['records'], np.array([np.nan])),
-    'stocks_in_positions': (['records'], np.array([""], dtype=str)),
-    'stock_price_at_entry': (['records'], np.array([np.nan])),
-    'stock_price_at_close': (['records'], np.array([np.nan])),
-    'net_gain_loss_amount': (['records'], np.array([np.nan])),
-    'net_gain_loss_percent': (['records'], np.array([np.nan])),
-    'target_price': (['records'], np.array([np.nan])),
-}
-
-# Create the xarray Dataset
-# Note: NetCDF does not support zero-length dimensions, so we use length 0 for empty arrays, 1 for equity
-# The 'records' dimension will be length 1 for equity, 0 for others
-
-ds = xr.Dataset(data)
-
-# Save to NetCDF file
-output_file = 'equity_data.nc'
-ds.to_netcdf(output_file)
-
-print(f"NetCDF file '{output_file}' created with specified fields.")
+df = pd.DataFrame([row])
+output_file = 'equity_data.csv'
+df.to_csv(output_file, index=False)
+print(f"CSV file '{output_file}' created with specified fields.")
 
