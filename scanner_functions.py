@@ -160,39 +160,40 @@ class StockScanner:
                 return None
             
             # Calculate EMAs
-            ema_13 = close_prices.ewm(span=13).mean()
-            ema_26 = close_prices.ewm(span=26).mean()
+            ema_13 = pd.Series(close_prices.ewm(span=13, adjust=False).mean(), index=close_prices.index)
+            ema_26 = pd.Series(close_prices.ewm(span=26, adjust=False).mean(), index=close_prices.index)
             
             # Calculate RSI (13-period)
             delta = close_prices.diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=13).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=13).mean()
             rs = gain / loss
-            rsi = 100 - (100 / (1 + rs))
+            rsi = pd.Series(100 - (100 / (1 + rs)), index=close_prices.index)
             
             # Calculate MACD
-            ema_12 = close_prices.ewm(span=12).mean()
-            macd_line = ema_12 - ema_26
-            signal_line = macd_line.ewm(span=9).mean()
-            histogram = macd_line - signal_line
+            ema_12 = close_prices.ewm(span=12, adjust=False).mean()
+            macd_line = pd.Series(ema_12 - ema_26, index=close_prices.index)
+            signal_line = pd.Series(macd_line.ewm(span=9, adjust=False).mean(), index=close_prices.index)
+            histogram = pd.Series(macd_line - signal_line, index=close_prices.index)
             
             # Calculate ATR (13-period for consistency)
             tr1 = high_prices - low_prices
             tr2 = abs(high_prices - close_prices.shift(1))
             tr3 = abs(low_prices - close_prices.shift(1))
             true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-            atr = true_range.rolling(window=13).mean()
+            atr = pd.Series(true_range.rolling(window=13).mean(), index=close_prices.index)
             
             # Get latest values with explicit scalar conversion
             latest = data.iloc[-1]
             latest_close = float(latest['Close'])
             latest_volume = int(float(latest['Volume'])) if not pd.isna(latest['Volume']) else 0
-            latest_ema_13 = float(ema_13.iloc[-1]) if len(ema_13) > 0 and not pd.isna(ema_13.iloc[-1]) else np.nan
-            latest_ema_26 = float(ema_26.iloc[-1]) if len(ema_26) > 0 and not pd.isna(ema_26.iloc[-1]) else np.nan
-            latest_rsi = float(rsi.iloc[-1]) if len(rsi) > 0 and not pd.isna(rsi.iloc[-1]) else np.nan
-            latest_macd = float(macd_line.iloc[-1]) if len(macd_line) > 0 and not pd.isna(macd_line.iloc[-1]) else np.nan
-            latest_signal = float(signal_line.iloc[-1]) if len(signal_line) > 0 and not pd.isna(signal_line.iloc[-1]) else np.nan
-            latest_atr = float(atr.iloc[-1]) if len(atr) > 0 and not pd.isna(atr.iloc[-1]) else np.nan
+            latest_ema_13 = float(ema_13.iloc[-1]) if not ema_13.empty and not pd.isna(ema_13.iloc[-1]) else np.nan
+            latest_ema_26 = float(ema_26.iloc[-1]) if not ema_26.empty and not pd.isna(ema_26.iloc[-1]) else np.nan
+            latest_rsi = float(rsi.iloc[-1]) if not rsi.empty and not pd.isna(rsi.iloc[-1]) else np.nan
+            latest_macd = float(macd_line.iloc[-1]) if not macd_line.empty and not pd.isna(macd_line.iloc[-1]) else np.nan
+            latest_signal = float(signal_line.iloc[-1]) if not signal_line.empty and not pd.isna(signal_line.iloc[-1]) else np.nan
+            latest_atr = float(atr.iloc[-1]) if not atr.empty and not pd.isna(atr.iloc[-1]) else np.nan
+            latest_histogram = float(histogram.iloc[-1]) if not histogram.empty and not pd.isna(histogram.iloc[-1]) else np.nan
             
             # Calculate price change
             if len(close_prices) >= 2:

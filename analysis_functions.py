@@ -41,8 +41,8 @@ def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
     _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
 
 # Function to fetch stock data with lookback for indicators
-def get_stock_data(symbol="SPY", period="1y", frequency=None):
-    """Fetch stock data from yfinance with caching for faster ticker switching"""
+def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 26]):
+    """Fetch stock data from yfinance with caching for faster ticker switching, with extended lookback for intraday EMA warmup."""
     try:
         # Check cache first for non-intraday data (intraday needs real-time updates)
         if period != "1d":
@@ -428,7 +428,6 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             col = f'EMA_{period}'
             if min_length >= max(period, 10):
                 ema_series = ta.trend.EMAIndicator(df['Close'], window=period).ema_indicator()
-                ema_series = ema_series.fillna(method='bfill')
                 df[col] = ema_series
                 indicator_columns.append(col)
                 unreliable_mask |= ema_series.isna()
@@ -775,21 +774,22 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         # For intraday data (1d and yesterday), we need to separate display data from indicator calculation data
         # This ensures all indicators have sufficient historical data to calculate properly from market open
         if timeframe in ["1d", "yesterday"]:
-            # For intraday views, we want to use the full dataset that includes previous days for indicator calculation
-            # But we still want to limit what's actually displayed to just today/yesterday
-            # start_date and end_date control what's displayed, but we calculate on the full_data
-            display_start_date = start_date  # Save the display start date
-            display_end_date = end_date      # Save the display end date
-            
-            # Calculate indicators using the extended historical dataset
+            # Calculate indicators using the extended historical dataset (multiple days)
             df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
-            
-            # After calculation, restore the original display dates
-            start_date = display_start_date
-            end_date = display_end_date
+            # After calculation, filter to just today or yesterday for display
+            display_date = None
+            now_cest = datetime.now()
+            if timeframe == "1d":
+                display_date = now_cest.date()
+            else:
+                display_date = now_cest.date() - pd.Timedelta(days=1)
+                while pd.Timestamp(display_date).weekday() > 4:
+                    display_date = (pd.Timestamp(display_date) - pd.Timedelta(days=1)).date()
+            df_final = df_with_indicators[pd.to_datetime(df_with_indicators['Date']).dt.date == display_date].copy()
         else:
             # For non-intraday views, just calculate normally
             df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
+            df_final = df_with_indicators[df_with_indicators['Date'] >= start_date].copy()
         
         # Ensure both the Date column and start_date have the same timezone status (both naive)
         # Make sure the Date column is timezone-naive for comparison
