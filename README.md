@@ -6,45 +6,51 @@ Current look:
 
 ![Stock Dashboard Screenshot](https://github.com/jacorvillo/stock_market_dashboard/blob/main/image.png)
 
-## Features
+## 🚀 Features
 
 This dashboard provides real-time US stock data from Yahoo Finance with multiple timeframes. Works with any stock symbol (so long as it's available)
 
-As of now, the dashboard includes:
-
-- **Scanner**: Find US stocks and ETFs based on technical indicators and other criteria
-- **Analysis** (Ongoing): View real-time stock data at multiple timeframes with technical indicators. Includes Impulse System visualization
+### 📊 Available Indicators
 
 > [!TIP] 
 > Current indicators available:
-> - EMA (Exponential Moving Average)*: Two EMAs and the Value Zone between them
-> - Volume: Volume bars with optional comparison to another market
-> - MACD (Moving Average Convergence Divergence)*: MACD line, signal line, and histogram
-> - Force Index*
-> - DIR (Directional Movement Index)*: +DI, -DI, and ADX
-> - A/D Line (Accumulation/Distribution Line)*
-> - Slow Stochastic*: %K and %D lines
-> - RSI (Relative Strength Index)*
-> - OBV (On-Balance Volume)*
-> - Bollinger Bands*
-> - Autoenvelope*
+> - **EMA (Exponential Moving Average)**: Two EMAs and the Value Zone between them
+> - **Volume**: Volume bars with optional comparison to another market
+> - **MACD (Moving Average Convergence Divergence)**: MACD line, signal line, and histogram
+> - **Force Index**: Volume-weighted momentum indicator
+> - **ADX (Directional Movement Index)**: +DI, -DI, and ADX for trend strength
+> - **A/D Line (Accumulation/Distribution Line)**: Volume flow indicator
+> - **Slow Stochastic**: %K and %D lines with overbought/oversold levels
+> - **RSI (Relative Strength Index)**: Momentum oscillator
+> - **OBV (On-Balance Volume)**: Volume flow indicator
+> - **Bollinger Bands**: Volatility bands
+> - **Autoenvelope**: Percentage-based envelope
+> - **ATR Bands**: Average True Range volatility bands
+> - **Impulse System visualization-++
 >
-> *Timeframe can be changed for these indicators
+> *All indicators support multiple timeframes and customizable parameters*
 
-> [!IMPORTANT] 
-> Indicators that I plan to add:
-> - New High/New Low index
-> - Stocks above 50-day EMA
-> - Consensus and commitment indicators (Short interest, Days to cover)
-> - Open Interest for options
+## 🎯 Tab Overview
 
-- **Insights** (Ongoing): Get buy/sell signals based on different technical indicators
+### 🔍 Scanner
+**Find stocks based on technical criteria and market conditions**, with presets and many universes to pick from!
 
-## Requirements
+### 🛠️ Analysis Tab
+**Comprehensive real-life technical analysis with customizable indicators**, at multiple timeframe supports 
+
+### 💡 Insights Tab
+**Trading recommendations based on indicators** (no, no AI, I swear), fit for day or swing trading
+
+### 💸 IRL Trading Simulator
+**Practice real-life trading with virtual money and position management!** For when the real time comes. Start with 1000$ and work your way to the top, with target price, dynamic stop-loss and equity curve.
+
+
+
+## 📋 Requirements
 - Python 3.8+
 - Internet connection for live data
 
-## Installation and Usage
+## 🚀 Installation and Usage
 ```bash
 # Clone or download the project
 cd stock_test
@@ -57,17 +63,24 @@ python app.py
 ```
 Open `http://localhost:8050` in your browser to view the dashboard.
 
-## Notes
-- This is for educational purposes only, it is NOT financial advice and I am not responsible for any financial losses you take!
-- Data may have slight delays during high market volatility. I'm doing what I can to improve performance, but since it is heavily dependent on the Yahoo Finance API, there may be limitations
+## ⚠️ Important Notes
+- **Educational Purpose Only**: This is for educational purposes only, it is NOT financial advice and I am not responsible for any financial losses you take!
+- **Data Delays**: Data may have slight delays during high market volatility. Performance depends on Yahoo Finance API limitations
+- **Market Hours**: Some features work best during market hours (9:30 AM - 4:00 PM ET)
+- **Symbol Support**: Not all symbols available on Yahoo Finance may work perfectly
 
-## Todo
+## 🔮 Future Roadmap
 
-- [ ] (Short term) Implement additional technical indicators
-- [ ] (Short/long term) Insights: signals (buy/sell) based on technical indicators, both in the chart and as alerts
-- [ ] (Longer term) Add popular system trading strategies (Triple Screen Trading System, ~~Impulse System, Channel trading~~)
-- [ ] (Longer term) Analysis: Add backtesting functionality to test strategies against historical data
+### Short Term
+- General market indicators (New High/New Low index, Stocks above 50-day EMA)
+- Enhanced insights with more trading strategies
+- IRL Trading functionality for real-time strategy testing
 
-## License
+### Long Term
+- Consensus and commitment indicators (Short interest, Days to cover)
+- Options analysis with Open Interest data
+- Advanced risk management tools
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
