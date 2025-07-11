@@ -52,7 +52,7 @@ def get_stock_data(symbol="SPY", period="1y"):
         
         # Sanitize symbol for safety
         symbol = symbol.strip().upper()
-        if not symbol or not all(c.isalnum() or c in ['-', '.'] for c in symbol):
+        if not symbol or not all(c.isalnum() or c in ['-', '.', '/', '^', '='] for c in symbol):
             symbol = "SPY"
             
         # Check if intraday (1d or yesterday) data is requested
@@ -619,7 +619,7 @@ def update_symbol(n_clicks, symbol):
         # Strip whitespace and convert to uppercase for consistency
         symbol = symbol.upper().strip()
         # Replace any potential special characters that shouldn't be in a ticker
-        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.'])
+        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.', '/', '^', '='])
         return symbol
     return 'SPY'
 
@@ -628,8 +628,8 @@ def format_symbol_input(value):
     if value:
         # Convert to uppercase
         value = value.upper().strip()
-        # Only allow alphanumeric, dash, and dot characters
-        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.'])
+        # Only allow alphanumeric, dash, dot, slash, caret, and equals characters
+        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.', '/', '^', '='])
     return value
 
 def update_macd_stores(fast, slow, signal):
