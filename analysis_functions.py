@@ -41,7 +41,7 @@ def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
     _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
 
 # Function to fetch stock data with lookback for indicators
-def get_stock_data(symbol="SPY", period="1y"):
+def get_stock_data(symbol="SPY", period="1y", frequency=None):
     """Fetch stock data from yfinance with caching for faster ticker switching"""
     try:
         # Check cache first for non-intraday data (intraday needs real-time updates)
@@ -52,7 +52,7 @@ def get_stock_data(symbol="SPY", period="1y"):
         
         # Sanitize symbol for safety
         symbol = symbol.strip().upper()
-        if not symbol or not all(c.isalnum() or c in ['-', '.', '/', '^', '='] for c in symbol):
+        if not symbol or not all(c.isalnum() or c in ['-', '.'] for c in symbol):
             symbol = "SPY"
             
         # Check if intraday (1d or yesterday) data is requested
@@ -185,7 +185,8 @@ def get_stock_data(symbol="SPY", period="1y"):
             try:
                 # For intraday, fetch 5 days of minute data to include previous market periods
                 # This ensures indicators have enough historical data to calculate properly from market open
-                data = ticker.history(period="5d", interval="1m", timeout=5)  # Extended period for indicators
+                interval_arg = frequency if frequency else "1m"
+                data = ticker.history(period="5d", interval=interval_arg, timeout=5)  # Extended period for indicators
                 
                 # Convert timestamps to CEST timezone for display
                 data.reset_index(inplace=True)
@@ -258,13 +259,21 @@ def get_stock_data(symbol="SPY", period="1y"):
             
             # Try to fetch real stock data with reduced timeout for faster response
             ticker = yf.Ticker(symbol)
-            data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
+            interval_arg = frequency if frequency else None
+            if interval_arg:
+                data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout for faster switching
+            else:
+                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
         
         if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
             # Fallback to SPY if current symbol fails
             if symbol != "SPY":
                 ticker = yf.Ticker("SPY")
-                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout
+                interval_arg = frequency if frequency else None
+                if interval_arg:
+                    data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout
+                else:
+                    data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout
                 if data.empty:
                     raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
             else:
@@ -410,25 +419,39 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             # In fast mode, only calculate the most essential indicators
             ema_periods = ema_periods[:2] if len(ema_periods) > 2 else ema_periods  # Limit to 2 EMAs max
         
+        # Track unreliable rows for warning (for intraday)
+        unreliable_mask = pd.Series(False, index=df.index)
+        indicator_columns = []
+
         # Custom EMA periods (optimized for speed)
         for period in ema_periods:
-            if min_length >= max(period, 10):  # Require minimum 10 data points
-                df[f'EMA_{period}'] = ta.trend.EMAIndicator(df['Close'], window=min(period, min_length//2)).ema_indicator()
+            col = f'EMA_{period}'
+            if min_length >= max(period, 10):
+                ema_series = ta.trend.EMAIndicator(df['Close'], window=period).ema_indicator()
+                ema_series = ema_series.fillna(method='bfill')
+                df[col] = ema_series
+                indicator_columns.append(col)
+                unreliable_mask |= ema_series.isna()
             else:
-                df[f'EMA_{period}'] = df['Close']  # Use close price as fallback
-        
+                df[col] = df['Close'].ffill()
+                indicator_columns.append(col)
+
         # MACD with custom parameters
+        macd_cols = ['MACD', 'MACD_signal', 'MACD_hist']
         if min_length >= max(macd_fast, macd_slow):
             macd = ta.trend.MACD(df['Close'], window_fast=macd_fast, window_slow=macd_slow, window_sign=macd_signal)
-            df['MACD'] = macd.macd()
-            df['MACD_signal'] = macd.macd_signal()
-            df['MACD_hist'] = macd.macd_diff()
+            macd_macd = macd.macd().fillna(method='bfill')
+            macd_signal = macd.macd_signal().fillna(method='bfill')
+            macd_hist = macd.macd_diff().fillna(method='bfill')
+            df['MACD'] = macd_macd
+            df['MACD_signal'] = macd_signal
+            df['MACD_hist'] = macd_hist
+            unreliable_mask |= macd.macd().isna() | macd.macd_signal().isna() | macd.macd_diff().isna()
         else:
-            # Fill with zeros for small datasets
             df['MACD'] = 0
             df['MACD_signal'] = 0
             df['MACD_hist'] = 0
-        
+
         # Force Index with smoothing
         if min_length >= 2:
             force_raw = ta.volume.ForceIndexIndicator(df['Close'], df['Volume']).force_index()
@@ -438,69 +461,78 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
                 df['Force_Index'] = force_raw
         else:
             df['Force_Index'] = 0
-        
+
         # A/D Line (Accumulation/Distribution)
         if min_length >= 1:
             ad_line = ta.volume.AccDistIndexIndicator(df['High'], df['Low'], df['Close'], df['Volume']).acc_dist_index()
-            # Store as both AD and AD_Line for compatibility
             df['AD'] = ad_line
             df['AD_Line'] = ad_line
         else:
             df['AD'] = 0
             df['AD_Line'] = 0
-            
+
         # ADX, DI+, and DI- indicators
-        adx_period = max(1, min(adx_period, 50))  # Ensure period is between 1-50
+        adx_cols = ['ADX', 'DI_plus', 'DI_minus']
+        adx_period = max(1, min(adx_period, 50))
         if min_length >= max(14, adx_period):
             adx_indicator = ta.trend.ADXIndicator(df['High'], df['Low'], df['Close'], window=adx_period)
-            df['ADX'] = adx_indicator.adx()
-            df['DI_plus'] = adx_indicator.adx_pos()
-            df['DI_minus'] = adx_indicator.adx_neg()
+            adx = adx_indicator.adx().fillna(method='bfill')
+            di_plus = adx_indicator.adx_pos().fillna(method='bfill')
+            di_minus = adx_indicator.adx_neg().fillna(method='bfill')
+            df['ADX'] = adx
+            df['DI_plus'] = di_plus
+            df['DI_minus'] = di_minus
+            unreliable_mask |= adx_indicator.adx().isna() | adx_indicator.adx_pos().isna() | adx_indicator.adx_neg().isna()
         else:
-            # Fill with default values for small datasets
-            df['ADX'] = 25  # Neutral ADX value
+            df['ADX'] = 25
             df['DI_plus'] = 25
             df['DI_minus'] = 25
-            
+
         # ATR for bands calculation
         if min_length >= 14:
             df['ATR'] = ta.volatility.AverageTrueRange(df['High'], df['Low'], df['Close'], window=14).average_true_range()
         else:
             df['ATR'] = (df['High'] - df['Low']).rolling(window=min(14, min_length)).mean()
-        
+
         # Slow Stochastic (%K and %D)
-        stoch_period = max(1, min(stoch_period, 50))  # Ensure period is between 1-50
+        stoch_cols = ['Stoch_K', 'Stoch_D']
+        stoch_period = max(1, min(stoch_period, 50))
         if min_length >= max(14, stoch_period):
             stoch_indicator = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=stoch_period, smooth_window=3)
-            df['Stoch_K'] = stoch_indicator.stoch()  # %K line
-            df['Stoch_D'] = stoch_indicator.stoch_signal()  # %D line (smoothed %K)
+            stoch_k = stoch_indicator.stoch().fillna(method='bfill')
+            stoch_d = stoch_indicator.stoch_signal().fillna(method='bfill')
+            df['Stoch_K'] = stoch_k
+            df['Stoch_D'] = stoch_d
+            unreliable_mask |= stoch_indicator.stoch().isna() | stoch_indicator.stoch_signal().isna()
         else:
-            # Fill with neutral values for small datasets
-            df['Stoch_K'] = 50  # Neutral stochastic value
+            df['Stoch_K'] = 50
             df['Stoch_D'] = 50
-        
+
         # Relative Strength Index (RSI)
-        rsi_period = max(1, min(rsi_period, 50))  # Ensure period is between 1-50
+        rsi_period = max(1, min(rsi_period, 50))
         if min_length >= max(14, rsi_period):
             rsi_indicator = ta.momentum.RSIIndicator(df['Close'], window=rsi_period)
-            df['RSI'] = rsi_indicator.rsi()
+            rsi = rsi_indicator.rsi().fillna(method='bfill')
+            df['RSI'] = rsi
+            unreliable_mask |= rsi_indicator.rsi().isna()
         else:
-            # Fill with neutral values for small datasets
-            df['RSI'] = 50  # Neutral RSI value
-        
+            df['RSI'] = 50
+
         # On Balance Volume (OBV)
         if min_length >= 1:
             obv_indicator = ta.volume.OnBalanceVolumeIndicator(df['Close'], df['Volume'])
             df['OBV'] = obv_indicator.on_balance_volume()
         else:
-            # Fill with zeros for small datasets
             df['OBV'] = 0
-        
+
         # Fill any remaining NaN values with 0 or forward fill
         numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D', 'RSI', 'OBV']]
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = df[col].ffill().fillna(0)
+
+        # Add unreliable flag to DataFrame for UI warning
+        df['unreliable_indicators'] = unreliable_mask.values
         
         return df
         
@@ -619,7 +651,7 @@ def update_symbol(n_clicks, symbol):
         # Strip whitespace and convert to uppercase for consistency
         symbol = symbol.upper().strip()
         # Replace any potential special characters that shouldn't be in a ticker
-        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.', '/', '^', '='])
+        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.'])
         return symbol
     return 'SPY'
 
@@ -628,8 +660,8 @@ def format_symbol_input(value):
     if value:
         # Convert to uppercase
         value = value.upper().strip()
-        # Only allow alphanumeric, dash, dot, slash, caret, and equals characters
-        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.', '/', '^', '='])
+        # Only allow alphanumeric, dash, and dot characters
+        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.'])
     return value
 
 def update_macd_stores(fast, slow, signal):
@@ -693,7 +725,7 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
     except Exception as e:
         return None
 
-def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
+def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency=None):
     """Update stock data periodically or when symbol/timeframe/parameters change"""
     error_msg = []
     error_class = "alert alert-warning fade show d-none"  # Hidden by default
@@ -721,10 +753,10 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             if cached_result is not None:
                 full_data, start_date, end_date, is_minute_data = cached_result
             else:
-                full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe)
+                full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe, frequency)
                 _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)  # Cache the result
         except Exception as data_error:
-            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)  # Fall back to SPY
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)  # Fall back to SPY
             error_msg = [
                 html.I(className="fas fa-exclamation-triangle me-2"),
                 f"Could not fetch data for symbol '{symbol}'. Using sample data instead. ",
@@ -776,7 +808,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             if timeframe in ["1d", "yesterday"]:
                 return [], [], "alert alert-warning fade show d-none"  # Hidden error class
             
-            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)
             df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, fast_mode=True)
             
             # Ensure timezone-naive comparison
@@ -944,8 +976,8 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                 )
             )
         
-        # Add EMA indicators if enabled AND NOT in intraday mode
-        if 'show' in show_ema and not is_intraday:
+        # Add EMA indicators if enabled (remove 'not is_intraday' condition)
+        if 'show' in show_ema:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
             
             # First, add the Value Zone fill if we have exactly 2 EMAs
@@ -1463,8 +1495,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
         lower_chart_type = lower_chart_type or 'volume'
-        bollinger_bands = bollinger_bands or {'show': False, 'period': 20, 'stddev': 2}
-        autoenvelope = autoenvelope or {'show': False, 'period': 20, 'percent': 3}
+        bollinger_bands = bollinger_bands or {'show': False, 'period': 26, 'stddev': 2}
+        autoenvelope = autoenvelope or {'show': False, 'period': 26, 'percent': 6}
         
         # Handle empty data (e.g., when market is closed for 1D view)
         if df.empty:
@@ -1582,67 +1614,50 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         elif chart_type == 'mountain':
             # Mountain (area) chart
             if len(df) >= 2:
-                # Determine if the overall trend is up or down based on open vs close comparison
-                # For mountain charts, we'll use the entire chart period (first vs last)
-                price_start = df['Open'].iloc[0]  # First day's open
-                price_end = df['Close'].iloc[-1]  # Last day's close
+                price_start = df['Close'].iloc[0]
+                price_end = df['Close'].iloc[-1]
                 is_uptrend = price_end >= price_start
                 
-                # Set colors based on overall trend (green for up, red for down)
-                if is_uptrend:
-                    line_color = '#00ff88'  # Green line
-                    fill_color = 'rgba(0, 255, 136, 0.2)'  # Semi-transparent green
-                else:
-                    line_color = '#ff4444'  # Red line 
-                    fill_color = 'rgba(255, 68, 68, 0.2)'  # Semi-transparent red
-                
-                # Calculate percent change from first value for hover info
-                first_price = df['Open'].iloc[0]
-                df['pct_change'] = [(price/first_price - 1) * 100 for price in df['Close']]
-                
-                # Add the area chart with appropriate coloring
-                fig.add_trace(
-                    go.Scatter(
-                        x=df['Date'],
-                        y=df['Close'],
-                        mode='lines',
-                        name=f'{symbol} Close',
-                        line=dict(color=line_color, width=2),
-                        fill='tozeroy',
-                        fillcolor=fill_color,
-                        hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Open: $%{customdata[0]:.2f}<br>Change: %{customdata[1]:.2f}%<extra></extra>',
-                        customdata=np.column_stack((df['Open'], df['pct_change']))
-                    ),
-                    row=1, col=1
-                )
-            else:
-                # Default case for very small datasets
-                line_color = '#00d4aa'  # Default teal line
+                line_color = '#00d4aa'  # Teal line
                 fill_color = 'rgba(0, 212, 170, 0.2)'  # Semi-transparent teal
+            else:
+                line_color = '#00d4aa'
+                fill_color = 'rgba(0, 212, 170, 0.3)'
             
-            # If we reach this code, it means we're in the fallback case for empty data
-            # or when there's no separation between up/down trends
-            if 'line_color' in locals() and 'fill_color' in locals():
-                first_price = df['Close'].iloc[0]
-                
-                # Create a simple fallback chart with the default color
-                fig.add_trace(
-                    go.Scatter(
-                        x=df['Date'],
-                        y=df['Close'],
-                        mode='lines',
-                        name=f'{symbol} Close',
-                        line=dict(color=line_color, width=2),
-                        fill='tozeroy',
-                        fillcolor=fill_color,
-                        hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Change: %{customdata:.2f}%<extra></extra>',
-                        customdata=[(price/first_price - 1) * 100 for price in df['Close']]  # Show % change from first value
-                    ),
-                    row=1, col=1
-                )
+            first_price = df['Close'].iloc[0]
+            
+            # For subplots, we need to specify the fill properly
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=df['Close'],
+                    mode='lines',
+                    name=f'{symbol} Close',
+                    line=dict(color=line_color, width=2),
+                    fill='tonexty',  # Fill to next y (which will be the baseline we add)
+                    fillcolor=fill_color,
+                    hovertemplate='%{x}<br>Price: $%{y:.2f}<br>Change: %{customdata:.2f}%<extra></extra>',
+                    customdata=[(price/first_price - 1) * 100 for price in df['Close']]  # Show % change from first value
+                ),
+                row=1, col=1
+            )
+            
+            # Add a baseline trace for proper fill (invisible)
+            y_min_baseline = df['Close'].min() * 0.95  # Set baseline slightly below minimum
+            fig.add_trace(
+                go.Scatter(
+                    x=df['Date'],
+                    y=[y_min_baseline] * len(df),
+                    mode='lines',
+                    line=dict(color='rgba(0,0,0,0)', width=0),  # Invisible line
+                    showlegend=False,
+                    hoverinfo='skip'
+                ),
+                row=1, col=1
+            )
         
-        # Add EMA indicators if enabled AND NOT in intraday mode
-        if 'show' in show_ema and not is_intraday:
+        # Add EMA indicators if enabled (remove 'not is_intraday' condition)
+        if 'show' in show_ema:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
             
             # First, add the Value Zone fill if we have exactly 2 EMAs
@@ -1770,33 +1785,29 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # Add Bollinger Bands if enabled
         if bollinger_bands and bollinger_bands.get('show'):
             try:
-                period = bollinger_bands.get('period', 20)
+                period = bollinger_bands.get('period', 26)
                 stddev = bollinger_bands.get('stddev', 2)
-                
                 # Calculate Bollinger Bands - requires at least 'period' number of data points
                 if len(df) > period:
                     # Calculate the middle band (Simple Moving Average)
                     df['BB_middle'] = df['Close'].rolling(window=period).mean()
-                    
                     # Calculate standard deviation
                     rolling_std = df['Close'].rolling(window=period).std()
-                    
                     # Calculate upper and lower bands
                     df['BB_upper'] = df['BB_middle'] + (rolling_std * stddev)
                     df['BB_lower'] = df['BB_middle'] - (rolling_std * stddev)
-                    
                     # Upper band
                     fig.add_trace(
                         go.Scatter(
                             x=df['Date'],
                             y=df['BB_upper'],
                             mode='lines',
-                            name=f'BB +{stddev}σ',
-                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot')  # Purple
+                            name=f'BB +{stddev}\u03c3',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot'),  # Purple
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Middle band (SMA)
                     fig.add_trace(
                         go.Scatter(
@@ -1804,19 +1815,20 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['BB_middle'],
                             mode='lines',
                             name=f'BB SMA({period})',
-                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1)  # Purple
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1),  # Purple
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Lower band
                     fig.add_trace(
                         go.Scatter(
                             x=df['Date'],
                             y=df['BB_lower'],
                             mode='lines',
-                            name=f'BB -{stddev}σ',
-                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot')  # Purple
+                            name=f'BB -{stddev}\u03c3',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot'),  # Purple
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
@@ -1826,19 +1838,16 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # Add Autoenvelope if enabled
         if autoenvelope and autoenvelope.get('show'):
             try:
-                period = autoenvelope.get('period', 20)
-                percent = autoenvelope.get('percent', 3)
-                
+                period = autoenvelope.get('period', 26)
+                percent = autoenvelope.get('percent', 6)
                 # Calculate Autoenvelope - requires at least 'period' number of data points
                 if len(df) > period:
                     # Calculate the middle line (Simple Moving Average)
                     df['AE_middle'] = df['Close'].rolling(window=period).mean()
-                    
                     # Calculate upper and lower bands (percentage based)
                     multiplier = percent / 100
                     df['AE_upper'] = df['AE_middle'] * (1 + multiplier)
                     df['AE_lower'] = df['AE_middle'] * (1 - multiplier)
-                    
                     # Upper band
                     fig.add_trace(
                         go.Scatter(
@@ -1846,11 +1855,11 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['AE_upper'],
                             mode='lines',
                             name=f'Env +{percent}%',
-                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot')  # Blue
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot'),  # Blue
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Middle band (SMA)
                     fig.add_trace(
                         go.Scatter(
@@ -1858,11 +1867,11 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['AE_middle'],
                             mode='lines',
                             name=f'Env SMA({period})',
-                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1)  # Blue
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1),  # Blue
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
-                    
                     # Lower band
                     fig.add_trace(
                         go.Scatter(
@@ -1870,7 +1879,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=df['AE_lower'],
                             mode='lines',
                             name=f'Env -{percent}%',
-                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot')  # Blue
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot'),  # Blue
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
@@ -2713,12 +2723,11 @@ def update_symbol_status(symbol):
 
 def update_indicator_options(timeframe):
     """Update indicator options based on timeframe"""
-    is_intraday = timeframe in ['1d', 'yesterday']
-    
-    # Hide EMA options for intraday
-    ema_style = {'display': 'none'} if is_intraday else {'display': 'block'}
+    # Always show EMA controls for all timeframes
+    ema_style = {'display': 'block'}
     
     # Lower chart options - remove Force Index for intraday
+    is_intraday = timeframe in ['1d', 'yesterday']
     if is_intraday:
         lower_options = [
             {'label': 'Volume', 'value': 'volume'},
@@ -2740,7 +2749,6 @@ def update_indicator_options(timeframe):
             {'label': 'RSI', 'value': 'rsi'},
             {'label': 'OBV', 'value': 'obv'}
         ]
-    
     return ema_style, ema_style, lower_options
 
 def check_value_zone_status(df, ema_periods):

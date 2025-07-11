@@ -12,7 +12,6 @@ import dash_bootstrap_components as dbc
 import yfinance as yf
 import ta
 import json
-from dash.dash_table.Format import Format, Group, Scheme, Symbol
 
 # Import functions from functions.py
 from analysis_functions import (
@@ -372,13 +371,13 @@ app.layout = dbc.Container([
                                                         dbc.Select(
                                                             id='volume-preset',
                                                             options=[
-                                                                {'label': 'Any Volume', 'value': '0'},
-                                                                {'label': 'Light Trading (> 100K)', 'value': '100000'},
-                                                                {'label': 'Moderate Trading (> 500K)', 'value': '500000'},
-                                                                {'label': 'Active Trading (> 1M)', 'value': '1000000'},
-                                                                {'label': 'High Volume (> 5M)', 'value': '5000000'}
+                                                                {'label': 'Any Volume', 'value': 0},
+                                                                {'label': 'Light Trading (> 100K)', 'value': 100000},
+                                                                {'label': 'Moderate Trading (> 500K)', 'value': 500000},
+                                                                {'label': 'Active Trading (> 1M)', 'value': 1000000},
+                                                                {'label': 'High Volume (> 5M)', 'value': 5000000}
                                                             ],
-                                                            value='500000',
+                                                            value=500000,
                                                             className="mb-3"
                                                         )
                                                     ], title="📊 Volume & Activity", item_id="volume-section"),
@@ -442,12 +441,12 @@ app.layout = dbc.Container([
                                                                 dbc.Select(
                                                                     id='result-limit',
                                                                     options=[
-                                                                        {'label': 'Top 10', 'value': '10'},
-                                                                        {'label': 'Top 25', 'value': '25'},
-                                                                        {'label': 'Top 50', 'value': '50'},
-                                                                        {'label': 'Top 100', 'value': '100'}
+                                                                        {'label': 'Top 10', 'value': 10},
+                                                                        {'label': 'Top 25', 'value': 25},
+                                                                        {'label': 'Top 50', 'value': 50},
+                                                                        {'label': 'Top 100', 'value': 100}
                                                                     ],
-                                                                    value='25',
+                                                                    value=25,
                                                                     size='sm'
                                                                 )
                                                             ], width=6),
@@ -580,6 +579,20 @@ app.layout = dbc.Container([
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
                                                 ),
                                                 
+                                                # Add frequency dropdown below timeframe dropdown
+                                                dbc.Label("Frequency:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Select(
+                                                    id='frequency-dropdown',
+                                                    options=[
+                                                        {'label': '1m', 'value': '1m'},
+                                                        {'label': '2m', 'value': '2m'},
+                                                        {'label': '10m', 'value': '10m'}
+                                                    ],
+                                                    value='1m',
+                                                    className="mb-3",
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'}
+                                                ),
+                                                
                                                 # Chart Type Section
                                                 dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
                                                 dbc.Select(
@@ -614,40 +627,6 @@ app.layout = dbc.Container([
                                                 ], className="mb-3")
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
-
-                                                                                # Lower Chart Selection Card
-                                        dbc.Card([
-                                            dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
-                                            dbc.CardBody([
-                                                # Lower Chart Selection
-                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
-                                                dbc.Select(
-                                                    id='lower-chart-selection',
-                                                    options=[
-                                                        {'label': '📊 Volume', 'value': 'volume'},
-                                                        {'label': '📈 MACD', 'value': 'macd'},
-                                                        {'label': '💪 Force Index', 'value': 'force'},
-                                                        {'label': '📉 A/D Line', 'value': 'ad'},
-                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
-                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
-                                                        {'label': '📊 RSI', 'value': 'rsi'},
-                                                        {'label': '📈 OBV', 'value': 'obv'}
-                                                    ],
-                                                    value='volume',
-                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
-                                                    className="mb-3"
-                                                ),
-                                                
-                                                # Dynamic settings section with enhanced container
-                                                html.Div([
-                                                    html.Div(id='lower-chart-settings', children=[
-                                                        # Settings will be dynamically generated based on selection
-                                                    ])
-                                                ], style={
-                                                    'marginTop': '15px'
-                                                })
-                                            ], style={'backgroundColor': '#000000'})
-                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}),
                                         
                                         # EMA and ATR Settings Card (Main Chart Settings)
                                         dbc.Card([
@@ -763,7 +742,7 @@ app.layout = dbc.Container([
                                                     ], width=12),
                                                     dbc.Col([
                                                         dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                        dbc.Input(id='bollinger-period', type='number', value=20, min=5, max=50, size='sm',
+                                                        dbc.Input(id='bollinger-period', type='number', value=26, min=5, max=50, size='sm',
                                                                   style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
                                                     ], width=6),
                                                     dbc.Col([
@@ -794,17 +773,51 @@ app.layout = dbc.Container([
                                                     ], width=12),
                                                     dbc.Col([
                                                         dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                        dbc.Input(id='autoenvelope-period', type='number', value=20, min=5, max=50, size='sm',
+                                                        dbc.Input(id='autoenvelope-period', type='number', value=26, min=5, max=50, size='sm',
                                                                   style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
                                                     ], width=6),
                                                     dbc.Col([
                                                         dbc.Label("Percent:", style={'color': '#ccc', 'fontSize': '12px'}),
-                                                        dbc.Input(id='autoenvelope-percent', type='number', value=3, min=1, max=10, step=0.5, size='sm',
+                                                        dbc.Input(id='autoenvelope-percent', type='number', value=6, min=1, max=10, step=0.5, size='sm',
                                                                   style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
                                                     ], width=6)
                                                 ])
                                             ], style={'backgroundColor': '#000000'})
-                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3")
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
+                                        
+                                        # Lower Chart Selection Card
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                # Lower Chart Selection
+                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                dbc.Select(
+                                                    id='lower-chart-selection',
+                                                    options=[
+                                                        {'label': '📊 Volume', 'value': 'volume'},
+                                                        {'label': '📈 MACD', 'value': 'macd'},
+                                                        {'label': '💪 Force Index', 'value': 'force'},
+                                                        {'label': '📉 A/D Line', 'value': 'ad'},
+                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
+                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+                                                        {'label': '📊 RSI', 'value': 'rsi'},
+                                                        {'label': '📈 OBV', 'value': 'obv'}
+                                                    ],
+                                                    value='volume',
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
+                                                
+                                                # Dynamic settings section with enhanced container
+                                                html.Div([
+                                                    html.Div(id='lower-chart-settings', children=[
+                                                        # Settings will be dynamically generated based on selection
+                                                    ])
+                                                ], style={
+                                                    'marginTop': '15px'
+                                                })
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                                     ])
                                 ]
                             ),
@@ -957,6 +970,12 @@ app.layout = dbc.Container([
         
         # Charts column
         dbc.Col([
+            # Intraday warning message component
+            html.Div(
+                id="intraday-warning-message",
+                className="alert alert-warning fade show d-none",
+                children=[]
+            ),
             # Error message component
             html.Div(
                 id="chart-error-message", 
@@ -979,8 +998,8 @@ app.layout = dbc.Container([
                     'border': '1px solid #333'
                 },
                 children=[
-                    html.H2("US markets are closed right now", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
-                    html.H5("Come back during market hours (9:30AM - 4:00PM ET)", 
+                    html.H2("The market for this stock is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
+                    html.H5("Try again during market hours, or view the previous session.", 
                            style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
                     html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
                         dbc.Button(
@@ -1108,7 +1127,7 @@ def update_ema_periods_callback(ema0, ema1, current_emas):
 
 # Create hidden divs to store values when not visible in UI
 # These will be shared across callbacks
-store_components = [
+app.layout.children.extend([
     dcc.Store(id='macd-fast-store', data=12),
     dcc.Store(id='macd-slow-store', data=26),
     dcc.Store(id='macd-signal-store', data=9),
@@ -1118,11 +1137,9 @@ store_components = [
     dcc.Store(id='stochastic-period-store', data=5),
     dcc.Store(id='rsi-period-store', data=13),
     # New stores for Bollinger Bands and Autoenvelope
-    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 20, 'stddev': 2}),
-    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 20, 'percent': 3})
-]
-
-app.layout.children.extend(store_components)
+    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 26, 'stddev': 2}),
+    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 26, 'percent': 6})
+])
 
 # Callback to update store values when UI elements are present
 @callback(
@@ -1212,6 +1229,39 @@ def update_rsi_store_callback(period):
     """Call update_rsi_store function from functions module"""
     return update_rsi_store(period)
 
+# Add a callback to update frequency options based on timeframe
+@callback(
+    [Output('frequency-dropdown', 'options'), Output('frequency-dropdown', 'value')],
+    [Input('timeframe-dropdown', 'value')]
+)
+def update_frequency_options(timeframe):
+    if timeframe in ['1d', 'yesterday']:
+        options = [
+            {'label': '1m', 'value': '1m'},
+            {'label': '2m', 'value': '2m'},
+            {'label': '5m', 'value': '5m'},
+            {'label': '15m', 'value': '15m'}
+        ]
+        value = '1m'
+    elif timeframe in ['1mo', '6mo']:
+        options = [
+            {'label': '1d', 'value': '1d'},
+            {'label': '1h', 'value': '1h'},
+            {'label': '4h', 'value': '4h'}
+        ]
+        value = '1d'
+    elif timeframe in ['1y', '5y', 'max']:
+        options = [
+            {'label': '1d', 'value': '1d'},
+            {'label': '1wk', 'value': '1wk'},
+            {'label': '1mo', 'value': '1mo'}
+        ]
+        value = '1d'
+    else:
+        options = [{'label': '1d', 'value': '1d'}]
+        value = '1d'
+    return options, value
+
 # Callback to update data with custom indicator parameters
 @callback(
     [Output('stock-data-store', 'data'),
@@ -1220,8 +1270,8 @@ def update_rsi_store_callback(period):
     [Input('interval-component', 'n_intervals'),
      Input('current-symbol-store', 'data'),
      Input('timeframe-dropdown', 'value'),
+     Input('frequency-dropdown', 'value'),
      Input('ema-periods-store', 'data'),
-     # Use store values instead of direct references to UI elements
      Input('macd-fast-store', 'data'),
      Input('macd-slow-store', 'data'),
      Input('macd-signal-store', 'data'),
@@ -1230,15 +1280,17 @@ def update_rsi_store_callback(period):
      Input('stochastic-period-store', 'data'),
      Input('rsi-period-store', 'data')]
 )
-def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
+def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
     """Call update_data function from functions module"""
-    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period)
+    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency)
 
 # Callback for combined chart
 @callback(
     [Output('combined-chart', 'figure'),
      Output('combined-chart', 'style'),
-     Output('market-closed-message', 'className')],
+     Output('market-closed-message', 'className'),
+     Output('intraday-warning-message', 'children'),
+     Output('intraday-warning-message', 'className')],
     [Input('stock-data-store', 'data'),
      Input('current-symbol-store', 'data'),
      Input('chart-type-dropdown', 'value'),
@@ -1248,63 +1300,51 @@ def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow
      Input('lower-chart-selection', 'value'),
      Input('adx-components-store', 'data'),
      Input('timeframe-dropdown', 'value'),
+     Input('frequency-dropdown', 'value'),
      Input('impulse-system-toggle', 'value'),
      Input('bollinger-bands-store', 'data'),
      Input('autoenvelope-store', 'data')],
     [State('combined-chart', 'relayoutData')],
     prevent_initial_call=False
 )
-def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
+def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, frequency, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Call update_combined_chart function from functions module"""
-    # Try to get volume comparison value, but don't require it
     ctx = dash.callback_context
     volume_comparison = 'none'  # Default value
-    
-    # Check if impulse system is enabled
     use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
-    
-    # Pass the figure, chart style, and market closed message
-    figure, style, market_closed = update_combined_chart(
-        data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
-        lower_chart_type, adx_components, volume_comparison, relayout_data, 
-        timeframe, use_impulse_system, bollinger_bands, autoenvelope
-    )
-    
-    return figure, style, market_closed
-    # Create a basic empty figure for when we're not showing the chart
-    empty_fig = go.Figure()
-    
-    # Check if we're in "Today" mode and data is empty (markets closed)
+    unreliable_warning = None
+    unreliable_class = 'alert alert-warning fade show d-none'
+
+    # Check for unreliable indicators in intraday views
+    is_intraday = timeframe in ['1d', 'yesterday']
+    if data and is_intraday:
+        import pandas as pd
+        df = pd.DataFrame(data)
+        unreliable_present = False
+        if 'unreliable_indicators' in df.columns:
+            unreliable_present = bool(df['unreliable_indicators'].any())
+        if unreliable_present:
+            unreliable_warning = (
+                html.Div([
+                    html.Span("⚠️", style={'color': '#ffc107', 'fontSize': '18px', 'marginRight': '8px'}),
+                    html.Span("Indicator lines (EMA, MACD, RSI, Stochastic, ADX) may be unreliable for the first bars of the session due to limited lookback data.", style={'color': '#fff', 'fontWeight': '500'}),
+                    html.Br(),
+                    html.Span("This is normal for intraday charts. The lines become reliable as more data accumulates.", style={'color': '#aaa', 'fontSize': '12px'})
+                ]),
+            )
+            unreliable_class = 'alert alert-warning fade show'
+
+    # Always show the Today view, even if empty
     if timeframe == '1d' and (not data or len(data) == 0):
-        now_local = datetime.now()
-        
-        # Determine if the market should be open right now based on ET time
-        # Convert local time to ET (assuming CEST, which is UTC+2, while ET in summer is UTC-4)
-        et_time = now_local - timedelta(hours=6)  # Rough adjustment from CEST to ET
-        is_weekend = et_time.weekday() >= 5  # Saturday=5, Sunday=6
-        
-        # Market hours: 9:30 AM - 4:00 PM ET, weekdays only
-        is_market_hours = (
-            not is_weekend and
-            ((et_time.hour > 9 or (et_time.hour == 9 and et_time.minute >= 30)) and
-             (et_time.hour < 16))
-        )
-        
-        # Only show the "markets closed" message during times when markets would normally be open
-        if is_market_hours:
-            # Market should be open, but no data - likely a holiday or issue
-            return empty_fig, {'display': 'none'}, 'd-block'
-        else:
-            # Outside normal market hours, show a message that reflects that
-            return empty_fig, {'display': 'none'}, 'd-block'
+        empty_fig = go.Figure()
+        return empty_fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-block', unreliable_warning, unreliable_class
     else:
-        # Normal case - show the chart and hide the message
-        # Pass relayout data to preserve zoom/pan state
-        fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, 
-                                   atr_bands, lower_chart_type, adx_components, 
-                                   volume_comparison, relayout_data, timeframe, 
-                                   use_impulse_system)
-        return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
+        fig, style, market_closed = update_combined_chart(
+            data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
+            lower_chart_type, adx_components, volume_comparison, relayout_data, 
+            timeframe, use_impulse_system, bollinger_bands, autoenvelope
+        )
+        return fig, style, market_closed, unreliable_warning, unreliable_class
 
 # Callback to hide EMA options for 1D timeframe
 @callback(
@@ -1810,26 +1850,14 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         random_sample = False
         if ctx.triggered:
             # Check if this was triggered by preset-random indirectly
-            if not elder_filters and rsi_preset == 'any' and (str(volume_preset) == '0' or volume_preset == 0):
-                random_sample = True
-
-        # Convert result_limit and volume_preset to int if they are strings
-        try:
-            result_limit_int = int(result_limit)
-        except Exception:
-            result_limit_int = 25
-        try:
-            volume_preset_int = int(volume_preset)
-        except Exception:
-            volume_preset_int = 500000
-        if volume_preset != volume_preset_int:
-            volume_preset = volume_preset_int
-
+            if not elder_filters and rsi_preset == 'any' and volume_preset == 0:
+                random_sample = 25
+        
         # Run the scan
         results_df = scanner.scan_stocks(
             filters=filters if not random_sample else None,
             universes=universe_selection or ['sp500'],
-            max_results=result_limit_int,
+            max_results=result_limit or 25,
             sort_by=sort_by or 'volume',
             random_sample=random_sample
         )
@@ -1853,33 +1881,33 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         
         # Create results table
         table_data = results_df.copy()
-
-        # Add display columns for formatted output, keep original columns for sorting
-        if 'price' in table_data.columns:
-            table_data['price_display'] = table_data['price'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
-        if 'ema_13' in table_data.columns:
-            table_data['ema_13_display'] = table_data['ema_13'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
-        if 'ema_26' in table_data.columns:
-            table_data['ema_26_display'] = table_data['ema_26'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+        
+        # Format data for display
+        for col in ['price', 'ema_13', 'ema_26']:
+            if col in table_data.columns:
+                table_data[col] = table_data[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+        
         if 'volume' in table_data.columns:
-            table_data['volume_display'] = table_data['volume'].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "N/A")
+            table_data['volume'] = table_data['volume'].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "N/A")
+        
         if 'price_change_pct' in table_data.columns:
-            table_data['price_change_pct_display'] = table_data['price_change_pct'].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A")
+            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A")
+        
         if 'rsi' in table_data.columns:
-            table_data['rsi_display'] = table_data['rsi'].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
-
-        # Create data table with numeric columns for sorting and display
+            table_data['rsi'] = table_data['rsi'].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
+        
+        # Create data table
         table = dash_table.DataTable(
             id='scan-results-table',
             data=table_data.to_dict('records'),
             columns=[
                 {'name': 'Symbol', 'id': 'symbol', 'type': 'text'},
-                {'name': 'Price', 'id': 'price', 'type': 'numeric'},
-                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
-                {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
-                {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
+                {'name': 'Price', 'id': 'price', 'type': 'text'},
+                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'text'},
+                {'name': 'Volume', 'id': 'volume', 'type': 'text'},
+                {'name': 'RSI', 'id': 'rsi', 'type': 'text'},
+                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'text'},
+                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'text'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'In Value Zone', 'id': 'in_value_zone', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'}
@@ -1907,7 +1935,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Green for positive changes
                 {
                     'if': {
-                        'filter_query': '{price_change_pct} > 0',
+                        'filter_query': '{price_change_pct} contains "+"',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -1916,7 +1944,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Red for negative changes
                 {
                     'if': {
-                        'filter_query': '{price_change_pct} < 0',
+                                               'filter_query': '{price_change_pct} contains "-"',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#4d1a1a',
