@@ -637,6 +637,40 @@ app.layout = dbc.Container([
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
                                         
                                         # EMA and ATR Settings Card (Main Chart Settings)
+                                        # Lower Chart Selection Card
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                # Lower Chart Selection
+                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                dbc.Select(
+                                                    id='lower-chart-selection',
+                                                    options=[
+                                                        {'label': '📊 Volume', 'value': 'volume'},
+                                                        {'label': '📈 MACD', 'value': 'macd'},
+                                                        {'label': '💪 Force Index', 'value': 'force'},
+                                                        {'label': '📉 A/D Line', 'value': 'ad'},
+                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
+                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+                                                        {'label': '📊 RSI', 'value': 'rsi'},
+                                                        {'label': '📈 OBV', 'value': 'obv'}
+                                                    ],
+                                                    value='volume',
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
+                                                
+                                                # Dynamic settings section with enhanced container
+                                                html.Div([
+                                                    html.Div(id='lower-chart-settings', children=[
+                                                        # Settings will be dynamically generated based on selection
+                                                    ])
+                                                ], style={
+                                                    'marginTop': '15px'
+                                                })
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}),
+
                                         dbc.Card([
                                             dbc.CardHeader(html.H5("📈 Main Chart Settings", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
@@ -791,41 +825,7 @@ app.layout = dbc.Container([
                                                     ], width=6)
                                                 ])
                                             ], style={'backgroundColor': '#000000'})
-                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
-                                        
-                                        # Lower Chart Selection Card
-                                        dbc.Card([
-                                            dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
-                                            dbc.CardBody([
-                                                # Lower Chart Selection
-                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
-                                                dbc.Select(
-                                                    id='lower-chart-selection',
-                                                    options=[
-                                                        {'label': '📊 Volume', 'value': 'volume'},
-                                                        {'label': '📈 MACD', 'value': 'macd'},
-                                                        {'label': '💪 Force Index', 'value': 'force'},
-                                                        {'label': '📉 A/D Line', 'value': 'ad'},
-                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
-                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
-                                                        {'label': '📊 RSI', 'value': 'rsi'},
-                                                        {'label': '📈 OBV', 'value': 'obv'}
-                                                    ],
-                                                    value='volume',
-                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
-                                                    className="mb-3"
-                                                ),
-                                                
-                                                # Dynamic settings section with enhanced container
-                                                html.Div([
-                                                    html.Div(id='lower-chart-settings', children=[
-                                                        # Settings will be dynamically generated based on selection
-                                                    ])
-                                                ], style={
-                                                    'marginTop': '15px'
-                                                })
-                                            ], style={'backgroundColor': '#000000'})
-                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3")
                                     ])
                                 ]
                             ),
