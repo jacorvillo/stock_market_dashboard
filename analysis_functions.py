@@ -41,7 +41,7 @@ def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
     _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
 
 # Function to fetch stock data with lookback for indicators
-def get_stock_data(symbol="SPY", period="1y"):
+def get_stock_data(symbol="SPY", period="1y", frequency=None):
     """Fetch stock data from yfinance with caching for faster ticker switching"""
     try:
         # Check cache first for non-intraday data (intraday needs real-time updates)
@@ -185,7 +185,8 @@ def get_stock_data(symbol="SPY", period="1y"):
             try:
                 # For intraday, fetch 5 days of minute data to include previous market periods
                 # This ensures indicators have enough historical data to calculate properly from market open
-                data = ticker.history(period="5d", interval="1m", timeout=5)  # Extended period for indicators
+                interval_arg = frequency if frequency else "1m"
+                data = ticker.history(period="5d", interval=interval_arg, timeout=5)  # Extended period for indicators
                 
                 # Convert timestamps to CEST timezone for display
                 data.reset_index(inplace=True)
@@ -258,13 +259,21 @@ def get_stock_data(symbol="SPY", period="1y"):
             
             # Try to fetch real stock data with reduced timeout for faster response
             ticker = yf.Ticker(symbol)
-            data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
+            interval_arg = frequency if frequency else None
+            if interval_arg:
+                data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout for faster switching
+            else:
+                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
         
         if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
             # Fallback to SPY if current symbol fails
             if symbol != "SPY":
                 ticker = yf.Ticker("SPY")
-                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout
+                interval_arg = frequency if frequency else None
+                if interval_arg:
+                    data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout
+                else:
+                    data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout
                 if data.empty:
                     raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
             else:
@@ -693,7 +702,7 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
     except Exception as e:
         return None
 
-def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
+def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency=None):
     """Update stock data periodically or when symbol/timeframe/parameters change"""
     error_msg = []
     error_class = "alert alert-warning fade show d-none"  # Hidden by default
@@ -721,10 +730,10 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             if cached_result is not None:
                 full_data, start_date, end_date, is_minute_data = cached_result
             else:
-                full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe)
+                full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe, frequency)
                 _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)  # Cache the result
         except Exception as data_error:
-            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)  # Fall back to SPY
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)  # Fall back to SPY
             error_msg = [
                 html.I(className="fas fa-exclamation-triangle me-2"),
                 f"Could not fetch data for symbol '{symbol}'. Using sample data instead. ",
@@ -776,7 +785,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             if timeframe in ["1d", "yesterday"]:
                 return [], [], "alert alert-warning fade show d-none"  # Hidden error class
             
-            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)
             df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, fast_mode=True)
             
             # Ensure timezone-naive comparison

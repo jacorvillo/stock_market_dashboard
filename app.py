@@ -579,6 +579,20 @@ app.layout = dbc.Container([
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
                                                 ),
                                                 
+                                                # Add frequency dropdown below timeframe dropdown
+                                                dbc.Label("Frequency:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Select(
+                                                    id='frequency-dropdown',
+                                                    options=[
+                                                        {'label': '1m', 'value': '1m'},
+                                                        {'label': '2m', 'value': '2m'},
+                                                        {'label': '10m', 'value': '10m'}
+                                                    ],
+                                                    value='1m',
+                                                    className="mb-3",
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'}
+                                                ),
+                                                
                                                 # Chart Type Section
                                                 dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
                                                 dbc.Select(
@@ -1209,6 +1223,39 @@ def update_rsi_store_callback(period):
     """Call update_rsi_store function from functions module"""
     return update_rsi_store(period)
 
+# Add a callback to update frequency options based on timeframe
+@callback(
+    [Output('frequency-dropdown', 'options'), Output('frequency-dropdown', 'value')],
+    [Input('timeframe-dropdown', 'value')]
+)
+def update_frequency_options(timeframe):
+    if timeframe in ['1d', 'yesterday']:
+        options = [
+            {'label': '1m', 'value': '1m'},
+            {'label': '2m', 'value': '2m'},
+            {'label': '5m', 'value': '5m'},
+            {'label': '15m', 'value': '15m'}
+        ]
+        value = '1m'
+    elif timeframe in ['1mo', '6mo']:
+        options = [
+            {'label': '1d', 'value': '1d'},
+            {'label': '1h', 'value': '1h'},
+            {'label': '4h', 'value': '4h'}
+        ]
+        value = '1d'
+    elif timeframe in ['1y', '5y', 'max']:
+        options = [
+            {'label': '1d', 'value': '1d'},
+            {'label': '1wk', 'value': '1wk'},
+            {'label': '1mo', 'value': '1mo'}
+        ]
+        value = '1d'
+    else:
+        options = [{'label': '1d', 'value': '1d'}]
+        value = '1d'
+    return options, value
+
 # Callback to update data with custom indicator parameters
 @callback(
     [Output('stock-data-store', 'data'),
@@ -1217,8 +1264,8 @@ def update_rsi_store_callback(period):
     [Input('interval-component', 'n_intervals'),
      Input('current-symbol-store', 'data'),
      Input('timeframe-dropdown', 'value'),
+     Input('frequency-dropdown', 'value'),
      Input('ema-periods-store', 'data'),
-     # Use store values instead of direct references to UI elements
      Input('macd-fast-store', 'data'),
      Input('macd-slow-store', 'data'),
      Input('macd-signal-store', 'data'),
@@ -1227,9 +1274,9 @@ def update_rsi_store_callback(period):
      Input('stochastic-period-store', 'data'),
      Input('rsi-period-store', 'data')]
 )
-def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
+def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
     """Call update_data function from functions module"""
-    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period)
+    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency)
 
 # Callback for combined chart
 @callback(
@@ -1245,13 +1292,14 @@ def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow
      Input('lower-chart-selection', 'value'),
      Input('adx-components-store', 'data'),
      Input('timeframe-dropdown', 'value'),
+     Input('frequency-dropdown', 'value'),  # <-- add this line
      Input('impulse-system-toggle', 'value'),
      Input('bollinger-bands-store', 'data'),
      Input('autoenvelope-store', 'data')],
     [State('combined-chart', 'relayoutData')],
     prevent_initial_call=False
 )
-def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
+def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, frequency, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Call update_combined_chart function from functions module"""
     # Try to get volume comparison value, but don't require it
     ctx = dash.callback_context
