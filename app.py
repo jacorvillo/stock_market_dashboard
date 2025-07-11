@@ -12,6 +12,9 @@ import dash_bootstrap_components as dbc
 import yfinance as yf
 import ta
 import json
+import xarray as xr
+import os
+from dash.dependencies import ALL
 
 # Import functions from functions.py
 from analysis_functions import (
@@ -40,6 +43,9 @@ from scanner_functions import StockScanner, get_preset_filter, get_available_pre
 
 # Import insights functions
 from insights_functions import TechnicalInsights, generate_insights_summary
+
+# Import IRL trading functions
+from irl_trading_functions import open_position, close_position
 
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
@@ -426,7 +432,9 @@ app.layout = dbc.Container([
                                                                 {'label': '🏛️ Dow Jones 30', 'value': 'dow30'},
                                                                 {'label': '📊 Popular ETFs', 'value': 'etfs'},
                                                                 {'label': '🌱 Growth Stocks', 'value': 'growth'},
-                                                                {'label': '💰 Dividend Stocks', 'value': 'dividend'}
+                                                                {'label': '💰 Dividend Stocks', 'value': 'dividend'},
+                                                                {'label': '🇪🇸 Spanish Stocks', 'value': 'spanish'},
+                                                                {'label': '🇪🇸 Spanish Indices', 'value': 'spanish_indices'}
                                                             ],
                                                             value=['sp500'],
                                                             style={'color': '#fff'},
@@ -956,6 +964,55 @@ app.layout = dbc.Container([
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                                     ])
                                 ]
+                            ),
+                            # IRL Trade Tab
+                            dbc.Tab(
+                                label="💸 IRL Trade",
+                                tab_id="irl-trade-tab",
+                                children=[
+                                    html.Div(style={'padding': '15px 0'}, children=[
+                                        dbc.Card([
+                                            dbc.CardHeader(
+                                                html.H4("💸 IRL Trade Simulator", className="text-center", style={'color': '#00d4aa'})
+                                            ),
+                                            dbc.CardBody([
+                                                # Equity display with hide/show button
+                                                html.Div([
+                                                    html.Div(id="irl-equity-display", style={'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                    dbc.Button("Hide Equity", id="irl-hide-equity-btn", color="secondary", size="sm", className="mb-2"),
+                                                ], style={'marginBottom': '20px'}),
+
+                                                # Stock search
+                                                dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Input(id='irl-stock-symbol-input', placeholder="Enter stock symbol", type="text", className="mb-3 text-uppercase"),
+
+                                                # Open position form
+                                                dbc.Label("Open Position:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.RadioItems(
+                                                    id='irl-buy-sell-radio',
+                                                    options=[
+                                                        {'label': 'Buy', 'value': 'buy'},
+                                                        {'label': 'Sell', 'value': 'sell'}
+                                                    ],
+                                                    value='buy',
+                                                    inline=True,
+                                                    className="mb-2"
+                                                ),
+                                                dbc.Input(id='irl-amount-input', placeholder="Amount to invest", type="number", className="mb-2"),
+                                                dbc.Input(id='irl-stop-input', placeholder="Stop price", type="number", className="mb-2"),
+                                                dbc.Input(id='irl-target-input', placeholder="Target price", type="number", className="mb-2"),
+                                                dbc.Button("Open Position", id="irl-open-position-btn", color="success", className="mb-3 w-100"),
+                                                html.Div(id="irl-open-position-status", className="mb-3"),
+
+                                                html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
+
+                                                # Close position section
+                                                dbc.Label("Close Position:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                html.Div(id="irl-open-positions-list"),
+                                            ])
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
+                                    ])
+                                ]
                             )
                         ],
                         style={'backgroundColor': '#000000'}
@@ -1061,9 +1118,9 @@ app.layout = dbc.Container([
     # Store components for data and symbol
     dcc.Store(id='stock-data-store'),
     dcc.Store(id='current-symbol-store', data='SPY'),
-    dcc.Store(id='ema-periods-store', data=[13, 26])
-    
-], fluid=True, style={'backgroundColor': '#000000', 'minHeight': '100vh'})
+    dcc.Store(id='ema-periods-store', data=[13, 26]),
+    dcc.Store(id='irl-equity-store'),
+])
 
 # Callback to update dynamic lower chart settings based on selection
 @callback(
@@ -2104,6 +2161,159 @@ def switch_view_on_tab_change(active_tab):
             'display': 'block'
         }
     raise PreventUpdate
+
+# === IRL TRADE CALLBACKS ===
+
+# Helper to load the NetCDF file
+IRL_NETCDF_PATH = 'equity_data.nc'
+
+def load_irl_ds():
+    if os.path.exists(IRL_NETCDF_PATH):
+        return xr.load_dataset(IRL_NETCDF_PATH)
+    else:
+        # Create a new one if not exists
+        import create_equity_file
+        return xr.load_dataset(IRL_NETCDF_PATH)
+
+def save_irl_ds(ds):
+    ds.to_netcdf(IRL_NETCDF_PATH)
+
+# Callback: Load equity on tab open or after trade
+@callback(
+    Output('irl-equity-store', 'data'),
+    Input('sidebar-tabs', 'active_tab'),
+    Input('irl-open-position-btn', 'n_clicks'),
+    Input({'type': 'irl-close-btn', 'index': ALL}, 'n_clicks'),
+    prevent_initial_call=False
+)
+def update_irl_equity_store(tab, open_n, close_n):
+    # Only update if IRL tab is active or trade action
+    ctx = dash.callback_context
+    if tab == 'irl-trade-tab' or ctx.triggered:
+        ds = load_irl_ds()
+        # Convert to dict for dcc.Store (xarray to_dict is compatible)
+        return ds.to_dict()
+    raise PreventUpdate
+
+# Callback: Display equity (color-coded, hideable)
+@callback(
+    Output('irl-equity-display', 'children'),
+    Output('irl-equity-display', 'style'),
+    Input('irl-equity-store', 'data'),
+    Input('irl-hide-equity-btn', 'n_clicks'),
+    prevent_initial_call=False
+)
+def display_irl_equity(data, hide_n):
+    if not data:
+        return "No equity data.", {'display': 'block'}
+    ds = xr.Dataset.from_dict(data)
+    eq = float(ds['equity'].values[-1])
+    prev_eq = float(ds['equity'].values[-2]) if len(ds['equity'].values) > 1 else eq
+    color = '#00ff88' if eq >= prev_eq else '#ff4444'
+    style = {'color': color, 'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '10px'}
+    # Hide if button pressed odd times
+    if hide_n and hide_n % 2 == 1:
+        style['display'] = 'none'
+    return f"Current Equity: ${eq:,.2f}", style
+
+# Callback: Open position
+@callback(
+    Output('irl-open-position-status', 'children'),
+    Output('irl-equity-store', 'data', allow_duplicate=True),
+    Input('irl-open-position-btn', 'n_clicks'),
+    State('irl-equity-store', 'data'),
+    State('irl-stock-symbol-input', 'value'),
+    State('irl-buy-sell-radio', 'value'),
+    State('irl-amount-input', 'value'),
+    State('irl-stop-input', 'value'),
+    State('irl-target-input', 'value'),
+    prevent_initial_call=True
+)
+def open_irl_position(n, data, symbol, side, amount, stop, target):
+    if not n:
+        raise PreventUpdate
+    if not symbol or not amount or not stop or not target:
+        return "Please fill all fields.", dash.no_update
+    ds = xr.Dataset.from_dict(data) if data else load_irl_ds()
+    # For sell, amount is negative
+    amt = float(amount) if side == 'buy' else -float(amount)
+    try:
+        ds2 = open_position(ds, symbol.upper(), amt, price_at_entry=amt/float(amount) if float(amount)!=0 else 1, stop_price=float(stop))
+        # Set target price in the last record
+        ds2['target_price'].values[-1] = float(target)
+        save_irl_ds(ds2)
+        return "Position opened!", ds2.to_dict()
+    except Exception as e:
+        return f"Error: {e}", dash.no_update
+
+# Callback: List open positions
+@callback(
+    Output('irl-open-positions-list', 'children'),
+    Input('irl-equity-store', 'data'),
+    prevent_initial_call=False
+)
+def list_irl_open_positions(data):
+    if not data:
+        return "No positions."
+    ds = xr.Dataset.from_dict(data)
+    open_mask = (ds['open_positions'].values == 1.0)
+    if not open_mask.any():
+        return "No open positions."
+    items = []
+    for idx in range(len(ds['open_positions'].values)):
+        if open_mask[idx]:
+            stock = ds['stocks_in_positions'].values[idx]
+            amt = ds['amount_invested'].values[idx]
+            stop = ds['stop_price'].values[idx]
+            target = ds['target_price'].values[idx] if 'target_price' in ds else None
+            items.append(
+                dbc.Row([
+                    dbc.Col(html.Div(f"{stock} | Amount: {amt} | Stop: {stop} | Target: {target}")),
+                    dbc.Col([
+                        dbc.Input(id={'type': 'irl-close-price', 'index': idx}, placeholder="Close price", type="number", size="sm", style={'width': '100px', 'display': 'inline-block', 'marginRight': '5px'}),
+                        dbc.Button("Close", id={'type': 'irl-close-btn', 'index': idx}, color="danger", size="sm", style={'display': 'inline-block'})
+                    ], width=5)
+                ], className="mb-2")
+            )
+    return items
+
+# Callback: Close position
+@callback(
+    Output('irl-equity-store', 'data', allow_duplicate=True),
+    Output('irl-open-position-status', 'children', allow_duplicate=True),
+    Input({'type': 'irl-close-btn', 'index': ALL}, 'n_clicks'),
+    State({'type': 'irl-close-price', 'index': ALL}, 'value'),
+    State('irl-equity-store', 'data'),
+    prevent_initial_call=True
+)
+def close_irl_position(close_n, close_prices, data):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    # Find which button was pressed
+    for i, n in enumerate(close_n):
+        if n:
+            idx = i
+            break
+    else:
+        raise PreventUpdate
+    ds = xr.Dataset.from_dict(data) if data else load_irl_ds()
+    # Get stock and price
+    open_mask = (ds['open_positions'].values == 1.0)
+    open_idxs = [i for i, v in enumerate(open_mask) if v]
+    if idx >= len(open_idxs):
+        return dash.no_update, "Invalid position."
+    pos_idx = open_idxs[idx]
+    stock = ds['stocks_in_positions'].values[pos_idx]
+    price = close_prices[idx]
+    if not price:
+        return dash.no_update, "Please enter a close price."
+    try:
+        ds2 = close_position(ds, stock, float(price))
+        save_irl_ds(ds2)
+        return ds2.to_dict(), f"Closed {stock} at {price}"
+    except Exception as e:
+        return dash.no_update, f"Error: {e}"
 
 # Run the server
 if __name__ == '__main__':

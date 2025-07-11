@@ -79,6 +79,18 @@ class StockScanner:
                 'JNJ', 'PG', 'KO', 'PEP', 'WMT', 'MCD', 'VZ', 'T', 'XOM', 'CVX',
                 'PM', 'MO', 'SO', 'DUK', 'NEE', 'D', 'AEP', 'EXC', 'SRE', 'PEG',
                 'O', 'STOR', 'WPC', 'NNN', 'ADC', 'STAG', 'EPR', 'GOOD', 'SRC', 'VICI'
+            ],
+            'spanish stocks': [
+                # Spanish stocks (IBEX 35, main .MC tickers)
+                'SAN.MC', 'BBVA.MC', 'ITX.MC', 'IBE.MC', 'REP.MC', 'TEF.MC', 'AMS.MC', 'AENA.MC',
+                'ANA.MC', 'CABK.MC', 'CLNX.MC', 'COL.MC', 'ENG.MC', 'FER.MC', 'GRF.MC', 'IAG.MC',
+                'MAP.MC', 'MEL.MC', 'MRL.MC', 'NTGY.MC', 'PHM.MC', 'RED.MC', 'SGRE.MC', 'SLR.MC',
+                'SAB.MC', 'ACS.MC', 'ALM.MC', 'BKT.MC', 'CIE.MC', 'ELE.MC', 'LOG.MC', 'VIS.MC',
+                # Add more .MC tickers as needed
+            ],
+            'spanish indices': [
+                # Spanish indices and ETFs (as available on Yahoo Finance)
+                '^IBEX', 'EWP', 'ES35.MI', 'IBEX.MC', 'BME.MC', 'XES.MC'
             ]
         }
     
@@ -266,6 +278,17 @@ class StockScanner:
         
         return unique_symbols
     
+    def filter_spanish_stocks(self, symbols):
+        """Filter a list of symbols to only those ending in .MC (Spanish stocks)"""
+        return [s for s in symbols if s.endswith('.MC')]
+    
+    def filter_spanish_indices(self, symbols):
+        """Filter a list of symbols to only those that are Spanish indices/ETFs (customize as needed)"""
+        spanish_indices = set([
+            '^IBEX', 'EWP', 'ES35.MI', 'IBEX.MC', 'BME.MC', 'XES.MC'
+        ])
+        return [s for s in symbols if s in spanish_indices]
+
     def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False):
         """
         Perform stock scan with filters
