@@ -8,13 +8,12 @@ Current look:
 
 ## Features
 
-This dashboard provides real-time US stock data from Yahoo Finance with multiple timeframes. Works with any US stock symbol (so long as it's available). Other markets (forex, crypto, etc.) don't work yet, though I plan to add them in the (long-term) future
+This dashboard provides real-time US stock data from Yahoo Finance with multiple timeframes. Works with any stock symbol (so long as it's available)
 
 As of now, the dashboard includes:
 
-- **Scanner**: Find stocks based on technical indicators and other criteria
+- **Scanner**: Find US stocks and ETFs based on technical indicators and other criteria
 - **Analysis** (Ongoing): View real-time stock data at multiple timeframes with technical indicators. Includes Impulse System visualization
-- **Insights** (Ongoing): Get buy/sell signals based on different technical indicators
 
 > [!TIP] 
 > Current indicators available:
@@ -27,9 +26,19 @@ As of now, the dashboard includes:
 > - Slow Stochastic*: %K and %D lines
 > - RSI (Relative Strength Index)*
 > - OBV (On-Balance Volume)*
+> - Bollinger Bands*
+> - Autoenvelope*
 >
 > *Timeframe can be changed for these indicators
 
+> [!IMPORTANT] 
+> Indicators that I plan to add:
+> - New High/New Low index
+> - Stocks above 50-day EMA
+> - Consensus and commitment indicators (Short interest, Days to cover)
+> - Open Interest for options
+
+- **Insights** (Ongoing): Get buy/sell signals based on different technical indicators
 
 ## Requirements
 - Python 3.8+
@@ -55,18 +64,9 @@ Open `http://localhost:8050` in your browser to view the dashboard.
 ## Todo
 
 - [ ] (Short term) Implement additional technical indicators
-
-> [!IMPORTANT] 
-> Indicators that I plan to add:
-> - %R (Williams %R)
-> - New High/New Low index
-> - Consensus and commitment indicators
-> - Others
-
 - [ ] (Short/long term) Insights: signals (buy/sell) based on technical indicators, both in the chart and as alerts
-- [ ] (Longer term) Add popular system trading strategies (Triple Screen Trading System, Impulse System, Channel trading)
+- [ ] (Longer term) Add popular system trading strategies (Triple Screen Trading System, ~~Impulse System, Channel trading~~)
 - [ ] (Longer term) Analysis: Add backtesting functionality to test strategies against historical data
-- [ ] (Longer term) Expand to other markets (ETFs, Options, CFDs, futures, forex)
 
 ## License
 
