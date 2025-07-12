@@ -1097,13 +1097,13 @@ app.layout = dbc.Container([
                 id="main-content-area",
                 style={'height': '90vh', 'backgroundColor': '#000000', 'position': 'relative'},
                 children=[
-                    # Intraday warning message component (positioned absolutely)
+                    # Intraday warning message component (positioned absolutely at bottom)
                     html.Div(
                         id="intraday-warning-message",
                         className="alert alert-warning fade show d-none",
                         style={
                             'position': 'absolute',
-                            'top': '10px',
+                            'bottom': '10px',
                             'left': '10px',
                             'right': '10px',
                             'zIndex': 1001,
