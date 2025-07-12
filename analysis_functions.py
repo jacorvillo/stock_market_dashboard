@@ -1041,8 +1041,10 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                             y=upper_band,
                             mode='lines',
                             name=f'+{band_multiplier} ATR',
-                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
-                        )
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot'),
+                            showlegend=False
+                        ),
+                        row=1, col=1
                     )
                     
                     # Lower band
@@ -1052,11 +1054,13 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                             y=lower_band,
                             mode='lines',
                             name=f'-{band_multiplier} ATR',
-                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
-                        )
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot'),
+                            showlegend=False
+                        ),
+                        row=1, col=1
                     )
-                except Exception as e:
-                    pass
+                except ValueError:
+                    continue
 
         # Previous code for adding a horizontal close line was here
         # This has been replaced with a better implementation later in the function
@@ -1731,7 +1735,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=upper_band,
                             mode='lines',
                             name=f'+{band_multiplier} ATR',
-                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot'),
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
@@ -1743,7 +1748,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             y=lower_band,
                             mode='lines',
                             name=f'-{band_multiplier} ATR',
-                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot')
+                            line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dot'),
+                            showlegend=False
                         ),
                         row=1, col=1
                     )
