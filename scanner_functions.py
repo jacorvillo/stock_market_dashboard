@@ -252,7 +252,7 @@ class StockScanner:
                 'in_value_zone': self._check_value_zone(latest_close, latest_ema_13, latest_ema_26),
                 'above_ema_13': latest_close > latest_ema_13 if not pd.isna(latest_ema_13) else False,
                 'above_ema_26': latest_close > latest_ema_26 if not pd.isna(latest_ema_26) else False,
-                'ema_trend': 'bullish' if (not pd.isna(latest_ema_13) and not pd.isna(latest_ema_26) and latest_ema_13 > latest_ema_26) else 'bearish',
+                'ema_trend': 'Bullish' if (not pd.isna(latest_ema_13) and not pd.isna(latest_ema_26) and latest_ema_13 > latest_ema_26) else 'Bearish',
                 'rsi': round(latest_rsi, 2) if not pd.isna(latest_rsi) else None,
                 'rsi_extreme': rsi_extreme,
                 'macd_signal': self._get_macd_signal(latest_macd, latest_signal),
@@ -281,24 +281,24 @@ class StockScanner:
     def _get_macd_signal(self, macd_line, signal_line):
         """Get simplified MACD signal"""
         if pd.isna(macd_line) or pd.isna(signal_line):
-            return 'neutral'
+            return 'Neutral'
         
         if macd_line > signal_line:
-            return 'bullish'
+            return 'Bullish'
         else:
-            return 'bearish'
+            return 'Bearish'
     
     def _detect_divergences(self, close_prices, rsi, macd_line, lookback=10):
         """Detect bullish and bearish divergences between price and indicators"""
         if len(close_prices) < lookback:
-            return {'macd_divergence': 'none', 'rsi_divergence': 'none'}
+            return {'macd_divergence': 'None', 'rsi_divergence': 'None'}
         
         # Get recent data for analysis
         recent_close = close_prices.tail(lookback)
         recent_rsi = rsi.tail(lookback) if rsi is not None and len(rsi) >= lookback else None
         recent_macd = macd_line.tail(lookback) if macd_line is not None and len(macd_line) >= lookback else None
         
-        divergences = {'macd_divergence': 'none', 'rsi_divergence': 'none'}
+        divergences = {'macd_divergence': 'None', 'rsi_divergence': 'None'}
         
         # RSI Divergence Detection
         if recent_rsi is not None and not recent_rsi.isna().all():
@@ -306,9 +306,9 @@ class StockScanner:
             rsi_trend = recent_rsi.iloc[-1] > recent_rsi.iloc[0]
             
             if price_trend and not rsi_trend:
-                divergences['rsi_divergence'] = 'bearish'
+                divergences['rsi_divergence'] = 'Bearish'
             elif not price_trend and rsi_trend:
-                divergences['rsi_divergence'] = 'bullish'
+                divergences['rsi_divergence'] = 'Bullish'
         
         # MACD Divergence Detection
         if recent_macd is not None and not recent_macd.isna().all():
@@ -316,27 +316,27 @@ class StockScanner:
             macd_trend = recent_macd.iloc[-1] > recent_macd.iloc[0]
             
             if price_trend and not macd_trend:
-                divergences['macd_divergence'] = 'bearish'
+                divergences['macd_divergence'] = 'Bearish'
             elif not price_trend and macd_trend:
-                divergences['macd_divergence'] = 'bullish'
+                divergences['macd_divergence'] = 'Bullish'
         
         return divergences
     
     def _detect_rsi_extremes(self, rsi):
         """Detect RSI overbought and oversold conditions"""
         if rsi is None or len(rsi) == 0 or rsi.isna().all():
-            return 'neutral'
+            return 'Neutral'
         
         latest_rsi = rsi.iloc[-1]
         if pd.isna(latest_rsi):
-            return 'neutral'
+            return 'Neutral'
         
         if latest_rsi >= 70:
-            return 'overbought'
+            return 'Overbought'
         elif latest_rsi <= 30:
-            return 'oversold'
+            return 'Oversold'
         else:
-            return 'neutral'
+            return 'Neutral'
     
     def _get_universe_symbols(self, selected_universes):
         """Get all symbols from selected universes"""
@@ -599,8 +599,8 @@ PRESET_FILTERS = {
         'name': 'Divergence Signs',
         'description': 'Stocks showing bullish or bearish divergence signals',
         'filters': {
-            'macd_divergence': 'any',  # Will be set to 'bullish' or 'bearish' in UI
-            'rsi_divergence': 'any',   # Will be set to 'bullish' or 'bearish' in UI
+            'macd_divergence': 'any',  # Will be set to 'Bullish' or 'Bearish' in UI
+            'rsi_divergence': 'any',   # Will be set to 'Bullish' or 'Bearish' in UI
             'min_volume': 500000
         }
     },
@@ -608,7 +608,7 @@ PRESET_FILTERS = {
         'name': 'RSI Extremes',
         'description': 'Stocks with RSI overbought (>70) or oversold (<30) conditions',
         'filters': {
-            'rsi_extreme': 'any',  # Will be set to 'overbought' or 'oversold' in UI
+            'rsi_extreme': 'any',  # Will be set to 'Overbought' or 'Oversold' in UI
             'min_volume': 500000
         }
     },
@@ -616,8 +616,8 @@ PRESET_FILTERS = {
         'name': 'Bullish Momentum',
         'description': 'EMA bullish alignment with MACD above signal',
         'filters': {
-            'ema_trend': 'bullish',
-            'macd_signal': 'bullish',
+            'ema_trend': 'Bullish',
+            'macd_signal': 'Bullish',
             'above_ema_13': True,
             'min_volume': 500000
         }
@@ -650,7 +650,7 @@ PRESET_FILTERS = {
         'name': 'Spanish Momentum Stocks',
         'description': 'Spanish stocks with bullish momentum',
         'filters': {
-            'ema_trend': 'bullish',
+            'ema_trend': 'Bullish',
             'above_ema_13': True,
             'min_volume': 100000
         }
