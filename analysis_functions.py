@@ -2698,24 +2698,24 @@ def update_indicator_options(timeframe):
     is_intraday = timeframe in ['1d', 'yesterday']
     if is_intraday:
         lower_options = [
-            {'label': 'Volume', 'value': 'volume'},
-            {'label': 'MACD', 'value': 'macd'},
-            {'label': 'A/D Line', 'value': 'ad'},
-            {'label': 'ADX/DMI', 'value': 'adx'},
-            {'label': 'Slow Stochastic', 'value': 'stochastic'},
-            {'label': 'RSI', 'value': 'rsi'},
-            {'label': 'OBV', 'value': 'obv'}
+            {'label': '📊 Volume', 'value': 'volume'},
+            {'label': '📈 MACD', 'value': 'macd'},
+            {'label': '📉 A/D Line', 'value': 'ad'},
+            {'label': '📊 ADX/DI', 'value': 'adx'},
+            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+            {'label': '📊 RSI', 'value': 'rsi'},
+            {'label': '📈 OBV', 'value': 'obv'}
         ]
     else:
         lower_options = [
-            {'label': 'Volume', 'value': 'volume'},
-            {'label': 'MACD', 'value': 'macd'},
-            {'label': 'Force Index', 'value': 'force'},
-            {'label': 'A/D Line', 'value': 'ad'},
-            {'label': 'ADX/DMI', 'value': 'adx'},
-            {'label': 'Slow Stochastic', 'value': 'stochastic'},
-            {'label': 'RSI', 'value': 'rsi'},
-            {'label': 'OBV', 'value': 'obv'}
+            {'label': '📊 Volume', 'value': 'volume'},
+            {'label': '📈 MACD', 'value': 'macd'},
+            {'label': '💪 Force Index', 'value': 'force'},
+            {'label': '📉 A/D Line', 'value': 'ad'},
+            {'label': '📊 ADX/DI', 'value': 'adx'},
+            {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+            {'label': '📊 RSI', 'value': 'rsi'},
+            {'label': '📈 OBV', 'value': 'obv'}
         ]
     return ema_style, ema_style, lower_options
 
