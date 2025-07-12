@@ -942,11 +942,11 @@ app.layout = dbc.Container([
                                                         {
                                                             'label': html.Div([
                                                                 html.Div([
-                                                                    "⚡ Day Trading",
-                                                                    html.Small(" (Intraday positions)", style={'color': '#ccc', 'display': 'block', 'fontStyle': 'italic'})
+                                                                    "⚡ Short Term",
+                                                                    html.Small(" (Today's data only)", style={'color': '#ccc', 'display': 'block', 'fontStyle': 'italic'})
                                                                 ], style={'marginLeft': '8px'})
                                                             ]), 
-                                                            'value': 'day_trading'
+                                                            'value': 'short_term'
                                                         },
                                                         {
                                                             'label': html.Div([
@@ -956,15 +956,6 @@ app.layout = dbc.Container([
                                                                 ], style={'marginLeft': '8px'})
                                                             ]), 
                                                             'value': 'swing_trading'
-                                                        },
-                                                        {
-                                                            'label': html.Div([
-                                                                html.Div([
-                                                                    "🌱 Long-term Trading",
-                                                                    html.Small(" (Weeks to months)", style={'color': '#ccc', 'display': 'block', 'fontStyle': 'italic'})
-                                                                ], style={'marginLeft': '8px'})
-                                                            ]), 
-                                                            'value': 'longterm_trading'
                                                         }
                                                     ],
                                                     value='swing_trading',  # Default to swing trading
@@ -1644,9 +1635,11 @@ def run_insights_analysis(run_clicks, n_submit, insights_symbol, trading_style):
                      style={'marginLeft': '10px', 'color': '#00d4aa'})
         ])
         
-        # Get current stock data with all indicators
-        # Use the same timeframe as the main chart (default to 6M for comprehensive analysis)
-        timeframe = '6mo'  # Good balance of data and relevance for insights
+        # Determine timeframe based on trading style
+        if trading_style == 'short_term':
+            timeframe = '1d'  # Today's data only
+        else:
+            timeframe = '6mo'  # Good balance of data and relevance for swing trading
         
         # Fetch stock data with indicators
         stock_data_result = get_stock_data(symbol, timeframe)
@@ -1657,6 +1650,18 @@ def run_insights_analysis(run_clicks, n_submit, insights_symbol, trading_style):
         else:
             stock_data = stock_data_result
         
+        # Handle market closed scenario for Short Term analysis
+        if trading_style == 'short_term' and (stock_data is None or stock_data.empty):
+            market_closed_status = html.Div([
+                html.Span("⚠️", style={'color': '#ffc107', 'marginRight': '10px', 'fontSize': '16px'}),
+                html.Span(f"Market is currently closed for {symbol}", style={'color': '#ffc107'}),
+                html.Br(),
+                html.Small("Short Term analysis requires today's market data. Try again during market hours (9:30AM - 4:00PM ET).", 
+                          style={'color': '#ccc', 'fontStyle': 'italic'})
+            ])
+            return [market_closed_status, [], dash.no_update]
+        
+        # Handle general data fetch errors
         if stock_data is None or stock_data.empty:
             return [
                 dbc.Alert(f"Unable to fetch data for {symbol}. Please try again.", color="danger", className="mt-2"),
@@ -1711,9 +1716,8 @@ def create_insights_results_layout(insights_data, trading_style):
     
     # Get trading style info
     style_info = {
-        'day_trading': {'name': 'Day Trading', 'emoji': '⚡', 'color': '#ff6b6b'},
-        'swing_trading': {'name': 'Swing Trading', 'emoji': '📊', 'color': '#4ecdc4'},
-        'longterm_trading': {'name': 'Long-term Trading', 'emoji': '🌱', 'color': '#45b7d1'}
+        'short_term': {'name': 'Short Term', 'emoji': '⚡', 'color': '#ff6b6b'},
+        'swing_trading': {'name': 'Swing Trading', 'emoji': '📊', 'color': '#4ecdc4'}
     }
     current_style = style_info.get(trading_style, style_info['swing_trading'])
     
