@@ -80,15 +80,20 @@ class StockScanner:
                 'PM', 'MO', 'SO', 'DUK', 'NEE', 'D', 'AEP', 'EXC', 'SRE', 'PEG',
                 'O', 'STOR', 'WPC', 'NNN', 'ADC', 'STAG', 'EPR', 'GOOD', 'SRC', 'VICI'
             ],
-            'spanish stocks': [
-                # Spanish stocks (IBEX 35, main .MC tickers)
+            'spanish': [
+                # Spanish stocks (IBEX 35, main .MC tickers) - Updated comprehensive list
                 'SAN.MC', 'BBVA.MC', 'ITX.MC', 'IBE.MC', 'REP.MC', 'TEF.MC', 'AMS.MC', 'AENA.MC',
                 'ANA.MC', 'CABK.MC', 'CLNX.MC', 'COL.MC', 'ENG.MC', 'FER.MC', 'GRF.MC', 'IAG.MC',
                 'MAP.MC', 'MEL.MC', 'MRL.MC', 'NTGY.MC', 'PHM.MC', 'RED.MC', 'SGRE.MC', 'SLR.MC',
                 'SAB.MC', 'ACS.MC', 'ALM.MC', 'BKT.MC', 'CIE.MC', 'ELE.MC', 'LOG.MC', 'VIS.MC',
-                # Add more .MC tickers as needed
+                # Additional IBEX 35 stocks
+                'ACX.MC', 'ACR.MC', 'ACS.MC', 'AENA.MC', 'AMS.MC', 'ANA.MC', 'BBVA.MC', 'BKT.MC',
+                'CABK.MC', 'CIE.MC', 'CLNX.MC', 'COL.MC', 'ELE.MC', 'ENG.MC', 'FER.MC', 'GRF.MC',
+                'IAG.MC', 'IBE.MC', 'ITX.MC', 'LOG.MC', 'MAP.MC', 'MEL.MC', 'MRL.MC', 'NTGY.MC',
+                'PHM.MC', 'RED.MC', 'REP.MC', 'SAB.MC', 'SAN.MC', 'SGRE.MC', 'SLR.MC', 'TEF.MC',
+                'VIS.MC', 'ZAL.MC'
             ],
-            'spanish indices': [
+            'spanish_indices': [
                 # Spanish indices and ETFs (as available on Yahoo Finance)
                 '^IBEX', 'EWP', 'ES35.MI', 'IBEX.MC', 'BME.MC', 'XES.MC'
             ]
@@ -150,10 +155,16 @@ class StockScanner:
         try:
             # Create a fresh ticker object for thread safety
             ticker = yf.Ticker(symbol)
-            data = ticker.history(period=period)
+            
+            # Special handling for Spanish stocks - they may have different data availability
+            if symbol.endswith('.MC'):
+                # Spanish stocks might need longer period for sufficient data
+                data = ticker.history(period='1y')  # Use 1 year for Spanish stocks
+            else:
+                data = ticker.history(period=period)
             
             # Check if data is valid
-            if data is None or len(data) == 0 or len(data) < 50:
+            if data is None or len(data) == 0 or len(data) < 30:  # Reduced minimum for Spanish stocks
                 return None
             
             # Handle MultiIndex columns (when downloading single symbol, yfinance sometimes returns MultiIndex)
@@ -168,7 +179,7 @@ class StockScanner:
             high_prices = data['High'].dropna()
             low_prices = data['Low'].dropna()
             
-            if len(close_prices) < 30:  # Need at least 30 days for 26-EMA + 13-RSI calculations
+            if len(close_prices) < 20:  # Reduced minimum for Spanish stocks
                 return None
             
             # Calculate EMAs
@@ -214,8 +225,15 @@ class StockScanner:
                 price_change_pct = 0.0
             
             # Calculate average volume (20-day)
-            avg_volume_20 = float(volume.rolling(window=20).mean().iloc[-1]) if len(volume) >= 20 else float(latest_volume)
-            volume_vs_avg = (float(latest_volume) / avg_volume_20) if avg_volume_20 > 0 else 1.0
+            if len(volume) >= 20:
+                avg_volume_20 = volume.rolling(window=20).mean()
+                if isinstance(avg_volume_20, pd.Series) and not avg_volume_20.empty:
+                    avg_volume_20_value = float(avg_volume_20.iloc[-1]) if not pd.isna(avg_volume_20.iloc[-1]) else float(latest_volume)
+                else:
+                    avg_volume_20_value = float(latest_volume)
+            else:
+                avg_volume_20_value = float(latest_volume)
+            volume_vs_avg = (float(latest_volume) / avg_volume_20_value) if avg_volume_20_value > 0 else 1.0
             
             # Build scanner result
             scanner_data = {
@@ -289,6 +307,40 @@ class StockScanner:
         ])
         return [s for s in symbols if s in spanish_indices]
 
+    def _validate_spanish_symbol(self, symbol):
+        """Validate if a Spanish stock symbol is likely to have data"""
+        if not symbol.endswith('.MC'):
+            return False
+        
+        # Common Spanish stock patterns that are more likely to have data
+        valid_prefixes = ['SAN', 'BBVA', 'ITX', 'IBE', 'REP', 'TEF', 'AMS', 'AENA', 
+                         'ANA', 'CABK', 'CLNX', 'COL', 'ENG', 'FER', 'GRF', 'IAG',
+                         'MAP', 'MEL', 'MRL', 'NTGY', 'PHM', 'RED', 'SGRE', 'SLR',
+                         'SAB', 'ACS', 'ALM', 'BKT', 'CIE', 'ELE', 'LOG', 'VIS',
+                         'ACX', 'ACR', 'ZAL']
+        
+        symbol_prefix = symbol.replace('.MC', '')
+        return symbol_prefix in valid_prefixes
+
+    def _get_spanish_market_info(self, symbol):
+        """Get additional market information for Spanish stocks"""
+        try:
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+            
+            # Extract relevant Spanish market information
+            market_info = {
+                'sector': info.get('sector', 'Unknown'),
+                'industry': info.get('industry', 'Unknown'),
+                'market_cap': info.get('marketCap', 0),
+                'country': info.get('country', 'Spain')
+            }
+            
+            return market_info
+        except Exception as e:
+            print(f"Error getting market info for {symbol}: {e}")
+            return None
+
     def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False):
         """
         Perform stock scan with filters
@@ -310,6 +362,13 @@ class StockScanner:
         if not symbols_to_scan:
             return pd.DataFrame()
         
+        # Special handling for Spanish stocks
+        spanish_stocks_present = any('spanish' in universe for universe in universes)
+        if spanish_stocks_present:
+            print("Spanish stocks detected - applying enhanced validation and data handling")
+            # Filter out potentially problematic Spanish symbols
+            symbols_to_scan = [s for s in symbols_to_scan if not s.endswith('.MC') or self._validate_spanish_symbol(s)]
+        
         print(f"Starting scan of {len(symbols_to_scan)} symbols from {universes}")
         
         # If random sample requested, just return random symbols
@@ -326,6 +385,7 @@ class StockScanner:
         # Multi-threaded scanning for performance
         results = []
         completed = 0
+        spanish_results = 0
         
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all jobs
@@ -340,13 +400,17 @@ class StockScanner:
                 completed += 1
                 
                 try:
-                    result = future.result(timeout=30)  # 30 second timeout per symbol
+                    result = future.result(timeout=45)  # Increased timeout for Spanish stocks
                     if result:
                         results.append(result)
+                        if symbol.endswith('.MC'):
+                            spanish_results += 1
                     
                     # Progress update every 10 symbols
                     if completed % 10 == 0:
                         print(f"Processed {completed}/{len(symbols_to_scan)} symbols...")
+                        if spanish_stocks_present:
+                            print(f"Spanish stocks found so far: {spanish_results}")
                         
                 except Exception as e:
                     print(f"Error with {symbol}: {e}")
@@ -374,6 +438,10 @@ class StockScanner:
         self._save_cache(df)
         
         print(f"Scan complete: {len(df)} results after filtering")
+        if spanish_stocks_present:
+            spanish_final = len(df[df['symbol'].str.endswith('.MC')])
+            print(f"Spanish stocks in final results: {spanish_final}")
+        
         return df
     
     def _apply_filters(self, df, filters):
@@ -497,6 +565,31 @@ PRESET_FILTERS = {
         'filters': {
             'change_min': 2,
             'min_volume': 500000
+        }
+    },
+    'spanish_value': {
+        'name': 'Spanish Value Stocks',
+        'description': 'Spanish stocks in value zone with good volume',
+        'filters': {
+            'value_zone_only': True,
+            'min_volume': 100000  # Lower volume threshold for Spanish market
+        }
+    },
+    'spanish_momentum': {
+        'name': 'Spanish Momentum Stocks',
+        'description': 'Spanish stocks with bullish momentum',
+        'filters': {
+            'ema_trend': 'bullish',
+            'above_ema_13': True,
+            'min_volume': 100000
+        }
+    },
+    'spanish_oversold': {
+        'name': 'Spanish Oversold Recovery',
+        'description': 'Spanish stocks with RSI below 30',
+        'filters': {
+            'rsi_max': 30,
+            'min_volume': 50000  # Very low threshold for Spanish market
         }
     }
 }
