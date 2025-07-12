@@ -544,6 +544,14 @@ app.layout = dbc.Container([
                                                         # Watchlist Status
                                                         html.Div(id="watchlist-status", className="text-center mb-3"),
                                                         
+                                                        # Open Positions Info
+                                                        html.Div([
+                                                            html.Small([
+                                                                html.Span("📈", style={'color': '#00ff88', 'marginRight': '5px'}),
+                                                                "Open positions are automatically included and cannot be removed"
+                                                            ], style={'color': '#ccc', 'fontStyle': 'italic', 'fontSize': '11px'})
+                                                        ], className="mb-2"),
+                                                        
                                                         # Watchlist Table
                                                         html.Div(id="watchlist-table-container", children=[
                                                             dbc.Label("Your Watchlist:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
@@ -2352,8 +2360,30 @@ def load_symbol_from_watchlist(active_cell, table_data):
 
 # ========== WATCHLIST CALLBACKS ==========
 
+def get_open_positions_from_csv():
+    """Get list of open positions from equity_data.csv"""
+    try:
+        if not os.path.exists('equity_data.csv'):
+            return []
+        
+        df = pd.read_csv('equity_data.csv')
+        open_positions = []
+        
+        # Find rows with open positions (open_positions == 1.0)
+        open_mask = (df['open_positions'] == 1.0)
+        if open_mask.any():
+            for idx in df[open_mask].index:
+                stock = df.at[idx, 'stocks_in_positions']
+                if pd.notna(stock) and stock.strip():
+                    open_positions.append(stock.strip().upper())
+        
+        return open_positions
+    except Exception as e:
+        print(f"Error reading open positions from CSV: {e}")
+        return []
+
 @callback(
-    [Output('watchlist-store', 'data'),
+    [Output('watchlist-store', 'data', allow_duplicate=True),
      Output('watchlist-status', 'children'),
      Output('watchlist-symbol-input', 'value')],
     [Input('add-to-watchlist-btn', 'n_clicks')],
@@ -2393,9 +2423,28 @@ def update_watchlist_display(watchlist_data):
     # Create watchlist items with remove buttons
     watchlist_items = []
     for i, symbol in enumerate(watchlist_data):
+        # Check if this is an open position from CSV
+        open_positions = get_open_positions_from_csv()
+        is_open_position = symbol in open_positions
+        
+        # Create different styling for open positions
+        symbol_style = {
+            'color': '#00ff88' if is_open_position else '#fff',
+            'fontWeight': 'bold',
+            'fontSize': '14px' if is_open_position else '12px'
+        }
+        
+        # Add position indicator for open positions
+        position_indicator = ""
+        if is_open_position:
+            position_indicator = html.Span(" 📈", style={'color': '#00ff88', 'fontSize': '12px'})
+        
         item = dbc.Row([
             dbc.Col([
-                html.Span(symbol, style={'color': '#fff', 'fontWeight': 'bold'})
+                html.Div([
+                    html.Span(symbol, style=symbol_style),
+                    position_indicator
+                ])
             ], width=8),
             dbc.Col([
                 dbc.Button(
@@ -2403,7 +2452,8 @@ def update_watchlist_display(watchlist_data):
                     id={'type': 'remove-watchlist-btn', 'index': i},
                     color="danger",
                     size="sm",
-                    style={'fontSize': '10px'}
+                    style={'fontSize': '10px'},
+                    disabled=is_open_position  # Disable remove button for open positions
                 )
             ], width=4)
         ], className="mb-2", style={'alignItems': 'center'})
@@ -2433,13 +2483,35 @@ def remove_from_watchlist(remove_clicks, current_watchlist):
     button_data = json.loads(triggered_id)
     index = button_data['index']
     
-    # Remove the symbol at the specified index
+    # Check if this is an open position
+    open_positions = get_open_positions_from_csv()
     if current_watchlist and 0 <= index < len(current_watchlist):
+        symbol_to_remove = current_watchlist[index]
+        if symbol_to_remove in open_positions:
+            # Don't allow removal of open positions
+            return dash.no_update
+        
+        # Remove the symbol at the specified index
         new_watchlist = current_watchlist.copy()
         removed_symbol = new_watchlist.pop(index)
         return new_watchlist
     
     return dash.no_update
+
+# Initialize watchlist with open positions on app startup
+@callback(
+    Output('watchlist-store', 'data', allow_duplicate=True),
+    Input('sidebar-tabs', 'active_tab'),
+    prevent_initial_call=True
+)
+def initialize_watchlist_with_open_positions(active_tab):
+    """Initialize watchlist with open positions from CSV when scanner tab is first accessed"""
+    if active_tab == 'scanner-tab':
+        # Get open positions from CSV
+        open_positions = get_open_positions_from_csv()
+        if open_positions:
+            return open_positions
+    raise PreventUpdate
 
 @callback(
     [Output('scan-status', 'children', allow_duplicate=True),
@@ -2460,33 +2532,70 @@ def load_watchlist_scan(n_clicks, watchlist_data):
         # Initialize scanner
         scanner = StockScanner()
         
+        # Get open positions for reference
+        open_positions = get_open_positions_from_csv()
+        
         # Process watchlist symbols directly
         results = []
+        failed_symbols = []
+        open_position_results = []
+        
         for symbol in watchlist_data:
             try:
                 result = scanner._calculate_indicators_for_symbol(symbol)
                 if result:
                     results.append(result)
+                    # Track open position results separately
+                    if symbol in open_positions:
+                        open_position_results.append(result)
+                else:
+                    failed_symbols.append(symbol)
             except Exception as e:
                 print(f"Error processing {symbol}: {e}")
+                failed_symbols.append(symbol)
                 continue
         
         if not results:
-            return (
-                dbc.Alert("❌ No data found for watchlist symbols. Check if symbols are valid.", color="warning"),
-                [],
-                'd-none',
-                {
-                    'backgroundColor': '#000000', 
-                    'height': '90vh',
-                    'position': 'absolute',
-                    'top': '0',
-                    'left': '0',
-                    'width': '100%',
-                    'zIndex': 1,
-                    'display': 'block'
-                }
-            )
+            # Check if we have any open positions that failed
+            open_position_failures = [s for s in failed_symbols if s in open_positions]
+            if open_position_failures:
+                return (
+                    dbc.Alert([
+                        html.H6("⚠️ Watchlist Scan Results", style={'marginBottom': '10px'}),
+                        html.P(f"No data found for {len(failed_symbols)} symbols including open positions: {', '.join(open_position_failures)}", 
+                               style={'marginBottom': '5px'}),
+                        html.Small("This may be due to market hours or data availability issues.", 
+                                 style={'color': '#ccc', 'fontStyle': 'italic'})
+                    ], color="warning"),
+                    [],
+                    'd-none',
+                    {
+                        'backgroundColor': '#000000', 
+                        'height': '90vh',
+                        'position': 'absolute',
+                        'top': '0',
+                        'left': '0',
+                        'width': '100%',
+                        'zIndex': 1,
+                        'display': 'block'
+                    }
+                )
+            else:
+                return (
+                    dbc.Alert("❌ No data found for watchlist symbols. Check if symbols are valid.", color="warning"),
+                    [],
+                    'd-none',
+                    {
+                        'backgroundColor': '#000000', 
+                        'height': '90vh',
+                        'position': 'absolute',
+                        'top': '0',
+                        'left': '0',
+                        'width': '100%',
+                        'zIndex': 1,
+                        'display': 'block'
+                    }
+                )
         
         # Convert to DataFrame
         results_df = pd.DataFrame(results)
@@ -2533,7 +2642,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
         if 'rsi_extreme' in table_data.columns:
             table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
 
-        # Create data table (same as scanner table)
+        # Create data table with enhanced styling for open positions
         table = dash_table.DataTable(
             id='watchlist-results-table',
             data=table_data.to_dict('records'),
@@ -2570,7 +2679,44 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 'fontWeight': 'bold',
                 'border': '1px solid #00d4aa'
             },
-
+            style_data_conditional=[
+                # Highlight open positions with green background
+                {
+                    'if': {
+                        'filter_query': f'{{symbol}} = {open_positions[0]}' if open_positions else 'FALSE'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Green for positive changes
+                {
+                    'if': {
+                        'filter_query': '{price_change_pct} > 0',
+                        'column_id': 'price_change_pct'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Red for negative changes
+                {
+                    'if': {
+                        'filter_query': '{price_change_pct} < 0',
+                        'column_id': 'price_change_pct'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # Make symbol column clickable and prominent
+                {
+                    'if': {'column_id': 'symbol'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4aa',
+                    'fontWeight': 'bold',
+                    'cursor': 'pointer',
+                    'textDecoration': 'underline'
+                }
+            ],
             page_size=10,
             sort_action='native',
             filter_action='native',
@@ -2580,8 +2726,35 @@ def load_watchlist_scan(n_clicks, watchlist_data):
             page_current=0
         )
         
+        # Create success message with open position info
+        open_positions_found = len(open_position_results)
+        total_symbols = len(results_df)
+        
+        if open_positions_found > 0:
+            success_msg = dbc.Alert([
+                html.H6([
+                    html.Span("✅ ", style={'fontSize': '18px'}),
+                    f"Watchlist scan completed!"
+                ], style={'marginBottom': '10px', 'color': '#00d4aa'}),
+                html.P([
+                    f"Found data for {total_symbols} symbols ",
+                    html.Span(f"({open_positions_found} open positions)", style={'color': '#00ff88', 'fontWeight': 'bold'}),
+                    f". {len(failed_symbols)} symbols had no data."
+                ], style={'marginBottom': '0', 'fontSize': '14px'})
+            ], color="success", className="mb-3")
+        else:
+            success_msg = dbc.Alert([
+                html.H6([
+                    html.Span("✅ ", style={'fontSize': '18px'}),
+                    f"Watchlist scan completed!"
+                ], style={'marginBottom': '10px', 'color': '#00d4aa'}),
+                html.P([
+                    f"Found data for {total_symbols} symbols. {len(failed_symbols)} symbols had no data."
+                ], style={'marginBottom': '0', 'fontSize': '14px'})
+            ], color="success", className="mb-3")
+        
         return (
-            dbc.Alert(f"✅ Watchlist scan completed! Found data for {len(results_df)} symbols.", color="success"),
+            success_msg,
             [table],
             'd-block',
             {
