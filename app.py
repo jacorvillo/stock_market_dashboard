@@ -15,6 +15,7 @@ import json
 import xarray as xr
 import os
 from dash.dependencies import ALL
+from dash.dash_table import Format, FormatTemplate
 
 # Import functions from functions.py
 from analysis_functions import (
@@ -1139,6 +1140,18 @@ app.layout = dbc.Container([
     dcc.Store(id='current-symbol-store', data='SPY'),
     dcc.Store(id='ema-periods-store', data=[13, 26]),
     dcc.Store(id='irl-equity-store'),
+    # Hidden stores for indicator parameters
+    dcc.Store(id='macd-fast-store', data=12),
+    dcc.Store(id='macd-slow-store', data=26),
+    dcc.Store(id='macd-signal-store', data=9),
+    dcc.Store(id='force-smoothing-store', data=2),
+    dcc.Store(id='adx-period-store', data=13),
+    dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus']),
+    dcc.Store(id='stochastic-period-store', data=5),
+    dcc.Store(id='rsi-period-store', data=13),
+    # New stores for Bollinger Bands and Autoenvelope
+    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 26, 'stddev': 2}),
+    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 26, 'percent': 6})
 ], fluid=True)  # Make container full width
 
 # Callback to update dynamic lower chart settings based on selection
@@ -1200,22 +1213,6 @@ def update_ema_periods_callback(ema0, ema1, current_emas):
     ]
     
     return new_layout, [fast_ema, slow_ema]
-
-# Create hidden divs to store values when not visible in UI
-# These will be shared across callbacks
-app.layout.children.extend([
-    dcc.Store(id='macd-fast-store', data=12),
-    dcc.Store(id='macd-slow-store', data=26),
-    dcc.Store(id='macd-signal-store', data=9),
-    dcc.Store(id='force-smoothing-store', data=2),
-    dcc.Store(id='adx-period-store', data=13),
-    dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus']),
-    dcc.Store(id='stochastic-period-store', data=5),
-    dcc.Store(id='rsi-period-store', data=13),
-    # New stores for Bollinger Bands and Autoenvelope
-    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 26, 'stddev': 2}),
-    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 26, 'percent': 6})
-])
 
 # Callback to update store values when UI elements are present
 @callback(
@@ -1958,32 +1955,33 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         # Create results table
         table_data = results_df.copy()
         
-        # Format data for display
-        for col in ['price', 'ema_13', 'ema_26']:
-            if col in table_data.columns:
-                table_data[col] = table_data[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
-        
-        if 'volume' in table_data.columns:
-            table_data['volume'] = table_data['volume'].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "N/A")
-        
-        if 'price_change_pct' in table_data.columns:
-            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A")
-        
+        # Do NOT format numeric columns as strings; keep them as numbers for proper sorting
+        # Only format non-numeric columns as needed
         if 'rsi' in table_data.columns:
-            table_data['rsi'] = table_data['rsi'].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
-        
+            table_data['rsi'] = table_data['rsi'].apply(lambda x: round(x, 1) if pd.notna(x) else None)
+        if 'price_change_pct' in table_data.columns:
+            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'price' in table_data.columns:
+            table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'ema_13' in table_data.columns:
+            table_data['ema_13'] = table_data['ema_13'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'ema_26' in table_data.columns:
+            table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'volume' in table_data.columns:
+            table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
+
         # Create data table
         table = dash_table.DataTable(
             id='scan-results-table',
             data=table_data.to_dict('records'),
             columns=[
                 {'name': 'Symbol', 'id': 'symbol', 'type': 'text'},
-                {'name': 'Price', 'id': 'price', 'type': 'text'},
-                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'text'},
-                {'name': 'Volume', 'id': 'volume', 'type': 'text'},
-                {'name': 'RSI', 'id': 'rsi', 'type': 'text'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'text'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'text'},
+                {'name': 'Price', 'id': 'price', 'type': 'numeric'},
+                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
+                {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
+                {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
+                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
+                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'In Value Zone', 'id': 'in_value_zone', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'}
@@ -2011,7 +2009,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Green for positive changes
                 {
                     'if': {
-                        'filter_query': '{price_change_pct} contains "+"',
+                        'filter_query': '{price_change_pct} > 0',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -2020,7 +2018,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Red for negative changes
                 {
                     'if': {
-                                               'filter_query': '{price_change_pct} contains "-"',
+                        'filter_query': '{price_change_pct} < 0',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#4d1a1a',
@@ -2138,8 +2136,8 @@ def load_symbol_from_scanner(active_cell, table_data):
         row = active_cell['row']
         if row < len(table_data):
             symbol = table_data[row]['symbol']
-            # Clear any formatting from the symbol (remove $ signs, etc.)
-            clean_symbol = symbol.replace('$', '').strip()
+            # Clean the symbol (remove any potential formatting)
+            clean_symbol = symbol.strip()
             return (
                 clean_symbol,                                        # Update symbol input
                 clean_symbol,                                        # Update symbol store

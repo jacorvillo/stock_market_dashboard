@@ -298,7 +298,7 @@ class StockScanner:
             universes: List of universes to scan ['sp500', 'nasdaq100', etc.]
             max_results: Maximum number of results to return
             sort_by: How to sort results ('volume', 'change', 'rsi', 'random')
-            random_sample: If True, return random sample instead of filtered results
+            random_sample: If True or int, return random sample instead of filtered results
         """
         
         if universes is None:
@@ -315,6 +315,11 @@ class StockScanner:
         # If random sample requested, just return random symbols
         if random_sample and isinstance(random_sample, int):
             random_symbols = random.sample(symbols_to_scan, min(random_sample, len(symbols_to_scan)))
+            symbols_to_scan = random_symbols
+            print(f"Random sample mode: scanning {len(symbols_to_scan)} random symbols")
+        elif random_sample and isinstance(random_sample, bool) and random_sample:
+            # If random_sample is True, use max_results as the sample size
+            random_symbols = random.sample(symbols_to_scan, min(max_results, len(symbols_to_scan)))
             symbols_to_scan = random_symbols
             print(f"Random sample mode: scanning {len(symbols_to_scan)} random symbols")
         
