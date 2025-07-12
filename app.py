@@ -12,9 +12,13 @@ import dash_bootstrap_components as dbc
 import yfinance as yf
 import ta
 import json
+import xarray as xr
+import os
+from dash.dependencies import ALL
+from dash.dash_table import Format, FormatTemplate
 
 # Import functions from functions.py
-from functions import (
+from analysis_functions import (
     get_stock_data, 
     calculate_indicators,
     update_lower_chart_settings,
@@ -32,11 +36,17 @@ from functions import (
     update_stock_status_indicator
 )
 
+# Import Impulse System functions
+from impulse_functions import calculate_impulse_system, get_impulse_colors
+
 # Import scanner functions
 from scanner_functions import StockScanner, get_preset_filter, get_available_presets
 
 # Import insights functions
 from insights_functions import TechnicalInsights, generate_insights_summary
+
+# Import IRL trading functions
+from irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df
 
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
@@ -62,7 +72,7 @@ body, .card, .card-header, .card-body, .nav-tabs, .tab-content, .tab-pane {
 
 /* Card styling */
 .card, .card-header {
-    border-color: #444 !important;
+    border-color: #000 !important;
 }
 
 .card-header {
@@ -299,7 +309,7 @@ app.layout = dbc.Container([
                         children=[
                             # Stock Scanner Tab
                             dbc.Tab(
-                                label="🔍 Scanner",
+                                label="🔍",
                                 tab_id="scanner-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
@@ -310,10 +320,10 @@ app.layout = dbc.Container([
                                                 dbc.Label("🚀 Quick Scans:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
                                                 dbc.Row([
                                                     dbc.Col([
-                                                        dbc.Button("Value Zone", id="preset-value-zone", size="sm", color="info", outline=True, className="mb-2 w-100")
+                                                        dbc.Button("Divergence Signs", id="preset-divergence", size="sm", color="info", outline=True, className="mb-2 w-100")
                                                     ], width=6),
                                                     dbc.Col([
-                                                        dbc.Button("Oversold RSI", id="preset-oversold", size="sm", color="warning", outline=True, className="mb-2 w-100")
+                                                        dbc.Button("RSI Extremes", id="preset-rsi-extremes", size="sm", color="warning", outline=True, className="mb-2 w-100")
                                                     ], width=6)
                                                 ]),
                                                 dbc.Row([
@@ -334,7 +344,10 @@ app.layout = dbc.Container([
                                                         dbc.Checklist(
                                                             id='elder-filters',
                                                             options=[
-                                                                {'label': '📊 In Value Zone (13-26 EMA)', 'value': 'value_zone'},
+                                                                {'label': '📊 MACD Bullish Divergence', 'value': 'macd_bullish_divergence'},
+                                                                {'label': '📊 MACD Bearish Divergence', 'value': 'macd_bearish_divergence'},
+                                                                {'label': '📊 RSI Bullish Divergence', 'value': 'rsi_bullish_divergence'},
+                                                                {'label': '📊 RSI Bearish Divergence', 'value': 'rsi_bearish_divergence'},
                                                                 {'label': '📈 Bullish EMA Alignment', 'value': 'ema_bullish'},
                                                                 {'label': '💪 Bullish MACD Signal', 'value': 'macd_bullish'},
                                                                 {'label': '📊 Above 13 EMA', 'value': 'above_ema_13'}
@@ -352,10 +365,10 @@ app.layout = dbc.Container([
                                                             options=[
                                                                 {'label': 'Any RSI', 'value': 'any'},
                                                                 {'label': 'Oversold (< 30)', 'value': 'oversold'},
+                                                                {'label': 'Overbought (> 70)', 'value': 'overbought'},
                                                                 {'label': 'Recovery (30-40)', 'value': 'recovery'},
                                                                 {'label': 'Neutral (40-60)', 'value': 'neutral'},
-                                                                {'label': 'Overbought Setup (60-70)', 'value': 'setup'},
-                                                                {'label': 'Overbought (> 70)', 'value': 'overbought'}
+                                                                {'label': 'Overbought Setup (60-70)', 'value': 'setup'}
                                                             ],
                                                             value='any',
                                                             className="mb-3"
@@ -423,7 +436,9 @@ app.layout = dbc.Container([
                                                                 {'label': '🏛️ Dow Jones 30', 'value': 'dow30'},
                                                                 {'label': '📊 Popular ETFs', 'value': 'etfs'},
                                                                 {'label': '🌱 Growth Stocks', 'value': 'growth'},
-                                                                {'label': '💰 Dividend Stocks', 'value': 'dividend'}
+                                                                {'label': '💰 Dividend Stocks', 'value': 'dividend'},
+                                                                {'label': '🇪🇸 Spanish Stocks', 'value': 'spanish'},
+                                                                {'label': '🇪🇸 Spanish Indices', 'value': 'spanish_indices'}
                                                             ],
                                                             value=['sp500'],
                                                             style={'color': '#fff'},
@@ -493,7 +508,7 @@ app.layout = dbc.Container([
                             ),
                             # Stock Search Tab (Analysis)
                             dbc.Tab(
-                                label="🛠️ Analysis",
+                                label="🛠️",
                                 tab_id="stock-search-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
@@ -576,6 +591,20 @@ app.layout = dbc.Container([
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
                                                 ),
                                                 
+                                                # Add frequency dropdown below timeframe dropdown
+                                                dbc.Label("Frequency:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Select(
+                                                    id='frequency-dropdown',
+                                                    options=[
+                                                        {'label': '1m', 'value': '1m'},
+                                                        {'label': '2m', 'value': '2m'},
+                                                        {'label': '10m', 'value': '10m'}
+                                                    ],
+                                                    value='1m',
+                                                    className="mb-3",
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'}
+                                                ),
+                                                
                                                 # Chart Type Section
                                                 dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
                                                 dbc.Select(
@@ -587,11 +616,65 @@ app.layout = dbc.Container([
                                                     value='candlestick',
                                                     className="mb-3",
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
-                                                )
+                                                ),
+                                                
+                                                # Impulse System Toggle
+                                                html.Div([
+                                                    dbc.Checklist(
+                                                        options=[
+                                                            {"label": "Use Impulse System", "value": 1}
+                                                        ],
+                                                        value=[],
+                                                        id="impulse-system-toggle",
+                                                        switch=True,
+                                                        className="mb-2"
+                                                    ),
+                                                    dbc.FormText([
+                                                        "Colors candles based on EMA trend & MACD momentum: ",
+                                                        html.Span("■", style={'color': '#00ff88', 'fontWeight': 'bold'}), " Bullish, ", 
+                                                        html.Span("■", style={'color': '#ff4444', 'fontWeight': 'bold'}), " Bearish, ", 
+                                                        html.Span("■", style={'color': '#00d4ff', 'fontWeight': 'bold'}), " Neutral"
+                                                    ],
+                                                    style={'fontSize': '11px', 'color': '#aaa'})
+                                                ], className="mb-3")
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
                                         
                                         # EMA and ATR Settings Card (Main Chart Settings)
+                                        # Lower Chart Selection Card
+                                        dbc.Card([
+                                            dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
+                                            dbc.CardBody([
+                                                # Lower Chart Selection
+                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                dbc.Select(
+                                                    id='lower-chart-selection',
+                                                    options=[
+                                                        {'label': '📊 Volume', 'value': 'volume'},
+                                                        {'label': '📈 MACD', 'value': 'macd'},
+                                                        {'label': '💪 Force Index', 'value': 'force'},
+                                                        {'label': '📉 A/D Line', 'value': 'ad'},
+                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
+                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
+                                                        {'label': '📊 RSI', 'value': 'rsi'},
+                                                        {'label': '📈 OBV', 'value': 'obv'}
+                                                    ],
+                                                    value='volume',
+                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
+                                                    className="mb-3"
+                                                ),
+                                                
+                                                # Dynamic settings section with enhanced container
+                                                html.Div([
+                                                    html.Div(id='lower-chart-settings', children=[
+                                                        # Settings will be dynamically generated based on selection
+                                                    ])
+                                                ], style={
+                                                    'marginTop': '15px'
+                                                })
+                                            ], style={'backgroundColor': '#000000'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}),
+
                                         dbc.Card([
                                             dbc.CardHeader(html.H5("📈 Main Chart Settings", style={'color': '#00d4aa'})),
                                             dbc.CardBody([
@@ -652,6 +735,8 @@ app.layout = dbc.Container([
                                                 
                                                 html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
                                                 
+                                                dbc.Label("Price Channels:", style={'color': '#00d4aa', 'fontWeight': 'bold', 'fontSize': '16px', 'marginBottom': '15px'}),
+                                                
                                                 # ATR Bands Section
                                                 dbc.Label("ATR Volatility Bands:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
                                                 dbc.Checklist(
@@ -678,50 +763,79 @@ app.layout = dbc.Container([
                                                     ],
                                                     value=[],
                                                     inline=False,  # Stack vertically for better mobile experience
-                                                    style={'color': '#fff'}
-                                                )
-                                            ], style={'backgroundColor': '#000000'})
-                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
-                                        
-                                        # Lower Chart Selection Card
-                                        dbc.Card([
-                                            dbc.CardHeader(html.H5("📊 Lower Chart", style={'color': '#00d4aa'})),
-                                            dbc.CardBody([
-                                                # Lower Chart Selection
-                                                dbc.Label("Display:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
-                                                dbc.Select(
-                                                    id='lower-chart-selection',
-                                                    options=[
-                                                        {'label': '📊 Volume', 'value': 'volume'},
-                                                        {'label': '📈 MACD', 'value': 'macd'},
-                                                        {'label': '💪 Force Index', 'value': 'force'},
-                                                        {'label': '📉 A/D Line', 'value': 'ad'},
-                                                        {'label': '📊 ADX/DI', 'value': 'adx'},
-                                                        {'label': '🌊 Slow Stochastic', 'value': 'stochastic'},
-                                                        {'label': '📊 RSI', 'value': 'rsi'},
-                                                        {'label': '📈 OBV', 'value': 'obv'}
-                                                    ],
-                                                    value='volume',
-                                                    style={'backgroundColor': '#000000', 'color': '#fff'},
+                                                    style={'color': '#fff'},
                                                     className="mb-3"
                                                 ),
                                                 
-                                                # Dynamic settings section with enhanced container
-                                                html.Div([
-                                                    html.Div(id='lower-chart-settings', children=[
-                                                        # Settings will be dynamically generated based on selection
-                                                    ])
-                                                ], style={
-                                                    'marginTop': '15px'
-                                                })
+                                                # Bollinger Bands Section
+                                                dbc.Label("Bollinger Bands:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Checklist(
+                                                            id='bollinger-bands',
+                                                            options=[
+                                                                {
+                                                                    'label': html.Div([
+                                                                        html.Span("Show Bollinger Bands", style={'color': '#fff', 'fontWeight': '500'})
+                                                                    ]),
+                                                                    'value': 'show'
+                                                                }
+                                                            ],
+                                                            value=[],
+                                                            style={'color': '#fff'},
+                                                            className="mb-2"
+                                                        )
+                                                    ], width=12),
+                                                    dbc.Col([
+                                                        dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='bollinger-period', type='number', value=26, min=5, max=50, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6),
+                                                    dbc.Col([
+                                                        dbc.Label("StdDev:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='bollinger-stddev', type='number', value=2, min=1, max=4, step=0.5, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6)
+                                                ], className="mb-3"),
+                                                
+                                                # Autoenvelope Section
+                                                dbc.Label("Autoenvelope:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '12px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Checklist(
+                                                            id='autoenvelope',
+                                                            options=[
+                                                                {
+                                                                    'label': html.Div([
+                                                                        html.Span("Show Autoenvelope", style={'color': '#fff', 'fontWeight': '500'})
+                                                                    ]),
+                                                                    'value': 'show'
+                                                                }
+                                                            ],
+                                                            value=[],
+                                                            style={'color': '#fff'},
+                                                            className="mb-2"
+                                                        )
+                                                    ], width=12),
+                                                    dbc.Col([
+                                                        dbc.Label("Period:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='autoenvelope-period', type='number', value=26, min=5, max=50, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6),
+                                                    dbc.Col([
+                                                        dbc.Label("Percent:", style={'color': '#ccc', 'fontSize': '12px'}),
+                                                        dbc.Input(id='autoenvelope-percent', type='number', value=6, min=1, max=10, step=0.5, size='sm',
+                                                                  style={'backgroundColor': '#000000', 'color': '#fff', 'border': '1px solid #333'})
+                                                    ], width=6)
+                                                ])
                                             ], style={'backgroundColor': '#000000'})
-                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3")
                                     ])
                                 ]
                             ),
                             # Insights Tab
                             dbc.Tab(
-                                label="💡 Insights",
+                                label="💡",
                                 tab_id="insights-tab",
                                 children=[
                                     html.Div(style={'padding': '15px 0'}, children=[
@@ -751,70 +865,8 @@ app.layout = dbc.Container([
                                     'textAlign': 'center'
                                 }),
                                 
-                                # Current Stock Display (read-only)
-                                dbc.Label("Stock Symbol to Analyze:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
-                                                dbc.Row([
-                                                    dbc.Col([
-                                                        dbc.Input(
-                                                            id='insights-stock-input',
-                                                            placeholder="Enter any US stock symbol (e.g., AAPL, TSLA, SPY)",
-                                                            value="SPY",
-                                                            type="text",
-                                                            style={
-                                                                'backgroundColor': '#000000', 
-                                                                'color': '#fff',
-                                                                'border': '2px solid #00d4aa',
-                                                                'borderRadius': '8px',
-                                                                'padding': '12px 16px',
-                                                                'fontSize': '16px',
-                                                                'fontWeight': '500',
-                                                                'textAlign': 'center'
-                                                            },
-                                                            className="text-uppercase"
-                                                        )
-                                                    ], width=8),
-                                                    dbc.Col([
-                                                        dbc.Button(
-                                                            [
-                                                                html.Span("🔄", style={'marginRight': '5px', 'fontSize': '14px'}),
-                                                                html.Span("Update", style={'fontWeight': 'bold', 'fontSize': '14px'})
-                                                            ],
-                                                            id="update-insights-stock-button",
-                                                            color="info",
-                                                            outline=True,
-                                                            size="sm",
-                                                            className="w-100",
-                                                            style={
-                                                                'borderColor': '#00d4aa',
-                                                                'color': '#00d4aa',
-                                                                'borderRadius': '8px',
-                                                                'padding': '12px 8px',
-                                                                'fontWeight': 'bold',
-                                                                'transition': 'all 0.3s ease'
-                                                            }
-                                                        )
-                                                    ], width=4)
-                                                ], className="mb-3"),
-                                                html.Div(
-                                                    id='insights-current-stock-display',
-                                                    style={
-                                                        'backgroundColor': '#1a1a1a',
-                                                        'border': '1px solid #333',
-                                                        'borderRadius': '6px',
-                                                        'padding': '8px 12px',
-                                                        'marginBottom': '20px',
-                                                        'textAlign': 'center',
-                                                        'fontSize': '12px',
-                                                        'color': '#ccc'
-                                                    },
-                                                    children=[
-                                                        html.Span("Currently analyzing: "),
-                                                        html.Strong("SPY", style={'color': '#00d4aa'})
-                                                    ]
-                                                ),
-                                                
-                                                # Trading Style Selection
-                                                dbc.Label("Trading Style:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '15px'}),
+                                # Trading Style Selection
+                                dbc.Label("Trading Style:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '15px'}),
                                                 dbc.RadioItems(
                                                     id='insights-trading-style',
                                                     options=[
@@ -841,6 +893,30 @@ app.layout = dbc.Container([
                                                     style={'color': '#fff'},
                                                     className="mb-4"
                                                 ),
+                                                
+                                                # Stock Symbol Input (moved below trading style)
+                                                dbc.Label("Stock Symbol to Analyze:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Input(
+                                                            id='insights-stock-input',
+                                                            placeholder="Enter any US stock symbol (e.g., AAPL, TSLA, SPY)",
+                                                            value="SPY",
+                                                            type="text",
+                                                            style={
+                                                                'backgroundColor': '#000000', 
+                                                                'color': '#fff',
+                                                                'border': '3px solid #00d4aa',
+                                                                'borderRadius': '8px',
+                                                                'padding': '12px 16px',
+                                                                'fontSize': '16px',
+                                                                'fontWeight': '500',
+                                                                'textAlign': 'center'
+                                                            },
+                                                            className="text-uppercase"
+                                                        )
+                                                    ], width=12)
+                                                ], className="mb-3"),
                                                 
                                                 # Run Insights Button
                                                 html.Div([
@@ -883,6 +959,55 @@ app.layout = dbc.Container([
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                                     ])
                                 ]
+                            ),
+                            # IRL Trade Tab
+                            dbc.Tab(
+                                label="💸",
+                                tab_id="irl-trade-tab",
+                                children=[
+                                    html.Div(style={'padding': '15px 0'}, children=[
+                                        dbc.Card([
+                                            dbc.CardHeader(
+                                                html.H4("💸 IRL Trade Simulator", className="text-center", style={'color': '#00d4aa'})
+                                            ),
+                                            dbc.CardBody([
+                                                # Equity display with hide/show button
+                                                html.Div([
+                                                    html.Div(id="irl-equity-display", style={'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                    dbc.Button("Hide Equity", id="irl-hide-equity-btn", color="secondary", size="sm", className="mb-2"),
+                                                ], style={'marginBottom': '20px'}),
+
+                                                # Stock search
+                                                dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.Input(id='irl-stock-symbol-input', placeholder="Enter stock symbol", type="text", className="mb-3 text-uppercase"),
+
+                                                # Open position form
+                                                dbc.Label("Open Position:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                dbc.RadioItems(
+                                                    id='irl-buy-sell-radio',
+                                                    options=[
+                                                        {'label': 'Buy', 'value': 'buy'},
+                                                        {'label': 'Sell', 'value': 'sell'}
+                                                    ],
+                                                    value='buy',
+                                                    inline=True,
+                                                    className="mb-2"
+                                                ),
+                                                dbc.Input(id='irl-amount-input', placeholder="Amount to invest", type="number", className="mb-2"),
+                                                dbc.Input(id='irl-stop-input', placeholder="Stop price", type="number", className="mb-2"),
+                                                dbc.Input(id='irl-target-input', placeholder="Target price", type="number", className="mb-2"),
+                                                dbc.Button("Open Position", id="irl-open-position-btn", color="success", className="mb-3 w-100"),
+                                                html.Div(id="irl-open-position-status", className="mb-3"),
+
+                                                html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
+
+                                                # Close position section
+                                                dbc.Label("Close Position:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                html.Div(id="irl-open-positions-list"),
+                                            ])
+                                        ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
+                                    ])
+                                ]
                             )
                         ],
                         style={'backgroundColor': '#000000'}
@@ -891,52 +1016,80 @@ app.layout = dbc.Container([
                 id="sidebar-collapse",
                 is_open=True
             ),
-            width=3,
-            id="sidebar-col"
+            width=2,
+            id="sidebar-col",
+            style={"paddingLeft": "0", "paddingRight": "0", "marginLeft": "0", "marginRight": "0"}
         ),
         
         # Charts column
         dbc.Col([
-            # Error message component
-            html.Div(
-                id="chart-error-message", 
-                className="alert alert-warning fade show d-none",
-                children=[]
-            ),
-            # Market closed message - hidden by default
-            html.Div(
-                id="market-closed-message",
-                className="d-none",
-                style={
-                    'height': '90vh', 
-                    'display': 'flex', 
-                    'alignItems': 'center', 
-                    'justifyContent': 'center', 
-                    'flexDirection': 'column',
-                    'backgroundColor': '#000000',
-                    'borderRadius': '8px',
-                    'padding': '20px',
-                    'border': '1px solid #333'
-                },
-                children=[
-                    html.H2("US markets are closed right now", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
-                    html.H5("Come back during market hours (9:30AM - 4:00PM ET)", 
-                           style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
-                    html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
-                        dbc.Button(
-                            "⏮️ View Previous Session",
-                            id="view-yesterday-btn",
-                            color="danger",
-                            outline=True
-                        )
-                    ])
-                ]
-            ),
             # Main content area that switches between chart and scanner results
             html.Div(
                 id="main-content-area",
                 style={'height': '90vh', 'backgroundColor': '#000000', 'position': 'relative'},
                 children=[
+                    # Intraday warning message component (positioned absolutely)
+                    html.Div(
+                        id="intraday-warning-message",
+                        className="alert alert-warning fade show d-none",
+                        style={
+                            'position': 'absolute',
+                            'top': '10px',
+                            'left': '10px',
+                            'right': '10px',
+                            'zIndex': 1001,
+                            'margin': '0'
+                        },
+                        children=[]
+                    ),
+                    # Error message component (positioned absolutely)
+                    html.Div(
+                        id="chart-error-message", 
+                        className="alert alert-warning fade show d-none",
+                        style={
+                            'position': 'absolute',
+                            'top': '10px',
+                            'left': '10px',
+                            'right': '10px',
+                            'zIndex': 1001,
+                            'margin': '0'
+                        },
+                        children=[]
+                    ),
+                    # Market closed message - hidden by default (positioned absolutely)
+                    html.Div(
+                        id="market-closed-message",
+                        className="d-none",
+                        style={
+                            'position': 'absolute',
+                            'top': '0',
+                            'left': '0',
+                            'width': '100%',
+                            'height': '100%', 
+                            'display': 'flex', 
+                            'alignItems': 'center', 
+                            'justifyContent': 'center', 
+                            'flexDirection': 'column',
+                            'backgroundColor': '#000000',
+                            'borderRadius': '8px',
+                            'padding': '20px',
+                            'border': '1px solid #333',
+                            'zIndex': 1002
+                        },
+                        children=[
+                            html.H2("The market for this stock is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
+                            html.H5("Try again during market hours, or view the previous session.", 
+                                   style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
+                            html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
+                                dbc.Button(
+                                    "⏮️ View Previous Session",
+                                    id="view-yesterday-btn",
+                                    color="danger",
+                                    outline=True
+                                )
+                            ])
+                        ]
+                    ),
                     # Scanner Results Area (hidden by default, positioned absolutely)
                     html.Div(
                         id="scanner-results-area",
@@ -969,22 +1122,31 @@ app.layout = dbc.Container([
                     )
                 ]
             )
-        ], width=9, id="chart-col")
-    ]), # Added missing closing bracket for dbc.Row
+        ], width=10, id="chart-col", style={"paddingLeft": "0", "paddingRight": "0", "marginLeft": "0", "marginRight": "0"})
+    ], style={"marginLeft": "0", "marginRight": "0", "paddingLeft": "0", "paddingRight": "0"}), # End of dbc.Row
     
-    # Auto-refresh component - Optimized interval
     dcc.Interval(
         id='interval-component',
         interval=30*1000,  # Update every 30 seconds - balanced for performance
         n_intervals=0
     ),
-    
-    # Store components for data and symbol
     dcc.Store(id='stock-data-store'),
     dcc.Store(id='current-symbol-store', data='SPY'),
-    dcc.Store(id='ema-periods-store', data=[13, 26])
-    
-], fluid=True, style={'backgroundColor': '#000000', 'minHeight': '100vh'})
+    dcc.Store(id='ema-periods-store', data=[13, 26]),
+    dcc.Store(id='irl-equity-store'),
+    # Hidden stores for indicator parameters
+    dcc.Store(id='macd-fast-store', data=12),
+    dcc.Store(id='macd-slow-store', data=26),
+    dcc.Store(id='macd-signal-store', data=9),
+    dcc.Store(id='force-smoothing-store', data=2),
+    dcc.Store(id='adx-period-store', data=13),
+    dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus']),
+    dcc.Store(id='stochastic-period-store', data=5),
+    dcc.Store(id='rsi-period-store', data=13),
+    # New stores for Bollinger Bands and Autoenvelope
+    dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 26, 'stddev': 2}),
+    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 26, 'percent': 6})
+], fluid=True)  # Make container full width
 
 # Callback to update dynamic lower chart settings based on selection
 @callback(
@@ -1046,19 +1208,6 @@ def update_ema_periods_callback(ema0, ema1, current_emas):
     
     return new_layout, [fast_ema, slow_ema]
 
-# Create hidden divs to store values when not visible in UI
-# These will be shared across callbacks
-app.layout.children.extend([
-    dcc.Store(id='macd-fast-store', data=12),
-    dcc.Store(id='macd-slow-store', data=26),
-    dcc.Store(id='macd-signal-store', data=9),
-    dcc.Store(id='force-smoothing-store', data=2),
-    dcc.Store(id='adx-period-store', data=13),
-    dcc.Store(id='adx-components-store', data=['adx', 'di_plus', 'di_minus']),
-    dcc.Store(id='stochastic-period-store', data=5),
-    dcc.Store(id='rsi-period-store', data=13)
-])
-
 # Callback to update store values when UI elements are present
 @callback(
     [Output('macd-fast-store', 'data'),
@@ -1105,6 +1254,38 @@ def update_stochastic_store_callback(period):
     """Call update_stochastic_store function from functions module"""
     return update_stochastic_store(period)
 
+# Callback to update Bollinger Bands store
+@callback(
+    Output('bollinger-bands-store', 'data'),
+    [Input('bollinger-bands', 'value'),
+     Input('bollinger-period', 'value'),
+     Input('bollinger-stddev', 'value')],
+    prevent_initial_call=True
+)
+def update_bollinger_store_callback(show, period, stddev):
+    """Update Bollinger Bands settings"""
+    return {
+        'show': 'show' in show if show else False,
+        'period': period,
+        'stddev': stddev
+    }
+
+# Callback to update Autoenvelope store
+@callback(
+    Output('autoenvelope-store', 'data'),
+    [Input('autoenvelope', 'value'),
+     Input('autoenvelope-period', 'value'),
+     Input('autoenvelope-percent', 'value')],
+    prevent_initial_call=True
+)
+def update_autoenvelope_store_callback(show, period, percent):
+    """Update Autoenvelope settings"""
+    return {
+        'show': 'show' in show if show else False,
+        'period': period,
+        'percent': percent
+    }
+
 # Callback to update RSI period store
 @callback(
     Output('rsi-period-store', 'data'),
@@ -1115,6 +1296,39 @@ def update_rsi_store_callback(period):
     """Call update_rsi_store function from functions module"""
     return update_rsi_store(period)
 
+# Add a callback to update frequency options based on timeframe
+@callback(
+    [Output('frequency-dropdown', 'options'), Output('frequency-dropdown', 'value')],
+    [Input('timeframe-dropdown', 'value')]
+)
+def update_frequency_options(timeframe):
+    if timeframe in ['1d', 'yesterday']:
+        options = [
+            {'label': '1m', 'value': '1m'},
+            {'label': '2m', 'value': '2m'},
+            {'label': '5m', 'value': '5m'},
+            {'label': '15m', 'value': '15m'}
+        ]
+        value = '1m'
+    elif timeframe in ['1mo', '6mo']:
+        options = [
+            {'label': '1d', 'value': '1d'},
+            {'label': '1h', 'value': '1h'},
+            {'label': '4h', 'value': '4h'}
+        ]
+        value = '1d'
+    elif timeframe in ['1y', '5y', 'max']:
+        options = [
+            {'label': '1d', 'value': '1d'},
+            {'label': '1wk', 'value': '1wk'},
+            {'label': '1mo', 'value': '1mo'}
+        ]
+        value = '1d'
+    else:
+        options = [{'label': '1d', 'value': '1d'}]
+        value = '1d'
+    return options, value
+
 # Callback to update data with custom indicator parameters
 @callback(
     [Output('stock-data-store', 'data'),
@@ -1123,8 +1337,8 @@ def update_rsi_store_callback(period):
     [Input('interval-component', 'n_intervals'),
      Input('current-symbol-store', 'data'),
      Input('timeframe-dropdown', 'value'),
+     Input('frequency-dropdown', 'value'),
      Input('ema-periods-store', 'data'),
-     # Use store values instead of direct references to UI elements
      Input('macd-fast-store', 'data'),
      Input('macd-slow-store', 'data'),
      Input('macd-signal-store', 'data'),
@@ -1133,15 +1347,17 @@ def update_rsi_store_callback(period):
      Input('stochastic-period-store', 'data'),
      Input('rsi-period-store', 'data')]
 )
-def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
+def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
     """Call update_data function from functions module"""
-    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period)
+    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency)
 
 # Callback for combined chart
 @callback(
     [Output('combined-chart', 'figure'),
      Output('combined-chart', 'style'),
-     Output('market-closed-message', 'className')],
+     Output('market-closed-message', 'className'),
+     Output('intraday-warning-message', 'children'),
+     Output('intraday-warning-message', 'className')],
     [Input('stock-data-store', 'data'),
      Input('current-symbol-store', 'data'),
      Input('chart-type-dropdown', 'value'),
@@ -1150,49 +1366,52 @@ def update_data_callback(n, symbol, timeframe, ema_periods, macd_fast, macd_slow
      Input('atr-bands', 'value'),
      Input('lower-chart-selection', 'value'),
      Input('adx-components-store', 'data'),
-     Input('timeframe-dropdown', 'value')],
+     Input('timeframe-dropdown', 'value'),
+     Input('frequency-dropdown', 'value'),
+     Input('impulse-system-toggle', 'value'),
+     Input('bollinger-bands-store', 'data'),
+     Input('autoenvelope-store', 'data')],
     [State('combined-chart', 'relayoutData')],
     prevent_initial_call=False
 )
-def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, relayout_data):
+def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, frequency, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Call update_combined_chart function from functions module"""
-    # Try to get volume comparison value, but don't require it
     ctx = dash.callback_context
     volume_comparison = 'none'  # Default value
-    
-    # Create a basic empty figure for when we're not showing the chart
-    empty_fig = go.Figure()
-    
-    # Check if we're in "Today" mode and data is empty (markets closed)
+    use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
+    unreliable_warning = None
+    unreliable_class = 'alert alert-warning fade show d-none'
+
+    # Check for unreliable indicators in intraday views
+    is_intraday = timeframe in ['1d', 'yesterday']
+    if data and is_intraday:
+        import pandas as pd
+        df = pd.DataFrame(data)
+        unreliable_present = False
+        if 'unreliable_indicators' in df.columns:
+            unreliable_present = bool(df['unreliable_indicators'].any())
+        if unreliable_present:
+            unreliable_warning = (
+                html.Div([
+                    html.Span("⚠️", style={'color': '#ffc107', 'fontSize': '18px', 'marginRight': '8px'}),
+                    html.Span("Indicator lines (EMA, MACD, RSI, Stochastic, ADX) may be unreliable for the first bars of the session due to limited lookback data.", style={'color': '#fff', 'fontWeight': '500'}),
+                    html.Br(),
+                    html.Span("This is normal for intraday charts. The lines become reliable as more data accumulates.", style={'color': '#aaa', 'fontSize': '12px'})
+                ]),
+            )
+            unreliable_class = 'alert alert-warning fade show'
+
+    # Always show the Today view, even if empty
     if timeframe == '1d' and (not data or len(data) == 0):
-        now_local = datetime.now()
-        
-        # Determine if the market should be open right now based on ET time
-        # Convert local time to ET (assuming CEST, which is UTC+2, while ET in summer is UTC-4)
-        et_time = now_local - timedelta(hours=6)  # Rough adjustment from CEST to ET
-        is_weekend = et_time.weekday() >= 5  # Saturday=5, Sunday=6
-        
-        # Market hours: 9:30 AM - 4:00 PM ET, weekdays only
-        is_market_hours = (
-            not is_weekend and
-            ((et_time.hour > 9 or (et_time.hour == 9 and et_time.minute >= 30)) and
-             (et_time.hour < 16))
-        )
-        
-        # Only show the "markets closed" message during times when markets would normally be open
-        if is_market_hours:
-            # Market should be open, but no data - likely a holiday or issue
-            return empty_fig, {'display': 'none'}, 'd-block'
-        else:
-            # Outside normal market hours, show a message that reflects that
-            return empty_fig, {'display': 'none'}, 'd-block'
+        empty_fig = go.Figure()
+        return empty_fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-block', unreliable_warning, unreliable_class
     else:
-        # Normal case - show the chart and hide the message
-        # Pass relayout data to preserve zoom/pan state
-        fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, 
-                                   atr_bands, lower_chart_type, adx_components, 
-                                   volume_comparison, relayout_data, timeframe)
-        return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
+        fig, style, market_closed = update_combined_chart(
+            data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
+            lower_chart_type, adx_components, volume_comparison, relayout_data, 
+            timeframe, use_impulse_system, bollinger_bands, autoenvelope
+        )
+        return fig, style, market_closed, unreliable_warning, unreliable_class
 
 # Callback to hide EMA options for 1D timeframe
 @callback(
@@ -1220,11 +1439,16 @@ def update_indicator_options_callback(timeframe):
      State('lower-chart-selection', 'value'),
      State('adx-components-store', 'data'),
      State('timeframe-dropdown', 'value'),
+     State('impulse-system-toggle', 'value'),
+     State('bollinger-bands-store', 'data'),
+     State('autoenvelope-store', 'data'),
      State('combined-chart', 'relayoutData')],
     prevent_initial_call=True
 )
-def update_combined_chart_volume_comparison(volume_comparison, data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, relayout_data):
+def update_combined_chart_volume_comparison(volume_comparison, data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Update combined chart when volume comparison changes"""
+    # Check if impulse system is enabled
+    use_impulse_system = bool(impulse_system_toggle and 1 in impulse_system_toggle)
     # Only trigger when volume chart is selected
     if lower_chart_type == 'volume':
         volume_comparison = volume_comparison or 'none'
@@ -1238,7 +1462,7 @@ def update_combined_chart_volume_comparison(volume_comparison, data, symbol, cha
             return empty_fig, {'display': 'none'}, 'd-block'
         else:
             # Normal case - show the chart and hide the message
-            fig = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe)
+            fig, style, market_closed = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe, use_impulse_system, bollinger_bands, autoenvelope)
             return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
     else:
         # Return no update if not volume chart
@@ -1309,39 +1533,27 @@ def update_status_indicator_callback(symbol):
 # Callback to handle insights analysis
 @callback(
     [Output('insights-status', 'children'),
-     Output('insights-results', 'children'),
-     Output('insights-current-stock-display', 'children')],
+     Output('insights-results', 'children')],
     [Input('run-insights-button', 'n_clicks'),
-     Input('update-insights-stock-button', 'n_clicks')],
+     Input('insights-stock-input', 'n_submit')],
     [State('insights-stock-input', 'value'),
      State('insights-trading-style', 'value')],
     prevent_initial_call=True
 )
-def run_insights_analysis(run_clicks, update_clicks, insights_symbol, trading_style):
-    """Handle the insights analysis when the button is clicked"""
+def run_insights_analysis(run_clicks, n_submit, insights_symbol, trading_style):
+    """Handle the insights analysis when the button is clicked or Enter is pressed"""
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
     
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
     # Use insights symbol or fallback to SPY
     symbol = (insights_symbol or 'SPY').strip().upper()
-    
-    # Update the display when Update button is clicked
-    if button_id == 'update-insights-stock-button':
-        updated_display = [
-            html.Span("Currently analyzing: "),
-            html.Strong(symbol, style={'color': '#00d4aa'})
-        ]
-        return [[], [], updated_display]
     
     # Validate trading style for analysis
     if not trading_style:
         return [
             dbc.Alert("Please select a trading style", color="warning", className="mt-2"),
-            [],
-            dash.no_update
+            []
         ]
     
     try:
@@ -1416,7 +1628,7 @@ def run_insights_analysis(run_clicks, update_clicks, insights_symbol, trading_st
             html.Span(f"Analysis completed for {symbol}", style={'color': '#28a745'})
         ])
         
-        return [success_status, results, dash.no_update]
+        return [success_status, results]
         
     except Exception as e:
         # Handle any errors gracefully
@@ -1425,7 +1637,7 @@ def run_insights_analysis(run_clicks, update_clicks, insights_symbol, trading_st
             html.Span(f"Error analyzing {symbol}: {str(e)}", style={'color': '#dc3545'})
         ])
         
-        return [error_status, [], dash.no_update]
+        return [error_status, []]
 
 
 def create_insights_results_layout(insights_data, trading_style):
@@ -1594,13 +1806,13 @@ def create_indicator_display(name, data):
      Output('volume-preset', 'value'),
      Output('universe-selection', 'value'),
      Output('result-limit', 'value')],
-    [Input('preset-value-zone', 'n_clicks'),
-     Input('preset-oversold', 'n_clicks'),
+    [Input('preset-divergence', 'n_clicks'),
+     Input('preset-rsi-extremes', 'n_clicks'),
      Input('preset-volume', 'n_clicks'),
      Input('preset-random', 'n_clicks')],
     prevent_initial_call=True
 )
-def handle_preset_buttons(value_zone_clicks, oversold_clicks, volume_clicks, random_clicks):
+def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks, random_clicks):
     """Handle quick preset scan button clicks"""
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -1608,10 +1820,12 @@ def handle_preset_buttons(value_zone_clicks, oversold_clicks, volume_clicks, ran
     
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
-    if button_id == 'preset-value-zone':
-        return ['value_zone'], 'any', 500000, ['sp500'], 25
-    elif button_id == 'preset-oversold':
-        return [], 'recovery', 1000000, ['sp500'], 25
+    if button_id == 'preset-divergence':
+        # For divergence, we'll set up filters that can be refined in the UI
+        return [], 'any', 500000, ['sp500'], 25
+    elif button_id == 'preset-rsi-extremes':
+        # For RSI extremes, we'll set up filters that can be refined in the UI
+        return [], 'any', 500000, ['sp500'], 25
     elif button_id == 'preset-volume':
         return [], 'any', 5000000, ['sp500', 'nasdaq100'], 25
     elif button_id == 'preset-random':
@@ -1679,6 +1893,24 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             if rsi_preset in rsi_ranges:
                 filters['rsi_min'] = rsi_ranges[rsi_preset]['min']
                 filters['rsi_max'] = rsi_ranges[rsi_preset]['max']
+        
+        # RSI extreme filters (overbought/oversold)
+        if rsi_preset == 'overbought':
+            filters['rsi_extreme'] = 'overbought'
+        elif rsi_preset == 'oversold':
+            filters['rsi_extreme'] = 'oversold'
+        
+        # Divergence filters
+        if elder_filters:
+            if 'macd_bullish_divergence' in elder_filters:
+                filters['macd_divergence'] = 'bullish'
+            elif 'macd_bearish_divergence' in elder_filters:
+                filters['macd_divergence'] = 'bearish'
+            
+            if 'rsi_bullish_divergence' in elder_filters:
+                filters['rsi_divergence'] = 'bullish'
+            elif 'rsi_bearish_divergence' in elder_filters:
+                filters['rsi_divergence'] = 'bearish'
         
         # Volume filter
         if volume_preset:
@@ -1750,35 +1982,46 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         # Create results table
         table_data = results_df.copy()
         
-        # Format data for display
-        for col in ['price', 'ema_13', 'ema_26']:
-            if col in table_data.columns:
-                table_data[col] = table_data[col].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
-        
-        if 'volume' in table_data.columns:
-            table_data['volume'] = table_data['volume'].apply(lambda x: f"{x:,.0f}" if pd.notna(x) else "N/A")
-        
-        if 'price_change_pct' in table_data.columns:
-            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A")
-        
+        # Do NOT format numeric columns as strings; keep them as numbers for proper sorting
+        # Only format non-numeric columns as needed
         if 'rsi' in table_data.columns:
-            table_data['rsi'] = table_data['rsi'].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
+            table_data['rsi'] = table_data['rsi'].apply(lambda x: round(x, 1) if pd.notna(x) else None)
+        if 'price_change_pct' in table_data.columns:
+            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'price' in table_data.columns:
+            table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'ema_13' in table_data.columns:
+            table_data['ema_13'] = table_data['ema_13'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'ema_26' in table_data.columns:
+            table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'volume' in table_data.columns:
+            table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
         
+        # Format divergence and RSI extreme columns for display
+        if 'macd_divergence' in table_data.columns:
+            table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+        if 'rsi_divergence' in table_data.columns:
+            table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+        if 'rsi_extreme' in table_data.columns:
+            table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
+
         # Create data table
         table = dash_table.DataTable(
             id='scan-results-table',
             data=table_data.to_dict('records'),
             columns=[
                 {'name': 'Symbol', 'id': 'symbol', 'type': 'text'},
-                {'name': 'Price', 'id': 'price', 'type': 'text'},
-                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'text'},
-                {'name': 'Volume', 'id': 'volume', 'type': 'text'},
-                {'name': 'RSI', 'id': 'rsi', 'type': 'text'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'text'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'text'},
+                {'name': 'Price', 'id': 'price', 'type': 'numeric'},
+                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
+                {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
+                {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
+                {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
+                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
+                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
-                {'name': 'In Value Zone', 'id': 'in_value_zone', 'type': 'text'},
-                {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'}
+                {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
+                {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
+                {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -1803,7 +2046,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Green for positive changes
                 {
                     'if': {
-                        'filter_query': '{price_change_pct} contains "+"',
+                        'filter_query': '{price_change_pct} > 0',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -1812,7 +2055,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Red for negative changes
                 {
                     'if': {
-                                               'filter_query': '{price_change_pct} contains "-"',
+                        'filter_query': '{price_change_pct} < 0',
                         'column_id': 'price_change_pct'
                     },
                     'backgroundColor': '#4d1a1a',
@@ -1836,14 +2079,59 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
                 },
-                # Highlight value zone stocks
+                # Highlight RSI overbought
                 {
                     'if': {
-                        'filter_query': '{in_value_zone} = True',
-                        'column_id': 'in_value_zone'
+                        'filter_query': '{rsi_extreme} = overbought',
+                        'column_id': 'rsi_extreme'
                     },
-                    'backgroundColor': '#1a3d4d',
-                    'color': '#00d4aa'
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # Highlight RSI oversold
+                {
+                    'if': {
+                        'filter_query': '{rsi_extreme} = oversold',
+                        'column_id': 'rsi_extreme'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Highlight bullish divergence
+                {
+                    'if': {
+                        'filter_query': '{macd_divergence} = bullish',
+                        'column_id': 'macd_divergence'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Highlight bearish divergence
+                {
+                    'if': {
+                        'filter_query': '{macd_divergence} = bearish',
+                        'column_id': 'macd_divergence'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # Highlight RSI bullish divergence
+                {
+                    'if': {
+                        'filter_query': '{rsi_divergence} = bullish',
+                        'column_id': 'rsi_divergence'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Highlight RSI bearish divergence
+                {
+                    'if': {
+                        'filter_query': '{rsi_divergence} = bearish',
+                        'column_id': 'rsi_divergence'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
                 },
                 # Make symbol column clickable and prominent
                 {
@@ -1930,8 +2218,8 @@ def load_symbol_from_scanner(active_cell, table_data):
         row = active_cell['row']
         if row < len(table_data):
             symbol = table_data[row]['symbol']
-            # Clear any formatting from the symbol (remove $ signs, etc.)
-            clean_symbol = symbol.replace('$', '').strip()
+            # Clean the symbol (remove any potential formatting)
+            clean_symbol = symbol.strip()
             return (
                 clean_symbol,                                        # Update symbol input
                 clean_symbol,                                        # Update symbol store
@@ -1972,6 +2260,144 @@ def switch_view_on_tab_change(active_tab):
             'display': 'block'
         }
     raise PreventUpdate
+
+# === IRL TRADE CALLBACKS (CSV version) ===
+
+CSV_FILE = 'equity_data.csv'
+
+# Callback: Load equity on tab open or after trade
+@callback(
+    Output('irl-equity-store', 'data'),
+    Input('sidebar-tabs', 'active_tab'),
+    Input('irl-open-position-btn', 'n_clicks'),
+    Input({'type': 'irl-close-btn', 'index': ALL}, 'n_clicks'),
+    prevent_initial_call=False
+)
+def update_irl_equity_store(tab, open_n, close_n):
+    ctx = dash.callback_context
+    if tab == 'irl-trade-tab' or ctx.triggered:
+        if not os.path.exists(CSV_FILE):
+            import create_equity_file
+        df = load_trading_df()
+        return df.to_dict('records')
+    raise PreventUpdate
+
+# Callback: Display equity (color-coded, hideable)
+@callback(
+    Output('irl-equity-display', 'children'),
+    Output('irl-equity-display', 'style'),
+    Input('irl-equity-store', 'data'),
+    Input('irl-hide-equity-btn', 'n_clicks'),
+    prevent_initial_call=False
+)
+def display_irl_equity(data, hide_n):
+    if not data:
+        return "No equity data.", {'display': 'block'}
+    df = pd.DataFrame(data)
+    eq = float(df['equity'].iloc[-1])
+    prev_eq = float(df['equity'].iloc[-2]) if len(df) > 1 else eq
+    color = '#00ff88' if eq >= prev_eq else '#ff4444'
+    style = {'color': color, 'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '10px'}
+    if hide_n and hide_n % 2 == 1:
+        style['display'] = 'none'
+    return f"Current Equity: ${eq:,.2f}", style
+
+# Callback: Open position
+@callback(
+    Output('irl-open-position-status', 'children'),
+    Output('irl-equity-store', 'data', allow_duplicate=True),
+    Input('irl-open-position-btn', 'n_clicks'),
+    State('irl-equity-store', 'data'),
+    State('irl-stock-symbol-input', 'value'),
+    State('irl-buy-sell-radio', 'value'),
+    State('irl-amount-input', 'value'),
+    State('irl-stop-input', 'value'),
+    State('irl-target-input', 'value'),
+    State('irl-stock-symbol-input', 'value'),
+    State('irl-amount-input', 'value'),
+    State('irl-stop-input', 'value'),
+    State('irl-target-input', 'value'),
+    State('irl-stock-symbol-input', 'value'),
+    prevent_initial_call=True
+)
+def open_irl_position(n, data, symbol, side, amount, stop, target, *_):
+    if not n:
+        raise PreventUpdate
+    if not symbol or not amount or not stop or not target:
+        return "Please fill all fields.", dash.no_update
+    df = pd.DataFrame(data) if data else load_trading_df()
+    amt = float(amount) if side == 'buy' else -float(amount)
+    # For demo, use amount as price_at_entry (replace with real price if available)
+    try:
+        df2 = open_position(df, symbol.upper(), amt, price_at_entry=float(amount), stop_price=float(stop), target_price=float(target))
+        return "Position opened!", df2.to_dict('records')
+    except Exception as e:
+        return f"Error: {e}", dash.no_update
+
+# Callback: List open positions
+@callback(
+    Output('irl-open-positions-list', 'children'),
+    Input('irl-equity-store', 'data'),
+    prevent_initial_call=False
+)
+def list_irl_open_positions(data):
+    if not data:
+        return "No positions."
+    df = pd.DataFrame(data)
+    open_mask = (df['open_positions'] == 1.0)
+    if not open_mask.any():
+        return "No open positions."
+    items = []
+    for idx in df[open_mask].index:
+        stock = df.at[idx, 'stocks_in_positions']
+        amt = df.at[idx, 'amount_invested']
+        stop = df.at[idx, 'stop_price']
+        target = df.at[idx, 'target_price']
+        items.append(
+            dbc.Row([
+                dbc.Col(html.Div(f"{stock} | Amount: {amt} | Stop: {stop} | Target: {target}")),
+                dbc.Col([
+                    dbc.Button("Close", id={'type': 'irl-close-btn', 'index': idx}, color="danger", size="sm", style={'display': 'inline-block'})
+                ], width=5)
+            ], className="mb-2")
+        )
+    return items
+
+# Callback: Close position
+@callback(
+    Output('irl-equity-store', 'data', allow_duplicate=True),
+    Output('irl-open-position-status', 'children', allow_duplicate=True),
+    Input({'type': 'irl-close-btn', 'index': ALL}, 'n_clicks'),
+    State('irl-equity-store', 'data'),
+    prevent_initial_call=True
+)
+def close_irl_position(close_n, data):
+    import yfinance as yf
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    for i, n in enumerate(close_n):
+        if n:
+            idx = i
+            break
+    else:
+        raise PreventUpdate
+    df = pd.DataFrame(data) if data else load_trading_df()
+    open_mask = (df['open_positions'] == 1.0)
+    open_idxs = [i for i, v in enumerate(open_mask) if v]
+    if idx >= len(open_idxs):
+        return dash.no_update, "Invalid position."
+    pos_idx = df[open_mask].index[idx]
+    stock = df.at[pos_idx, 'stocks_in_positions']
+    # Fetch current price using yfinance
+    try:
+        ticker = yf.Ticker(stock)
+        price_series = ticker.history(period='1d')['Close']
+        price = float(price_series.iloc[-1])
+        df2 = close_position(df, stock, price)
+        return df2.to_dict('records'), f"Closed {stock} at {price:.2f} (current price)"
+    except Exception as e:
+        return dash.no_update, f"Error: {e}"
 
 # Run the server
 if __name__ == '__main__':

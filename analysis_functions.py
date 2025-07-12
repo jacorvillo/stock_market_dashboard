@@ -41,8 +41,8 @@ def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
     _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
 
 # Function to fetch stock data with lookback for indicators
-def get_stock_data(symbol="SPY", period="1y"):
-    """Fetch stock data from yfinance with caching for faster ticker switching"""
+def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 26]):
+    """Fetch stock data from yfinance with caching for faster ticker switching, with extended lookback for intraday EMA warmup."""
     try:
         # Check cache first for non-intraday data (intraday needs real-time updates)
         if period != "1d":
@@ -52,9 +52,9 @@ def get_stock_data(symbol="SPY", period="1y"):
         
         # Sanitize symbol for safety
         symbol = symbol.strip().upper()
-        if not symbol or not all(c.isalnum() or c in ['-', '.'] for c in symbol):
-            symbol = "SPY"
-            
+        if not symbol or not all(c.isalnum() or c in ['-', '.', '/', '^', '='] for c in symbol):
+            return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False  # Return empty DataFrame instead of falling back to SPY
+        
         # Check if intraday (1d or yesterday) data is requested
         is_intraday = period in ["1d", "yesterday"]
         
@@ -85,21 +85,21 @@ def get_stock_data(symbol="SPY", period="1y"):
             prev_day = current_date - pd.Timedelta(days=1)
             while prev_day.weekday() > 4:  # 5=Saturday, 6=Sunday
                 prev_day = prev_day - pd.Timedelta(days=1)
-            
-            # Fetch minute data for a period that includes the previous trading day
-            # Use "5d" period to ensure we get the previous trading day's data
+                
+            # Fetch minute data for a period that includes multiple previous trading days for indicator calculation
+            # Use "7d" period to ensure we get enough data for accurate indicator calculations
             ticker = yf.Ticker(symbol)
             try:
-                data = ticker.history(period="5d", interval="1m", timeout=5)
+                data = ticker.history(period="7d", interval="1m", timeout=5)
                 
                 if data.empty:
                     # Fallback to daily data and then filter
-                    data = ticker.history(period="5d", interval="1d", timeout=5)
+                    data = ticker.history(period="7d", interval="1d", timeout=5)
                     if data.empty:
-                        raise Exception(f"No data available for {symbol}")
+                        return pd.DataFrame(), pd.Timestamp(prev_day), pd.Timestamp(prev_day), True  # Return empty DataFrame instead of falling back to SPY
                 
                 data.reset_index(inplace=True)
-                
+        
                 # Handle the Date/Datetime column and convert to CEST
                 if 'Datetime' in data.columns:
                     data = data.rename(columns={'Datetime': 'Date'})
@@ -108,8 +108,14 @@ def get_stock_data(symbol="SPY", period="1y"):
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
                 
-                # Filter to only show data from the previous trading day in CEST
-                data = data[data['Date'].dt.date == prev_day]
+                # Keep the full dataset for indicator calculation
+                full_data_for_indicators = data.copy()
+                
+                # Filter to only show data from the previous trading day in CEST for display
+                display_data = data[data['Date'].dt.date == prev_day]
+                
+                # Replace the display data with filtered data but keep full dataset for indicator calculation
+                data = display_data
                 
                 if data.empty:
                     # Return empty dataset if no data for yesterday
@@ -174,11 +180,13 @@ def get_stock_data(symbol="SPY", period="1y"):
             
             # Market is open - fetch real-time minute data for today only
             
-            # Fetch today's minute data using yfinance
+            # Fetch minute data using yfinance - Include PREVIOUS DAYS' data for proper indicator calculation
             ticker = yf.Ticker(symbol)
             try:
-                # For intraday, use "1d" period with "1m" interval to get today's data
-                data = ticker.history(period="1d", interval="1m", timeout=3)  # Reduced timeout for faster response
+                # For intraday, fetch 5 days of minute data to include previous market periods
+                # This ensures indicators have enough historical data to calculate properly from market open
+                interval_arg = frequency if frequency else "1m"
+                data = ticker.history(period="5d", interval=interval_arg, timeout=5)  # Extended period for indicators
                 
                 # Convert timestamps to CEST timezone for display
                 data.reset_index(inplace=True)
@@ -195,9 +203,23 @@ def get_stock_data(symbol="SPY", period="1y"):
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
                 
-                # Filter to only show data from today in CEST
+                # Store the full dataset for indicator calculation
+                full_data_for_indicators = data.copy()
+                
+                # Filter to only show data from today in CEST for display
                 today_cest = now_cest.date()
-                data = data[data['Date'].dt.date == today_cest]
+                display_data = data[data['Date'].dt.date == today_cest]
+                
+                # If today's data is empty, return empty dataset
+                if display_data.empty:
+                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                    
+                # Use display_data for UI but keep all data for indicator calculation
+                data = display_data
                 
                 if data.empty:
                     empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
@@ -237,18 +259,16 @@ def get_stock_data(symbol="SPY", period="1y"):
             
             # Try to fetch real stock data with reduced timeout for faster response
             ticker = yf.Ticker(symbol)
-            data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
+            interval_arg = frequency if frequency else None
+            if interval_arg:
+                data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout for faster switching
+            else:
+                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
         
         if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
-            # Fallback to SPY if current symbol fails
-            if symbol != "SPY":
-                ticker = yf.Ticker("SPY")
-                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout
-                if data.empty:
-                    raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
-            else:
-                raise Exception(f"Could not fetch data for {symbol}")
-            
+            # Return empty DataFrame instead of falling back to SPY
+            return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False
+        
         data.reset_index(inplace=True)
         
         # Handle the Date/Datetime column
@@ -331,31 +351,9 @@ def get_stock_data(symbol="SPY", period="1y"):
         return full_data, start_date, end_date, is_minute_data
         
     except Exception as e:
-        # Try SPY as fallback
-        try:
-            if symbol != "SPY":
-                ticker = yf.Ticker("SPY")
-                data = ticker.history(period="1y", timeout=5)
-                if not data.empty:
-                    data.reset_index(inplace=True)
-                    if 'Date' in data.columns:
-                        data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
-                    elif 'Datetime' in data.columns:
-                        data = data.rename(columns={'Datetime': 'Date'})
-                        data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
-                    
-                    end_date = data['Date'].max()
-                    start_date = end_date - pd.DateOffset(months=1)  # Default to 1 month
-                    is_minute_data = False
-                    return data, start_date, end_date, is_minute_data
-            
-            # If SPY also fails, raise error
-            raise Exception(f"Could not fetch data for {symbol} or SPY fallback")
-            
-        except Exception as fallback_error:
-            raise Exception(f"No data available for {symbol}")
+        # Return empty DataFrame instead of trying SPY fallback
+        return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False
 
-# Function to calculate technical indicators with custom parameters
 def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, stoch_period=5, rsi_period=13, fast_mode=False):
     """Calculate technical indicators for the stock data with custom parameters
     fast_mode: If True, calculates only essential indicators for faster ticker switching"""
@@ -389,25 +387,38 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
             # In fast mode, only calculate the most essential indicators
             ema_periods = ema_periods[:2] if len(ema_periods) > 2 else ema_periods  # Limit to 2 EMAs max
         
+        # Track unreliable rows for warning (for intraday)
+        unreliable_mask = pd.Series(False, index=df.index)
+        indicator_columns = []
+
         # Custom EMA periods (optimized for speed)
         for period in ema_periods:
-            if min_length >= max(period, 10):  # Require minimum 10 data points
-                df[f'EMA_{period}'] = ta.trend.EMAIndicator(df['Close'], window=min(period, min_length//2)).ema_indicator()
+            col = f'EMA_{period}'
+            if min_length >= max(period, 10):
+                ema_series = ta.trend.EMAIndicator(df['Close'], window=period).ema_indicator()
+                df[col] = ema_series
+                indicator_columns.append(col)
+                unreliable_mask |= ema_series.isna()
             else:
-                df[f'EMA_{period}'] = df['Close']  # Use close price as fallback
-        
+                df[col] = df['Close'].ffill()
+                indicator_columns.append(col)
+
         # MACD with custom parameters
+        macd_cols = ['MACD', 'MACD_signal', 'MACD_hist']
         if min_length >= max(macd_fast, macd_slow):
             macd = ta.trend.MACD(df['Close'], window_fast=macd_fast, window_slow=macd_slow, window_sign=macd_signal)
-            df['MACD'] = macd.macd()
-            df['MACD_signal'] = macd.macd_signal()
-            df['MACD_hist'] = macd.macd_diff()
+            macd_macd = macd.macd().fillna(method='bfill')
+            macd_signal = macd.macd_signal().fillna(method='bfill')
+            macd_hist = macd.macd_diff().fillna(method='bfill')
+            df['MACD'] = macd_macd
+            df['MACD_signal'] = macd_signal
+            df['MACD_hist'] = macd_hist
+            unreliable_mask |= macd.macd().isna() | macd.macd_signal().isna() | macd.macd_diff().isna()
         else:
-            # Fill with zeros for small datasets
             df['MACD'] = 0
             df['MACD_signal'] = 0
             df['MACD_hist'] = 0
-        
+
         # Force Index with smoothing
         if min_length >= 2:
             force_raw = ta.volume.ForceIndexIndicator(df['Close'], df['Volume']).force_index()
@@ -417,69 +428,78 @@ def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, m
                 df['Force_Index'] = force_raw
         else:
             df['Force_Index'] = 0
-        
+
         # A/D Line (Accumulation/Distribution)
         if min_length >= 1:
             ad_line = ta.volume.AccDistIndexIndicator(df['High'], df['Low'], df['Close'], df['Volume']).acc_dist_index()
-            # Store as both AD and AD_Line for compatibility
             df['AD'] = ad_line
             df['AD_Line'] = ad_line
         else:
             df['AD'] = 0
             df['AD_Line'] = 0
-            
+
         # ADX, DI+, and DI- indicators
-        adx_period = max(1, min(adx_period, 50))  # Ensure period is between 1-50
+        adx_cols = ['ADX', 'DI_plus', 'DI_minus']
+        adx_period = max(1, min(adx_period, 50))
         if min_length >= max(14, adx_period):
             adx_indicator = ta.trend.ADXIndicator(df['High'], df['Low'], df['Close'], window=adx_period)
-            df['ADX'] = adx_indicator.adx()
-            df['DI_plus'] = adx_indicator.adx_pos()
-            df['DI_minus'] = adx_indicator.adx_neg()
+            adx = adx_indicator.adx().fillna(method='bfill')
+            di_plus = adx_indicator.adx_pos().fillna(method='bfill')
+            di_minus = adx_indicator.adx_neg().fillna(method='bfill')
+            df['ADX'] = adx
+            df['DI_plus'] = di_plus
+            df['DI_minus'] = di_minus
+            unreliable_mask |= adx_indicator.adx().isna() | adx_indicator.adx_pos().isna() | adx_indicator.adx_neg().isna()
         else:
-            # Fill with default values for small datasets
-            df['ADX'] = 25  # Neutral ADX value
+            df['ADX'] = 25
             df['DI_plus'] = 25
             df['DI_minus'] = 25
-            
+
         # ATR for bands calculation
         if min_length >= 14:
             df['ATR'] = ta.volatility.AverageTrueRange(df['High'], df['Low'], df['Close'], window=14).average_true_range()
         else:
             df['ATR'] = (df['High'] - df['Low']).rolling(window=min(14, min_length)).mean()
-        
+
         # Slow Stochastic (%K and %D)
-        stoch_period = max(1, min(stoch_period, 50))  # Ensure period is between 1-50
+        stoch_cols = ['Stoch_K', 'Stoch_D']
+        stoch_period = max(1, min(stoch_period, 50))
         if min_length >= max(14, stoch_period):
             stoch_indicator = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=stoch_period, smooth_window=3)
-            df['Stoch_K'] = stoch_indicator.stoch()  # %K line
-            df['Stoch_D'] = stoch_indicator.stoch_signal()  # %D line (smoothed %K)
+            stoch_k = stoch_indicator.stoch().fillna(method='bfill')
+            stoch_d = stoch_indicator.stoch_signal().fillna(method='bfill')
+            df['Stoch_K'] = stoch_k
+            df['Stoch_D'] = stoch_d
+            unreliable_mask |= stoch_indicator.stoch().isna() | stoch_indicator.stoch_signal().isna()
         else:
-            # Fill with neutral values for small datasets
-            df['Stoch_K'] = 50  # Neutral stochastic value
+            df['Stoch_K'] = 50
             df['Stoch_D'] = 50
-        
+
         # Relative Strength Index (RSI)
-        rsi_period = max(1, min(rsi_period, 50))  # Ensure period is between 1-50
+        rsi_period = max(1, min(rsi_period, 50))
         if min_length >= max(14, rsi_period):
             rsi_indicator = ta.momentum.RSIIndicator(df['Close'], window=rsi_period)
-            df['RSI'] = rsi_indicator.rsi()
+            rsi = rsi_indicator.rsi().fillna(method='bfill')
+            df['RSI'] = rsi
+            unreliable_mask |= rsi_indicator.rsi().isna()
         else:
-            # Fill with neutral values for small datasets
-            df['RSI'] = 50  # Neutral RSI value
-        
+            df['RSI'] = 50
+
         # On Balance Volume (OBV)
         if min_length >= 1:
             obv_indicator = ta.volume.OnBalanceVolumeIndicator(df['Close'], df['Volume'])
             df['OBV'] = obv_indicator.on_balance_volume()
         else:
-            # Fill with zeros for small datasets
             df['OBV'] = 0
-        
+
         # Fill any remaining NaN values with 0 or forward fill
         numeric_columns = [col for col in df.columns if col.startswith('EMA_') or col in ['MACD', 'MACD_signal', 'MACD_hist', 'Force_Index', 'AD_Line', 'ATR', 'ADX', 'DI_plus', 'DI_minus', 'Stoch_K', 'Stoch_D', 'RSI', 'OBV']]
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = df[col].ffill().fillna(0)
+
+        # Add unreliable flag to DataFrame for UI warning
+        df['unreliable_indicators'] = unreliable_mask.values
         
         return df
         
@@ -597,8 +617,8 @@ def update_symbol(n_clicks, symbol):
     if symbol:
         # Strip whitespace and convert to uppercase for consistency
         symbol = symbol.upper().strip()
-        # Replace any potential special characters that shouldn't be in a ticker
-        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.'])
+        # Allow alphanumeric, dash, dot, slash, caret, and equals
+        symbol = ''.join(c for c in symbol if c.isalnum() or c in ['-', '.', '/', '^', '='])
         return symbol
     return 'SPY'
 
@@ -607,8 +627,8 @@ def format_symbol_input(value):
     if value:
         # Convert to uppercase
         value = value.upper().strip()
-        # Only allow alphanumeric, dash, and dot characters
-        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.'])
+        # Allow alphanumeric, dash, dot, slash, caret, and equals
+        value = ''.join(c for c in value if c.isalnum() or c in ['-', '.', '/', '^', '='])
     return value
 
 def update_macd_stores(fast, slow, signal):
@@ -672,7 +692,7 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
     except Exception as e:
         return None
 
-def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
+def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency=None):
     """Update stock data periodically or when symbol/timeframe/parameters change"""
     error_msg = []
     error_class = "alert alert-warning fade show d-none"  # Hidden by default
@@ -700,10 +720,10 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             if cached_result is not None:
                 full_data, start_date, end_date, is_minute_data = cached_result
             else:
-                full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe)
+                full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe, frequency)
                 _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)  # Cache the result
         except Exception as data_error:
-            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)  # Fall back to SPY
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)  # Fall back to SPY
             error_msg = [
                 html.I(className="fas fa-exclamation-triangle me-2"),
                 f"Could not fetch data for symbol '{symbol}'. Using sample data instead. ",
@@ -718,7 +738,26 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
         fast_mode = len(full_data) > 1000  # Use fast mode for large datasets to speed up calculations
-        df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
+        
+        # For intraday data (1d and yesterday), we need to separate display data from indicator calculation data
+        # This ensures all indicators have sufficient historical data to calculate properly from market open
+        if timeframe in ["1d", "yesterday"]:
+            # Calculate indicators using the extended historical dataset (multiple days)
+            df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
+            # After calculation, filter to just today or yesterday for display
+            display_date = None
+            now_cest = datetime.now()
+            if timeframe == "1d":
+                display_date = now_cest.date()
+            else:
+                display_date = now_cest.date() - pd.Timedelta(days=1)
+                while pd.Timestamp(display_date).weekday() > 4:
+                    display_date = (pd.Timestamp(display_date) - pd.Timedelta(days=1)).date()
+            df_final = df_with_indicators[pd.to_datetime(df_with_indicators['Date']).dt.date == display_date].copy()
+        else:
+            # For non-intraday views, just calculate normally
+            df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, fast_mode)
+            df_final = df_with_indicators[df_with_indicators['Date'] >= start_date].copy()
         
         # Ensure both the Date column and start_date have the same timezone status (both naive)
         # Make sure the Date column is timezone-naive for comparison
@@ -728,7 +767,8 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         if hasattr(start_date, 'tz') and start_date.tz is not None:
             start_date = start_date.tz_localize(None)
         
-        # Now trim to the requested period
+        # Now trim to the requested period - for intraday, this will show only today's data
+        # but the indicators will be calculated using the extended historical data
         df_final = df_with_indicators[df_with_indicators['Date'] >= start_date].copy()
         
         if not using_sample_data and (len(df_final) < 5):
@@ -736,7 +776,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             if timeframe in ["1d", "yesterday"]:
                 return [], [], "alert alert-warning fade show d-none"  # Hidden error class
             
-            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe)
+            full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)
             df_with_indicators = calculate_indicators(full_data, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, fast_mode=True)
             
             # Ensure timezone-naive comparison
@@ -763,7 +803,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         error_class = "alert alert-danger fade show"
         return [], error_msg, error_class
 
-def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, timeframe=None):
+def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, timeframe=None, use_impulse_system=False):
     """Update the main chart with different visualization types and indicators
     Returns: (figure, is_in_value_zone)"""
     try:
@@ -778,6 +818,13 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         show_ema = show_ema or []
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
+        
+        # Process Impulse System if enabled (for candlestick charts only)
+        impulse_df = None
+        if use_impulse_system and chart_type == 'candlestick' and len(df) > 1:
+            # Import here to avoid circular imports
+            from impulse_functions import calculate_impulse_system
+            impulse_df = calculate_impulse_system(df, ema_period=ema_periods[0] if ema_periods else 13)
         
         # Detect if data contains intraday (minute) timepoints
         # First check if timeframe is explicitly intraday
@@ -801,23 +848,58 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         
         # Add different chart types based on selection
         if chart_type == 'candlestick':
-            # Standard candlestick
-            fig.add_trace(
-                go.Candlestick(
-                    x=df['Date'],
-                    open=df['Open'],
-                    high=df['High'],
-                    low=df['Low'],
-                    close=df['Close'],
-                    name=symbol,
-                    increasing_line_color='#00ff88',  # Green for up candles
-                    decreasing_line_color='#ff4444',  # Red for down candles
-                    increasing_fillcolor='rgba(0, 255, 136, 0.4)',
-                    decreasing_fillcolor='rgba(255, 68, 68, 0.4)',
-                    line=dict(width=1),
-                    opacity=0.9
+            # Standard candlestick (with or without Impulse System)
+            if use_impulse_system and impulse_df is not None:
+                # Use impulse system coloring (groupby date and create separate traces)
+                from impulse_functions import get_impulse_colors
+                
+                # Create a separate trace for each impulse color
+                for color in ['green', 'red', 'blue']:
+                    # Filter data for this color
+                    color_data = impulse_df[impulse_df['impulse_color'] == color]
+                    
+                    # Skip if no data for this color
+                    if len(color_data) == 0:
+                        continue
+                    
+                    # Get appropriate colors for this impulse color
+                    colors = get_impulse_colors(color)
+                    
+                    # Add trace for this color group
+                    fig.add_trace(
+                        go.Candlestick(
+                            x=color_data['Date'],
+                            open=color_data['Open'],
+                            high=color_data['High'],
+                            low=color_data['Low'],
+                            close=color_data['Close'],
+                            name=f"{symbol} ({color})",
+                            increasing_line_color=colors['increasing_line_color'],
+                            decreasing_line_color=colors['decreasing_line_color'],
+                            increasing_fillcolor=colors['increasing_fillcolor'],
+                            decreasing_fillcolor=colors['decreasing_fillcolor'],
+                            line=dict(width=1),
+                            opacity=0.9
+                        )
+                    )
+            else:
+                # Standard candlestick without impulse system
+                fig.add_trace(
+                    go.Candlestick(
+                        x=df['Date'],
+                        open=df['Open'],
+                        high=df['High'],
+                        low=df['Low'],
+                        close=df['Close'],
+                        name=symbol,
+                        increasing_line_color='#00ff88',  # Green for up candles
+                        decreasing_line_color='#ff4444',  # Red for down candles
+                        increasing_fillcolor='rgba(0, 255, 136, 0.4)',
+                        decreasing_fillcolor='rgba(255, 68, 68, 0.4)',
+                        line=dict(width=1),
+                        opacity=0.9
+                    )
                 )
-            )
         
         elif chart_type == 'japanese':
             # Japanese style candlesticks
@@ -862,8 +944,8 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                 )
             )
         
-        # Add EMA indicators if enabled AND NOT in intraday mode
-        if 'show' in show_ema and not is_intraday:
+        # Add EMA indicators if enabled (remove 'not is_intraday' condition)
+        if 'show' in show_ema:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
             
             # First, add the Value Zone fill if we have exactly 2 EMAs
@@ -1366,11 +1448,11 @@ def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_c
     
     return fig
 
-def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None):
+def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None, use_impulse_system=False, bollinger_bands=None, autoenvelope=None):
     """Update a combined chart with main price chart on top and indicator chart below"""
     try:
         if not data:
-            return go.Figure()
+            return go.Figure(), {'display': 'none'}, 'd-block'
         
         df = pd.DataFrame(data)
         df['Date'] = pd.to_datetime(df['Date'])
@@ -1381,6 +1463,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
         lower_chart_type = lower_chart_type or 'volume'
+        bollinger_bands = bollinger_bands or {'show': False, 'period': 26, 'stddev': 2}
+        autoenvelope = autoenvelope or {'show': False, 'period': 26, 'percent': 6}
         
         # Handle empty data (e.g., when market is closed for 1D view)
         if df.empty:
@@ -1413,7 +1497,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 title_font=dict(color='#ffaa00', size=18)  # Orange for market closed
             )
             
-            return fig
+            return fig, {'display': 'none'}, 'd-block'
         
         # Check if we are using 1D timeframe (based on data frequency)
         # Determine if this is intraday data using both timeframe parameter and data frequency
@@ -1441,21 +1525,60 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # === MAIN CHART (Row 1) ===
         if chart_type in ['candlestick', 'japanese']:
             # Candlestick chart
-            fig.add_trace(
-                go.Candlestick(
-                    x=df['Date'],
-                    open=df['Open'],
-                    high=df['High'],
-                    low=df['Low'],
-                    close=df['Close'],
-                    name=symbol,
-                    increasing_line_color='#00ff88',
-                    decreasing_line_color='#ff4444',
-                    increasing_fillcolor='#00ff88',
-                    decreasing_fillcolor='#ff4444'
-                ),
-                row=1, col=1
-            )
+            if use_impulse_system and chart_type == 'candlestick':
+                # Use Impulse System for coloring (imported at function level to avoid circular imports)
+                from impulse_functions import calculate_impulse_system, get_impulse_colors
+                
+                # Add Impulse System coloring to the dataframe
+                impulse_df = calculate_impulse_system(df, ema_period=ema_periods[0] if ema_periods else 13)
+                
+                # Create a separate trace for each impulse color
+                for color in ['green', 'red', 'blue']:
+                    # Filter data for this color
+                    color_data = impulse_df[impulse_df['impulse_color'] == color]
+                    
+                    # Skip if no data for this color
+                    if len(color_data) == 0:
+                        continue
+                        
+                    # Get appropriate colors for this impulse color
+                    colors = get_impulse_colors(color)
+                    
+                    # Add trace for this color group
+                    fig.add_trace(
+                        go.Candlestick(
+                            x=color_data['Date'],
+                            open=color_data['Open'],
+                            high=color_data['High'],
+                            low=color_data['Low'],
+                            close=color_data['Close'],
+                            name=f"{symbol} ({color})",
+                            increasing_line_color=colors['increasing_line_color'],
+                            decreasing_line_color=colors['decreasing_line_color'],
+                            increasing_fillcolor=colors['increasing_fillcolor'],
+                            decreasing_fillcolor=colors['decreasing_fillcolor'],
+                            line=dict(width=1),
+                            opacity=0.9
+                        ),
+                        row=1, col=1
+                    )
+            else:
+                # Standard candlestick without impulse system
+                fig.add_trace(
+                    go.Candlestick(
+                        x=df['Date'],
+                        open=df['Open'],
+                        high=df['High'],
+                        low=df['Low'],
+                        close=df['Close'],
+                        name=symbol,
+                        increasing_line_color='#00ff88',
+                        decreasing_line_color='#ff4444',
+                        increasing_fillcolor='#00ff88',
+                        decreasing_fillcolor='#ff4444'
+                    ),
+                    row=1, col=1
+                )
         elif chart_type == 'mountain':
             # Mountain (area) chart
             if len(df) >= 2:
@@ -1501,8 +1624,8 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 row=1, col=1
             )
         
-        # Add EMA indicators if enabled AND NOT in intraday mode
-        if 'show' in show_ema and not is_intraday:
+        # Add EMA indicators if enabled (remove 'not is_intraday' condition)
+        if 'show' in show_ema:
             colors = ['#3366cc', '#ff9900', '#9900ff', '#ff6b6b', '#4ecdc4', '#45b7d1']
             
             # First, add the Value Zone fill if we have exactly 2 EMAs
@@ -1626,6 +1749,111 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     )
                 except ValueError:
                     continue
+        
+        # Add Bollinger Bands if enabled
+        if bollinger_bands and bollinger_bands.get('show'):
+            try:
+                period = bollinger_bands.get('period', 26)
+                stddev = bollinger_bands.get('stddev', 2)
+                # Calculate Bollinger Bands - requires at least 'period' number of data points
+                if len(df) > period:
+                    # Calculate the middle band (Simple Moving Average)
+                    df['BB_middle'] = df['Close'].rolling(window=period).mean()
+                    # Calculate standard deviation
+                    rolling_std = df['Close'].rolling(window=period).std()
+                    # Calculate upper and lower bands
+                    df['BB_upper'] = df['BB_middle'] + (rolling_std * stddev)
+                    df['BB_lower'] = df['BB_middle'] - (rolling_std * stddev)
+                    # Upper band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['BB_upper'],
+                            mode='lines',
+                            name=f'BB +{stddev}\u03c3',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot'),  # Purple
+                            showlegend=False
+                        ),
+                        row=1, col=1
+                    )
+                    # Middle band (SMA)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['BB_middle'],
+                            mode='lines',
+                            name=f'BB SMA({period})',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1),  # Purple
+                            showlegend=False
+                        ),
+                        row=1, col=1
+                    )
+                    # Lower band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['BB_lower'],
+                            mode='lines',
+                            name=f'BB -{stddev}\u03c3',
+                            line=dict(color='rgba(173, 20, 255, 0.5)', width=1, dash='dot'),  # Purple
+                            showlegend=False
+                        ),
+                        row=1, col=1
+                    )
+            except Exception as e:
+                print(f"Error calculating Bollinger Bands: {e}")
+        
+        # Add Autoenvelope if enabled
+        if autoenvelope and autoenvelope.get('show'):
+            try:
+                period = autoenvelope.get('period', 26)
+                percent = autoenvelope.get('percent', 6)
+                # Calculate Autoenvelope - requires at least 'period' number of data points
+                if len(df) > period:
+                    # Calculate the middle line (Simple Moving Average)
+                    df['AE_middle'] = df['Close'].rolling(window=period).mean()
+                    # Calculate upper and lower bands (percentage based)
+                    multiplier = percent / 100
+                    df['AE_upper'] = df['AE_middle'] * (1 + multiplier)
+                    df['AE_lower'] = df['AE_middle'] * (1 - multiplier)
+                    # Upper band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['AE_upper'],
+                            mode='lines',
+                            name=f'Env +{percent}%',
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot'),  # Blue
+                            showlegend=False
+                        ),
+                        row=1, col=1
+                    )
+                    # Middle band (SMA)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['AE_middle'],
+                            mode='lines',
+                            name=f'Env SMA({period})',
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1),  # Blue
+                            showlegend=False
+                        ),
+                        row=1, col=1
+                    )
+                    # Lower band
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df['Date'],
+                            y=df['AE_lower'],
+                            mode='lines',
+                            name=f'Env -{percent}%',
+                            line=dict(color='rgba(0, 176, 246, 0.5)', width=1, dash='dot'),  # Blue
+                            showlegend=False
+                        ),
+                        row=1, col=1
+                    )
+            except Exception as e:
+                print(f"Error calculating Autoenvelope: {e}")
         
         # Add previous day's close line for intraday charts (Today or Previous Market Period)
         if is_intraday and len(df) > 0:
@@ -2448,11 +2676,11 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                     borderpad=4
                 )
         
-        return fig
+        return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
         
     except Exception as e:
-        pass
-        return go.Figure()
+        print(f"Error updating combined chart: {e}")
+        return go.Figure(), {'display': 'none'}, 'd-block'
 
 def update_symbol_status(symbol):
     """Update symbol status display based on current symbol"""
@@ -2463,12 +2691,11 @@ def update_symbol_status(symbol):
 
 def update_indicator_options(timeframe):
     """Update indicator options based on timeframe"""
-    is_intraday = timeframe in ['1d', 'yesterday']
-    
-    # Hide EMA options for intraday
-    ema_style = {'display': 'none'} if is_intraday else {'display': 'block'}
+    # Always show EMA controls for all timeframes
+    ema_style = {'display': 'block'}
     
     # Lower chart options - remove Force Index for intraday
+    is_intraday = timeframe in ['1d', 'yesterday']
     if is_intraday:
         lower_options = [
             {'label': 'Volume', 'value': 'volume'},
@@ -2490,7 +2717,6 @@ def update_indicator_options(timeframe):
             {'label': 'RSI', 'value': 'rsi'},
             {'label': 'OBV', 'value': 'obv'}
         ]
-    
     return ema_style, ema_style, lower_options
 
 def check_value_zone_status(df, ema_periods):
