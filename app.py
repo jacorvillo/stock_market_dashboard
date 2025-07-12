@@ -1959,6 +1959,9 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         raise PreventUpdate
     
     try:
+        # Convert result_limit to int if it's not None
+        result_limit = int(result_limit) if result_limit is not None else 25
+
         # Show loading message
         loading_status = dbc.Alert([
             html.Div([
@@ -1976,9 +1979,9 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             if 'value_zone' in elder_filters:
                 filters['value_zone_only'] = True
             if 'ema_bullish' in elder_filters:
-                filters['ema_trend'] = 'bullish'
+                filters['ema_trend'] = 'Bullish'
             if 'macd_bullish' in elder_filters:
-                filters['macd_signal'] = 'bullish'
+                filters['macd_signal'] = 'Bullish'
             if 'above_ema_13' in elder_filters:
                 filters['above_ema_13'] = True
         
@@ -1997,21 +2000,21 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         
         # RSI extreme filters (overbought/oversold)
         if rsi_preset == 'overbought':
-            filters['rsi_extreme'] = 'overbought'
+            filters['rsi_extreme'] = 'Overbought'
         elif rsi_preset == 'oversold':
-            filters['rsi_extreme'] = 'oversold'
+            filters['rsi_extreme'] = 'Oversold'
         
         # Divergence filters
         if elder_filters:
             if 'macd_bullish_divergence' in elder_filters:
-                filters['macd_divergence'] = 'bullish'
+                filters['macd_divergence'] = 'Bullish'
             elif 'macd_bearish_divergence' in elder_filters:
-                filters['macd_divergence'] = 'bearish'
+                filters['macd_divergence'] = 'Bearish'
             
             if 'rsi_bullish_divergence' in elder_filters:
-                filters['rsi_divergence'] = 'bullish'
+                filters['rsi_divergence'] = 'Bullish'
             elif 'rsi_bearish_divergence' in elder_filters:
-                filters['rsi_divergence'] = 'bearish'
+                filters['rsi_divergence'] = 'Bearish'
         
         # Volume filter
         if volume_preset:
@@ -2058,7 +2061,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         results_df = scanner.scan_stocks(
             filters=filters if not random_sample else None,
             universes=universe_selection or ['sp500'],
-            max_results=result_limit or 25,
+            max_results=result_limit,
             sort_by=sort_by or 'volume',
             random_sample=random_sample
         )
@@ -2091,20 +2094,20 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'price' in table_data.columns:
             table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_13' in table_data.columns:
-            table_data['ema_13'] = table_data['ema_13'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_26' in table_data.columns:
-            table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'volume' in table_data.columns:
             table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
         
         # Format divergence and RSI extreme columns for display
         if 'macd_divergence' in table_data.columns:
-            table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+            table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x if pd.notna(x) else 'None')
         if 'rsi_divergence' in table_data.columns:
-            table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+            table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x if pd.notna(x) else 'None')
         if 'rsi_extreme' in table_data.columns:
-            table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
+            table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x if pd.notna(x) else 'Neutral')
+        if 'ema_trend' in table_data.columns:
+            table_data['ema_trend'] = table_data['ema_trend'].apply(lambda x: x if pd.notna(x) else 'Neutral')
+        if 'macd_signal' in table_data.columns:
+            table_data['macd_signal'] = table_data['macd_signal'].apply(lambda x: x if pd.notna(x) else 'Neutral')
 
         # Create data table
         table = dash_table.DataTable(
@@ -2117,8 +2120,6 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
                 {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
@@ -2165,7 +2166,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight bullish trend
                 {
                     'if': {
-                        'filter_query': '{ema_trend} = bullish',
+                        'filter_query': '{ema_trend} = Bullish',
                         'column_id': 'ema_trend'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -2174,7 +2175,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight bearish trend
                 {
                     'if': {
-                        'filter_query': '{ema_trend} = bearish',
+                        'filter_query': '{ema_trend} = Bearish',
                         'column_id': 'ema_trend'
                     },
                     'backgroundColor': '#4d1a1a',
@@ -2183,7 +2184,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight RSI overbought
                 {
                     'if': {
-                        'filter_query': '{rsi_extreme} = overbought',
+                        'filter_query': '{rsi_extreme} = Overbought',
                         'column_id': 'rsi_extreme'
                     },
                     'backgroundColor': '#4d1a1a',
@@ -2192,7 +2193,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight RSI oversold
                 {
                     'if': {
-                        'filter_query': '{rsi_extreme} = oversold',
+                        'filter_query': '{rsi_extreme} = Oversold',
                         'column_id': 'rsi_extreme'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -2201,7 +2202,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight bullish divergence
                 {
                     'if': {
-                        'filter_query': '{macd_divergence} = bullish',
+                        'filter_query': '{macd_divergence} = Bullish',
                         'column_id': 'macd_divergence'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -2210,7 +2211,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight bearish divergence
                 {
                     'if': {
-                        'filter_query': '{macd_divergence} = bearish',
+                        'filter_query': '{macd_divergence} = Bearish',
                         'column_id': 'macd_divergence'
                     },
                     'backgroundColor': '#4d1a1a',
@@ -2219,7 +2220,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight RSI bullish divergence
                 {
                     'if': {
-                        'filter_query': '{rsi_divergence} = bullish',
+                        'filter_query': '{rsi_divergence} = Bullish',
                         'column_id': 'rsi_divergence'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -2228,11 +2229,65 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 # Highlight RSI bearish divergence
                 {
                     'if': {
-                        'filter_query': '{rsi_divergence} = bearish',
+                        'filter_query': '{rsi_divergence} = Bearish',
                         'column_id': 'rsi_divergence'
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
+                },
+                # Color code RSI values
+                {
+                    'if': {
+                        'filter_query': '{rsi} >= 70',
+                        'column_id': 'rsi'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi} <= 30',
+                        'column_id': 'rsi'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi} > 30 && {rsi} < 70',
+                        'column_id': 'rsi'
+                    },
+                    'backgroundColor': '#2a2a2a',
+                    'color': '#ccc'
+                },
+                # Color code MACD signal
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bullish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bearish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Neutral',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#2a2a2a',
+                    'color': '#ccc'
                 },
                 # Make symbol column clickable and prominent
                 {
@@ -2649,20 +2704,20 @@ def load_watchlist_scan(n_clicks, watchlist_data):
             table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'price' in table_data.columns:
             table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_13' in table_data.columns:
-            table_data['ema_13'] = table_data['ema_13'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_26' in table_data.columns:
-            table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'volume' in table_data.columns:
             table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
         
         # Format divergence and RSI extreme columns
         if 'macd_divergence' in table_data.columns:
-            table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+            table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x if pd.notna(x) else 'None')
         if 'rsi_divergence' in table_data.columns:
-            table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+            table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x if pd.notna(x) else 'None')
         if 'rsi_extreme' in table_data.columns:
-            table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
+            table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x if pd.notna(x) else 'Neutral')
+        if 'ema_trend' in table_data.columns:
+            table_data['ema_trend'] = table_data['ema_trend'].apply(lambda x: x if pd.notna(x) else 'Neutral')
+        if 'macd_signal' in table_data.columns:
+            table_data['macd_signal'] = table_data['macd_signal'].apply(lambda x: x if pd.notna(x) else 'Neutral')
 
         # Create data table with enhanced styling for open positions
         table = dash_table.DataTable(
@@ -2675,8 +2730,6 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
                 {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
@@ -2728,6 +2781,60 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
+                },
+                # Color code RSI values
+                {
+                    'if': {
+                        'filter_query': '{rsi} >= 70',
+                        'column_id': 'rsi'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi} <= 30',
+                        'column_id': 'rsi'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi} > 30 && {rsi} < 70',
+                        'column_id': 'rsi'
+                    },
+                    'backgroundColor': '#2a2a2a',
+                    'color': '#ccc'
+                },
+                # Color code MACD signal
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bullish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bearish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Neutral',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#2a2a2a',
+                    'color': '#ccc'
                 },
                 # Make symbol column clickable and prominent
                 {
