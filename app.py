@@ -1071,6 +1071,28 @@ app.layout = dbc.Container([
                                                     className="mb-2"
                                                 ),
                                                 dbc.Input(id='irl-amount-input', placeholder="Amount to invest", type="number", className="mb-2"),
+                                                
+                                                # 2% Rule Warning (initially hidden)
+                                                html.Div(
+                                                    id="irl-2percent-warning",
+                                                    className="d-none",
+                                                    children=[
+                                                        html.Small([
+                                                            html.Span("⚠️", style={'color': '#ffc107', 'marginRight': '5px'}),
+                                                            "This trade breaks the 2% Rule (risk management guideline)",
+                                                        ], style={
+                                                            'color': '#ffc107',
+                                                            'fontSize': '11px',
+                                                            'fontStyle': 'italic',
+                                                            'backgroundColor': '#1a1a1a',
+                                                            'padding': '5px 8px',
+                                                            'borderRadius': '4px',
+                                                            'border': '1px solid #ffc107'
+                                                        })
+                                                    ],
+                                                    style={'marginBottom': '8px'}
+                                                ),
+                                                
                                                 dbc.Input(id='irl-stop-input', placeholder="Stop price", type="number", className="mb-2"),
                                                 dbc.Input(id='irl-target-input', placeholder="Target price", type="number", className="mb-2"),
                                                 dbc.Button("Open Position", id="irl-open-position-btn", color="success", className="mb-3 w-100"),
@@ -2812,6 +2834,35 @@ def switch_view_on_tab_change(active_tab):
 
 CSV_FILE = 'equity_data.csv'
 
+# Callback: Check 2% rule warning
+@callback(
+    Output('irl-2percent-warning', 'className'),
+    [Input('irl-amount-input', 'value'),
+     Input('irl-equity-store', 'data')],
+    prevent_initial_call=True
+)
+def check_2percent_rule(amount, equity_data):
+    """Check if the investment amount exceeds 2% of equity and show warning"""
+    if not amount or not equity_data:
+        return 'd-none'  # Hide warning if no data
+    
+    try:
+        # Get current equity
+        df = pd.DataFrame(equity_data)
+        current_equity = float(df['equity'].iloc[-1])
+        
+        # Calculate 2% of equity
+        two_percent_limit = current_equity * 0.02
+        
+        # Check if amount exceeds 2% limit
+        if float(amount) > two_percent_limit:
+            return 'd-block'  # Show warning
+        else:
+            return 'd-none'  # Hide warning
+            
+    except (ValueError, TypeError, IndexError):
+        return 'd-none'  # Hide warning on any error
+
 # Callback: Load equity on tab open or after trade
 @callback(
     Output('irl-equity-store', 'data'),
@@ -2875,9 +2926,22 @@ def open_irl_position(n, data, symbol, side, amount, stop, target, *_):
         return "Please fill all fields.", dash.no_update
     df = pd.DataFrame(data) if data else load_trading_df()
     amt = abs(float(amount))  # Always positive
+    
+    # Check 2% rule
+    current_equity = float(df['equity'].iloc[-1])
+    two_percent_limit = current_equity * 0.02
+    breaks_2percent_rule = amt > two_percent_limit
+    
     try:
         df2 = open_position(df, symbol.upper(), amt, price_at_entry=float(amount), stop_price=float(stop), target_price=float(target), side=side)
-        return "Position opened!", df2.to_dict('records')
+        
+        # Create status message
+        if breaks_2percent_rule:
+            status_msg = f"Position opened! ⚠️ Note: This trade breaks the 2% Rule (${amt:,.2f} > ${two_percent_limit:,.2f})"
+        else:
+            status_msg = "Position opened!"
+            
+        return status_msg, df2.to_dict('records')
     except Exception as e:
         return f"Error: {e}", dash.no_update
 
