@@ -320,10 +320,10 @@ app.layout = dbc.Container([
                                                 dbc.Label("🚀 Quick Scans:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
                                                 dbc.Row([
                                                     dbc.Col([
-                                                        dbc.Button("Value Zone", id="preset-value-zone", size="sm", color="info", outline=True, className="mb-2 w-100")
+                                                        dbc.Button("Divergence Signs", id="preset-divergence", size="sm", color="info", outline=True, className="mb-2 w-100")
                                                     ], width=6),
                                                     dbc.Col([
-                                                        dbc.Button("Oversold RSI", id="preset-oversold", size="sm", color="warning", outline=True, className="mb-2 w-100")
+                                                        dbc.Button("RSI Extremes", id="preset-rsi-extremes", size="sm", color="warning", outline=True, className="mb-2 w-100")
                                                     ], width=6)
                                                 ]),
                                                 dbc.Row([
@@ -344,7 +344,10 @@ app.layout = dbc.Container([
                                                         dbc.Checklist(
                                                             id='elder-filters',
                                                             options=[
-                                                                {'label': '📊 In Value Zone (13-26 EMA)', 'value': 'value_zone'},
+                                                                {'label': '📊 MACD Bullish Divergence', 'value': 'macd_bullish_divergence'},
+                                                                {'label': '📊 MACD Bearish Divergence', 'value': 'macd_bearish_divergence'},
+                                                                {'label': '📊 RSI Bullish Divergence', 'value': 'rsi_bullish_divergence'},
+                                                                {'label': '📊 RSI Bearish Divergence', 'value': 'rsi_bearish_divergence'},
                                                                 {'label': '📈 Bullish EMA Alignment', 'value': 'ema_bullish'},
                                                                 {'label': '💪 Bullish MACD Signal', 'value': 'macd_bullish'},
                                                                 {'label': '📊 Above 13 EMA', 'value': 'above_ema_13'}
@@ -362,10 +365,10 @@ app.layout = dbc.Container([
                                                             options=[
                                                                 {'label': 'Any RSI', 'value': 'any'},
                                                                 {'label': 'Oversold (< 30)', 'value': 'oversold'},
+                                                                {'label': 'Overbought (> 70)', 'value': 'overbought'},
                                                                 {'label': 'Recovery (30-40)', 'value': 'recovery'},
                                                                 {'label': 'Neutral (40-60)', 'value': 'neutral'},
-                                                                {'label': 'Overbought Setup (60-70)', 'value': 'setup'},
-                                                                {'label': 'Overbought (> 70)', 'value': 'overbought'}
+                                                                {'label': 'Overbought Setup (60-70)', 'value': 'setup'}
                                                             ],
                                                             value='any',
                                                             className="mb-3"
@@ -1799,13 +1802,13 @@ def create_indicator_display(name, data):
      Output('volume-preset', 'value'),
      Output('universe-selection', 'value'),
      Output('result-limit', 'value')],
-    [Input('preset-value-zone', 'n_clicks'),
-     Input('preset-oversold', 'n_clicks'),
+    [Input('preset-divergence', 'n_clicks'),
+     Input('preset-rsi-extremes', 'n_clicks'),
      Input('preset-volume', 'n_clicks'),
      Input('preset-random', 'n_clicks')],
     prevent_initial_call=True
 )
-def handle_preset_buttons(value_zone_clicks, oversold_clicks, volume_clicks, random_clicks):
+def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks, random_clicks):
     """Handle quick preset scan button clicks"""
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -1813,10 +1816,12 @@ def handle_preset_buttons(value_zone_clicks, oversold_clicks, volume_clicks, ran
     
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
-    if button_id == 'preset-value-zone':
-        return ['value_zone'], 'any', 500000, ['sp500'], 25
-    elif button_id == 'preset-oversold':
-        return [], 'recovery', 1000000, ['sp500'], 25
+    if button_id == 'preset-divergence':
+        # For divergence, we'll set up filters that can be refined in the UI
+        return [], 'any', 500000, ['sp500'], 25
+    elif button_id == 'preset-rsi-extremes':
+        # For RSI extremes, we'll set up filters that can be refined in the UI
+        return [], 'any', 500000, ['sp500'], 25
     elif button_id == 'preset-volume':
         return [], 'any', 5000000, ['sp500', 'nasdaq100'], 25
     elif button_id == 'preset-random':
@@ -1884,6 +1889,24 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             if rsi_preset in rsi_ranges:
                 filters['rsi_min'] = rsi_ranges[rsi_preset]['min']
                 filters['rsi_max'] = rsi_ranges[rsi_preset]['max']
+        
+        # RSI extreme filters (overbought/oversold)
+        if rsi_preset == 'overbought':
+            filters['rsi_extreme'] = 'overbought'
+        elif rsi_preset == 'oversold':
+            filters['rsi_extreme'] = 'oversold'
+        
+        # Divergence filters
+        if elder_filters:
+            if 'macd_bullish_divergence' in elder_filters:
+                filters['macd_divergence'] = 'bullish'
+            elif 'macd_bearish_divergence' in elder_filters:
+                filters['macd_divergence'] = 'bearish'
+            
+            if 'rsi_bullish_divergence' in elder_filters:
+                filters['rsi_divergence'] = 'bullish'
+            elif 'rsi_bearish_divergence' in elder_filters:
+                filters['rsi_divergence'] = 'bearish'
         
         # Volume filter
         if volume_preset:
@@ -1969,6 +1992,14 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'volume' in table_data.columns:
             table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
+        
+        # Format divergence and RSI extreme columns for display
+        if 'macd_divergence' in table_data.columns:
+            table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+        if 'rsi_divergence' in table_data.columns:
+            table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+        if 'rsi_extreme' in table_data.columns:
+            table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
 
         # Create data table
         table = dash_table.DataTable(
@@ -1980,11 +2011,13 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
                 {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
+                {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
                 {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
                 {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
-                {'name': 'In Value Zone', 'id': 'in_value_zone', 'type': 'text'},
-                {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'}
+                {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
+                {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
+                {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -2042,14 +2075,59 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
                 },
-                # Highlight value zone stocks
+                # Highlight RSI overbought
                 {
                     'if': {
-                        'filter_query': '{in_value_zone} = True',
-                        'column_id': 'in_value_zone'
+                        'filter_query': '{rsi_extreme} = overbought',
+                        'column_id': 'rsi_extreme'
                     },
-                    'backgroundColor': '#1a3d4d',
-                    'color': '#00d4aa'
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # Highlight RSI oversold
+                {
+                    'if': {
+                        'filter_query': '{rsi_extreme} = oversold',
+                        'column_id': 'rsi_extreme'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Highlight bullish divergence
+                {
+                    'if': {
+                        'filter_query': '{macd_divergence} = bullish',
+                        'column_id': 'macd_divergence'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Highlight bearish divergence
+                {
+                    'if': {
+                        'filter_query': '{macd_divergence} = bearish',
+                        'column_id': 'macd_divergence'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # Highlight RSI bullish divergence
+                {
+                    'if': {
+                        'filter_query': '{rsi_divergence} = bullish',
+                        'column_id': 'rsi_divergence'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                # Highlight RSI bearish divergence
+                {
+                    'if': {
+                        'filter_query': '{rsi_divergence} = bearish',
+                        'column_id': 'rsi_divergence'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
                 },
                 # Make symbol column clickable and prominent
                 {

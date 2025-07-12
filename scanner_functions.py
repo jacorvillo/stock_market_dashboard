@@ -235,6 +235,12 @@ class StockScanner:
                 avg_volume_20_value = float(latest_volume)
             volume_vs_avg = (float(latest_volume) / avg_volume_20_value) if avg_volume_20_value > 0 else 1.0
             
+            # Detect divergences
+            divergences = self._detect_divergences(close_prices, rsi, macd_line)
+            
+            # Detect RSI extremes
+            rsi_extreme = self._detect_rsi_extremes(rsi)
+            
             # Build scanner result
             scanner_data = {
                 'symbol': symbol,
@@ -248,7 +254,10 @@ class StockScanner:
                 'above_ema_26': latest_close > latest_ema_26 if not pd.isna(latest_ema_26) else False,
                 'ema_trend': 'bullish' if (not pd.isna(latest_ema_13) and not pd.isna(latest_ema_26) and latest_ema_13 > latest_ema_26) else 'bearish',
                 'rsi': round(latest_rsi, 2) if not pd.isna(latest_rsi) else None,
+                'rsi_extreme': rsi_extreme,
                 'macd_signal': self._get_macd_signal(latest_macd, latest_signal),
+                'macd_divergence': divergences['macd_divergence'],
+                'rsi_divergence': divergences['rsi_divergence'],
                 'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) else None,
                 'price_change_pct': round(price_change_pct, 2),
                 'last_updated': datetime.now().isoformat()
@@ -278,6 +287,56 @@ class StockScanner:
             return 'bullish'
         else:
             return 'bearish'
+    
+    def _detect_divergences(self, close_prices, rsi, macd_line, lookback=10):
+        """Detect bullish and bearish divergences between price and indicators"""
+        if len(close_prices) < lookback:
+            return {'macd_divergence': 'none', 'rsi_divergence': 'none'}
+        
+        # Get recent data for analysis
+        recent_close = close_prices.tail(lookback)
+        recent_rsi = rsi.tail(lookback) if rsi is not None and len(rsi) >= lookback else None
+        recent_macd = macd_line.tail(lookback) if macd_line is not None and len(macd_line) >= lookback else None
+        
+        divergences = {'macd_divergence': 'none', 'rsi_divergence': 'none'}
+        
+        # RSI Divergence Detection
+        if recent_rsi is not None and not recent_rsi.isna().all():
+            price_trend = recent_close.iloc[-1] > recent_close.iloc[0]
+            rsi_trend = recent_rsi.iloc[-1] > recent_rsi.iloc[0]
+            
+            if price_trend and not rsi_trend:
+                divergences['rsi_divergence'] = 'bearish'
+            elif not price_trend and rsi_trend:
+                divergences['rsi_divergence'] = 'bullish'
+        
+        # MACD Divergence Detection
+        if recent_macd is not None and not recent_macd.isna().all():
+            price_trend = recent_close.iloc[-1] > recent_close.iloc[0]
+            macd_trend = recent_macd.iloc[-1] > recent_macd.iloc[0]
+            
+            if price_trend and not macd_trend:
+                divergences['macd_divergence'] = 'bearish'
+            elif not price_trend and macd_trend:
+                divergences['macd_divergence'] = 'bullish'
+        
+        return divergences
+    
+    def _detect_rsi_extremes(self, rsi):
+        """Detect RSI overbought and oversold conditions"""
+        if rsi is None or len(rsi) == 0 or rsi.isna().all():
+            return 'neutral'
+        
+        latest_rsi = rsi.iloc[-1]
+        if pd.isna(latest_rsi):
+            return 'neutral'
+        
+        if latest_rsi >= 70:
+            return 'overbought'
+        elif latest_rsi <= 30:
+            return 'oversold'
+        else:
+            return 'neutral'
     
     def _get_universe_symbols(self, selected_universes):
         """Get all symbols from selected universes"""
@@ -476,6 +535,17 @@ class StockScanner:
                     (filtered_df['rsi'].notna()) & (filtered_df['rsi'] <= filters['rsi_max'])
                 ]
             
+            # RSI extreme filter (overbought/oversold)
+            if filters.get('rsi_extreme') and filters['rsi_extreme'] != 'any':
+                filtered_df = filtered_df[filtered_df['rsi_extreme'] == filters['rsi_extreme']]
+            
+            # Divergence filters
+            if filters.get('macd_divergence') and filters['macd_divergence'] != 'any':
+                filtered_df = filtered_df[filtered_df['macd_divergence'] == filters['macd_divergence']]
+            
+            if filters.get('rsi_divergence') and filters['rsi_divergence'] != 'any':
+                filtered_df = filtered_df[filtered_df['rsi_divergence'] == filters['rsi_divergence']]
+            
             # MACD signal filter
             if filters.get('macd_signal') and filters['macd_signal'] != 'any':
                 filtered_df = filtered_df[filtered_df['macd_signal'] == filters['macd_signal']]
@@ -525,20 +595,21 @@ class StockScanner:
 
 # Preset filter configurations for quick scans
 PRESET_FILTERS = {
-    'value_zone': {
-        'name': 'Value Zone Stocks',
-        'description': 'Stocks trading between 13 and 26 EMAs',
+    'divergence_signs': {
+        'name': 'Divergence Signs',
+        'description': 'Stocks showing bullish or bearish divergence signals',
         'filters': {
-            'value_zone_only': True,
+            'macd_divergence': 'any',  # Will be set to 'bullish' or 'bearish' in UI
+            'rsi_divergence': 'any',   # Will be set to 'bullish' or 'bearish' in UI
             'min_volume': 500000
         }
     },
-    'oversold_rsi': {
-        'name': 'Oversold RSI Recovery',
-        'description': 'RSI 35 or below (oversold condition)',
+    'rsi_extremes': {
+        'name': 'RSI Extremes',
+        'description': 'Stocks with RSI overbought (>70) or oversold (<30) conditions',
         'filters': {
-            'rsi_max': 35,
-            'min_volume': 1000000
+            'rsi_extreme': 'any',  # Will be set to 'overbought' or 'oversold' in UI
+            'min_volume': 500000
         }
     },
     'bullish_momentum': {
