@@ -1049,10 +1049,10 @@ app.layout = dbc.Container([
                                             ),
                                             dbc.CardBody([
                                                 # Equity display with hide/show button
-                                                html.Div([
-                                                    html.Div(id="irl-equity-display", style={'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '10px'}),
-                                                    dbc.Button("Hide Equity", id="irl-hide-equity-btn", color="secondary", size="sm", className="mb-2"),
-                                                ], style={'marginBottom': '20px'}),
+                                                html.Div(
+                                                    id="irl-equity-display",
+                                                    style={'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '20px'}
+                                                ),
 
                                                 # Stock search
                                                 dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
@@ -2886,19 +2886,16 @@ def update_irl_equity_store(tab, open_n, close_n, change_n):
     Output('irl-equity-display', 'children'),
     Output('irl-equity-display', 'style'),
     Input('irl-equity-store', 'data'),
-    Input('irl-hide-equity-btn', 'n_clicks'),
     prevent_initial_call=False
 )
-def display_irl_equity(data, hide_n):
+def display_irl_equity(data):
     if not data:
         return "No equity data.", {'display': 'block'}
     df = pd.DataFrame(data)
     eq = float(df['equity'].iloc[-1])
     prev_eq = float(df['equity'].iloc[-2]) if len(df) > 1 else eq
     color = '#00ff88' if eq >= prev_eq else '#ff4444'
-    style = {'color': color, 'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '10px'}
-    if hide_n and hide_n % 2 == 1:
-        style['display'] = 'none'
+    style = {'color': color, 'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '20px'}
     return f"Current Equity: ${eq:,.2f}", style
 
 # Callback: Open position
