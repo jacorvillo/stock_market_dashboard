@@ -501,6 +501,75 @@ app.layout = dbc.Container([
                                                 # Scan Status
                                                 html.Div(id="scan-status", className="text-center mb-3"),
                                                 
+                                                # Watchlist Section
+                                                html.Hr(style={'borderColor': '#333'}),
+                                                dbc.Card([
+                                                    dbc.CardHeader(html.H5("👀 Watchlist", className="text-center", style={'color': '#00d4aa'})),
+                                                    dbc.CardBody([
+                                                        # Add Stock to Watchlist
+                                                        dbc.Row([
+                                                            dbc.Col([
+                                                                dbc.Input(
+                                                                    id='watchlist-symbol-input',
+                                                                    placeholder="Enter stock symbol (e.g., AAPL)",
+                                                                    type="text",
+                                                                    style={
+                                                                        'backgroundColor': '#000000', 
+                                                                        'color': '#fff',
+                                                                        'border': '2px solid #444',
+                                                                        'borderRadius': '8px',
+                                                                        'padding': '8px 12px',
+                                                                        'fontSize': '14px',
+                                                                        'fontWeight': '500'
+                                                                    },
+                                                                    className="text-uppercase"
+                                                                )
+                                                            ], width=8),
+                                                            dbc.Col([
+                                                                dbc.Button(
+                                                                    "Add",
+                                                                    id="add-to-watchlist-btn",
+                                                                    color="success",
+                                                                    size="sm",
+                                                                    className="w-100",
+                                                                    style={
+                                                                        'background': 'linear-gradient(45deg, #00d4aa, #00ff88)',
+                                                                        'border': 'none',
+                                                                        'fontWeight': 'bold'
+                                                                    }
+                                                                )
+                                                            ], width=4)
+                                                        ], className="mb-3"),
+                                                        
+                                                        # Watchlist Status
+                                                        html.Div(id="watchlist-status", className="text-center mb-3"),
+                                                        
+                                                        # Watchlist Table
+                                                        html.Div(id="watchlist-table-container", children=[
+                                                            dbc.Label("Your Watchlist:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                            html.Div(id="watchlist-table", children="No stocks in watchlist")
+                                                        ]),
+                                                        
+                                                        # Load Watchlist Button
+                                                        dbc.Button(
+                                                            [
+                                                                html.Span("📊", style={'marginRight': '8px', 'fontSize': '16px'}),
+                                                                html.Span("Load Watchlist", style={'color': '#000', 'fontWeight': 'bold'})
+                                                            ],
+                                                            id="load-watchlist-button",
+                                                            color="info",
+                                                            size="md",
+                                                            className="w-100 mt-3",
+                                                            style={
+                                                                'background': 'linear-gradient(45deg, #007bff, #0056b3)',
+                                                                'border': 'none',
+                                                                'fontWeight': 'bold'
+                                                            },
+                                                            n_clicks=0
+                                                        )
+                                                    ], style={'backgroundColor': '#000000'})
+                                                ], style={'backgroundColor': '#000000', 'border': '1px solid #444'}, className="mb-3"),
+                                                
                                             ], style={'backgroundColor': '#000000'})
                                         ], style={'backgroundColor': '#000000', 'border': '1px solid #444'})
                                     ])
@@ -1143,6 +1212,8 @@ app.layout = dbc.Container([
     dcc.Store(id='current-symbol-store', data='SPY'),
     dcc.Store(id='ema-periods-store', data=[13, 26]),
     dcc.Store(id='irl-equity-store'),
+    # Watchlist stores
+    dcc.Store(id='watchlist-store', data=[]),
     # Hidden stores for indicator parameters
     dcc.Store(id='macd-fast-store', data=12),
     dcc.Store(id='macd-slow-store', data=26),
@@ -2234,6 +2305,309 @@ def load_symbol_from_scanner(active_cell, table_data):
                 'stock-search-tab'                                   # Switch to stock search tab
             )
     raise PreventUpdate
+
+@callback(
+    [Output('stock-symbol-input', 'value', allow_duplicate=True),
+     Output('current-symbol-store', 'data', allow_duplicate=True),
+     Output('timeframe-dropdown', 'value', allow_duplicate=True),
+     Output('scanner-results-area', 'className', allow_duplicate=True),
+     Output('combined-chart', 'style', allow_duplicate=True),
+     Output('sidebar-tabs', 'active_tab', allow_duplicate=True)],
+    [Input('watchlist-results-table', 'active_cell')],
+    [State('watchlist-results-table', 'data')],
+    prevent_initial_call=True
+)
+def load_symbol_from_watchlist(active_cell, table_data):
+    """Load a symbol from watchlist results into the chart"""
+    if not active_cell or not table_data:
+        raise PreventUpdate
+    
+    row = active_cell['row']
+    if row < len(table_data):
+        symbol = table_data[row]['symbol']
+        # Clean the symbol (remove any potential formatting)
+        clean_symbol = symbol.strip()
+        return (
+            clean_symbol,                                        # Update symbol input
+            clean_symbol,                                        # Update symbol store
+            '6mo',                                               # Set timeframe to 6 months
+            'd-none',                                            # Hide scanner results
+            {
+                'backgroundColor': '#000000', 
+                'height': '90vh',
+                'position': 'absolute',
+                'top': '0',
+                'left': '0',
+                'width': '100%',
+                'zIndex': 1,
+                'display': 'block'
+            },   # Show chart
+            'stock-search-tab'                                   # Switch to stock search tab
+        )
+    raise PreventUpdate
+
+# ========== WATCHLIST CALLBACKS ==========
+
+@callback(
+    [Output('watchlist-store', 'data'),
+     Output('watchlist-status', 'children'),
+     Output('watchlist-symbol-input', 'value')],
+    [Input('add-to-watchlist-btn', 'n_clicks')],
+    [State('watchlist-symbol-input', 'value'),
+     State('watchlist-store', 'data')],
+    prevent_initial_call=True
+)
+def add_to_watchlist(n_clicks, symbol, current_watchlist):
+    """Add a stock symbol to the watchlist"""
+    if not n_clicks or not symbol:
+        raise PreventUpdate
+    
+    # Clean and validate symbol
+    clean_symbol = symbol.strip().upper()
+    if not clean_symbol:
+        return dash.no_update, "Please enter a valid symbol.", ""
+    
+    # Check if symbol is already in watchlist
+    if clean_symbol in current_watchlist:
+        return dash.no_update, f"❌ {clean_symbol} is already in your watchlist.", ""
+    
+    # Add to watchlist
+    new_watchlist = current_watchlist + [clean_symbol]
+    return new_watchlist, f"✅ {clean_symbol} added to watchlist!", ""
+
+@callback(
+    [Output('watchlist-table', 'children'),
+     Output('watchlist-table-container', 'style')],
+    [Input('watchlist-store', 'data')],
+    prevent_initial_call=False
+)
+def update_watchlist_display(watchlist_data):
+    """Update the watchlist display"""
+    if not watchlist_data or len(watchlist_data) == 0:
+        return "No stocks in watchlist", {'display': 'block'}
+    
+    # Create watchlist items with remove buttons
+    watchlist_items = []
+    for i, symbol in enumerate(watchlist_data):
+        item = dbc.Row([
+            dbc.Col([
+                html.Span(symbol, style={'color': '#fff', 'fontWeight': 'bold'})
+            ], width=8),
+            dbc.Col([
+                dbc.Button(
+                    "Remove",
+                    id={'type': 'remove-watchlist-btn', 'index': i},
+                    color="danger",
+                    size="sm",
+                    style={'fontSize': '10px'}
+                )
+            ], width=4)
+        ], className="mb-2", style={'alignItems': 'center'})
+        watchlist_items.append(item)
+    
+    return watchlist_items, {'display': 'block'}
+
+@callback(
+    Output('watchlist-store', 'data', allow_duplicate=True),
+    [Input({'type': 'remove-watchlist-btn', 'index': ALL}, 'n_clicks')],
+    [State('watchlist-store', 'data')],
+    prevent_initial_call=True
+)
+def remove_from_watchlist(remove_clicks, current_watchlist):
+    """Remove a stock symbol from the watchlist"""
+    if not any(remove_clicks):
+        raise PreventUpdate
+    
+    # Find which button was clicked
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    # Get the index from the triggered button
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    import json
+    button_data = json.loads(triggered_id)
+    index = button_data['index']
+    
+    # Remove the symbol at the specified index
+    if current_watchlist and 0 <= index < len(current_watchlist):
+        new_watchlist = current_watchlist.copy()
+        removed_symbol = new_watchlist.pop(index)
+        return new_watchlist
+    
+    return dash.no_update
+
+@callback(
+    [Output('scan-status', 'children', allow_duplicate=True),
+     Output('scanner-results-area', 'children', allow_duplicate=True),
+     Output('scanner-results-area', 'className', allow_duplicate=True),
+     Output('combined-chart', 'style', allow_duplicate=True)],
+    [Input('load-watchlist-button', 'n_clicks')],
+    [State('watchlist-store', 'data')],
+    prevent_initial_call=True,
+    running=[(Output("load-watchlist-button", "disabled"), True, False)]
+)
+def load_watchlist_scan(n_clicks, watchlist_data):
+    """Load and scan all stocks in the watchlist"""
+    if not n_clicks or not watchlist_data or len(watchlist_data) == 0:
+        raise PreventUpdate
+    
+    try:
+        # Initialize scanner
+        scanner = StockScanner()
+        
+        # Process watchlist symbols directly
+        results = []
+        for symbol in watchlist_data:
+            try:
+                result = scanner._calculate_indicators_for_symbol(symbol)
+                if result:
+                    results.append(result)
+            except Exception as e:
+                print(f"Error processing {symbol}: {e}")
+                continue
+        
+        if not results:
+            return (
+                dbc.Alert("❌ No data found for watchlist symbols. Check if symbols are valid.", color="warning"),
+                [],
+                'd-none',
+                {
+                    'backgroundColor': '#000000', 
+                    'height': '90vh',
+                    'position': 'absolute',
+                    'top': '0',
+                    'left': '0',
+                    'width': '100%',
+                    'zIndex': 1,
+                    'display': 'block'
+                }
+            )
+        
+        # Convert to DataFrame
+        results_df = pd.DataFrame(results)
+        
+        if results_df.empty:
+            return (
+                dbc.Alert("❌ No data found for watchlist symbols. Check if symbols are valid.", color="warning"),
+                [],
+                'd-none',
+                {
+                    'backgroundColor': '#000000', 
+                    'height': '90vh',
+                    'position': 'absolute',
+                    'top': '0',
+                    'left': '0',
+                    'width': '100%',
+                    'zIndex': 1,
+                    'display': 'block'
+                }
+            )
+        
+        # Create results table (same logic as regular scanner)
+        table_data = results_df.copy()
+        
+        # Format numeric columns
+        if 'rsi' in table_data.columns:
+            table_data['rsi'] = table_data['rsi'].apply(lambda x: round(x, 1) if pd.notna(x) else None)
+        if 'price_change_pct' in table_data.columns:
+            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'price' in table_data.columns:
+            table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'ema_13' in table_data.columns:
+            table_data['ema_13'] = table_data['ema_13'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'ema_26' in table_data.columns:
+            table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
+        if 'volume' in table_data.columns:
+            table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
+        
+        # Format divergence and RSI extreme columns
+        if 'macd_divergence' in table_data.columns:
+            table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+        if 'rsi_divergence' in table_data.columns:
+            table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
+        if 'rsi_extreme' in table_data.columns:
+            table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
+
+        # Create data table (same as scanner table)
+        table = dash_table.DataTable(
+            id='watchlist-results-table',
+            data=table_data.to_dict('records'),
+            columns=[
+                {'name': 'Symbol', 'id': 'symbol', 'type': 'text'},
+                {'name': 'Price', 'id': 'price', 'type': 'numeric'},
+                {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
+                {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
+                {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
+                {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
+                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
+                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
+                {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
+                {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
+                {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
+                {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'}
+            ],
+            style_table={
+                'backgroundColor': '#000000',
+                'overflowX': 'auto'
+            },
+            style_cell={
+                'backgroundColor': '#000000',
+                'color': '#fff',
+                'border': '1px solid #444',
+                'textAlign': 'left',
+                'padding': '8px',
+                'fontFamily': 'Inter, sans-serif',
+                'fontSize': '12px'
+            },
+            style_header={
+                'backgroundColor': '#00d4aa',
+                'color': '#000',
+                'fontWeight': 'bold',
+                'border': '1px solid #00d4aa'
+            },
+
+            page_size=10,
+            sort_action='native',
+            filter_action='native',
+            style_as_list_view=True,
+            row_selectable=False,
+            selected_rows=[],
+            page_current=0
+        )
+        
+        return (
+            dbc.Alert(f"✅ Watchlist scan completed! Found data for {len(results_df)} symbols.", color="success"),
+            [table],
+            'd-block',
+            {
+                'backgroundColor': '#000000', 
+                'height': '90vh',
+                'position': 'absolute',
+                'top': '0',
+                'left': '0',
+                'width': '100%',
+                'zIndex': 1000,
+                'display': 'none'
+            }
+        )
+        
+    except Exception as e:
+        return (
+            dbc.Alert(f"❌ Error loading watchlist: {str(e)}", color="danger"),
+            [],
+            'd-none',
+            {
+                'backgroundColor': '#000000', 
+                'height': '90vh',
+                'position': 'absolute',
+                'top': '0',
+                'left': '0',
+                'width': '100%',
+                'zIndex': 1,
+                'display': 'block'
+            }
+        )
 
 # Callback to switch back to chart view when changing tabs
 @callback(
