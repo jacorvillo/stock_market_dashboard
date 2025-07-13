@@ -17,8 +17,8 @@ import os
 from dash.dependencies import ALL
 from dash.dash_table import Format, FormatTemplate
 
-# Import functions from functions.py
-from analysis_functions import (
+# Import functions from functions module
+from functions.analysis_functions import (
     get_stock_data, 
     calculate_indicators,
     update_lower_chart_settings,
@@ -37,16 +37,16 @@ from analysis_functions import (
 )
 
 # Import Impulse System functions
-from impulse_functions import calculate_impulse_system, get_impulse_colors
+from functions.impulse_functions import calculate_impulse_system, get_impulse_colors
 
 # Import scanner functions
-from scanner_functions import StockScanner, get_preset_filter, get_available_presets
+from functions.scanner_functions import StockScanner, get_preset_filter, get_available_presets
 
 # Import insights functions
-from insights_functions import TechnicalInsights, generate_insights_summary
+from functions.insights_functions import TechnicalInsights, generate_insights_summary
 
 # Import IRL trading functions
-from irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price
+from functions.irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price
 
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """

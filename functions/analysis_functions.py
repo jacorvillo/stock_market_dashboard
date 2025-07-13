@@ -907,7 +907,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         impulse_df = None
         if use_impulse_system and chart_type == 'candlestick' and len(df) > 1:
             # Import here to avoid circular imports
-            from impulse_functions import calculate_impulse_system
+            from .impulse_functions import calculate_impulse_system
             impulse_df = calculate_impulse_system(df, ema_period=ema_periods[0] if ema_periods else 13)
         
         # Detect if data contains intraday (minute) timepoints
@@ -935,7 +935,7 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
             # Standard candlestick (with or without Impulse System)
             if use_impulse_system and impulse_df is not None:
                 # Use impulse system coloring (groupby date and create separate traces)
-                from impulse_functions import get_impulse_colors
+                from .impulse_functions import get_impulse_colors
                 
                 # Create a separate trace for each impulse color
                 for color in ['green', 'red', 'blue']:
@@ -1615,7 +1615,7 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             # Candlestick chart
             if use_impulse_system and chart_type == 'candlestick':
                 # Use Impulse System for coloring (imported at function level to avoid circular imports)
-                from impulse_functions import calculate_impulse_system, get_impulse_colors
+                from .impulse_functions import calculate_impulse_system, get_impulse_colors
                 
                 # Add Impulse System coloring to the dataframe
                 impulse_df = calculate_impulse_system(df, ema_period=ema_periods[0] if ema_periods else 13)
