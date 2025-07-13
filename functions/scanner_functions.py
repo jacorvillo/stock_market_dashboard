@@ -235,8 +235,8 @@ class StockScanner:
                 avg_volume_20_value = float(latest_volume)
             volume_vs_avg = (float(latest_volume) / avg_volume_20_value) if avg_volume_20_value > 0 else 1.0
             
-            # Detect divergences
-            divergences = self._detect_divergences(close_prices, rsi, macd_line)
+            # Detect divergences using MACD histogram for more accurate detection
+            divergences = self._detect_divergences(close_prices, rsi, histogram)
             
             # Detect RSI extremes
             rsi_extreme = self._detect_rsi_extremes(rsi)
@@ -288,8 +288,13 @@ class StockScanner:
         else:
             return 'bearish'
     
-    def _detect_divergences(self, close_prices, rsi, macd_line, lookback=10):
-        """Detect bullish and bearish divergences between price and indicators"""
+    def _detect_divergences(self, close_prices, rsi, macd_line, lookback=50):
+        """
+        Enhanced divergence detection based on research criteria
+        
+        Research shows most tradable divergences occur when distance between 
+        two peaks/bottoms of MACD-H is between 20-40 bars, closer to 20 being better.
+        """
         if len(close_prices) < lookback:
             return {'macd_divergence': 'none', 'rsi_divergence': 'none'}
         
@@ -300,27 +305,226 @@ class StockScanner:
         
         divergences = {'macd_divergence': 'none', 'rsi_divergence': 'none'}
         
-        # RSI Divergence Detection
-        if recent_rsi is not None and not recent_rsi.isna().all():
-            price_trend = recent_close.iloc[-1] > recent_close.iloc[0]
-            rsi_trend = recent_rsi.iloc[-1] > recent_rsi.iloc[0]
-            
-            if price_trend and not rsi_trend:
-                divergences['rsi_divergence'] = 'bearish'
-            elif not price_trend and rsi_trend:
-                divergences['rsi_divergence'] = 'bullish'
-        
-        # MACD Divergence Detection
+        # Enhanced MACD Divergence Detection
         if recent_macd is not None and not recent_macd.isna().all():
-            price_trend = recent_close.iloc[-1] > recent_close.iloc[0]
-            macd_trend = recent_macd.iloc[-1] > recent_macd.iloc[0]
-            
-            if price_trend and not macd_trend:
-                divergences['macd_divergence'] = 'bearish'
-            elif not price_trend and macd_trend:
-                divergences['macd_divergence'] = 'bullish'
+            macd_div = self._detect_macd_divergence_enhanced(recent_close, recent_macd)
+            divergences['macd_divergence'] = macd_div
+        
+        # RSI Divergence Detection (enhanced to match MACD approach)
+        if recent_rsi is not None and not recent_rsi.isna().all():
+            rsi_div = self._detect_rsi_divergence_enhanced(recent_close, recent_rsi)
+            divergences['rsi_divergence'] = rsi_div
         
         return divergences
+    
+    def _detect_macd_divergence_enhanced(self, close_prices, macd_histogram):
+        """
+        Enhanced MACD divergence detection based on research criteria
+        
+        Research shows most tradable divergences occur when distance between 
+        two peaks/bottoms of MACD-H is between 20-40 bars, closer to 20 being better.
+        
+        Looks for:
+        1. Two peaks or two bottoms in MACD-H (histogram)
+        2. Distance between peaks/bottoms: 20-40 bars (optimal 20-30)
+        3. Price making higher highs while MACD-H makes lower highs (bearish divergence)
+        4. Price making lower lows while MACD-H makes higher lows (bullish divergence)
+        """
+        try:
+            # Use MACD histogram (MACD-H) for divergence detection as per research
+            # Find peaks and troughs in MACD histogram
+            macd_peaks = self._find_peaks(macd_histogram, prominence=0.0001)  # Lower prominence for histogram
+            macd_troughs = self._find_troughs(macd_histogram, prominence=0.0001)
+            
+            # Find peaks and troughs in price
+            price_peaks = self._find_peaks(close_prices, prominence=0.01)
+            price_troughs = self._find_troughs(close_prices, prominence=0.01)
+            
+            # Check for bearish divergence (price higher highs, MACD-H lower highs)
+            if len(macd_peaks) >= 2 and len(price_peaks) >= 2:
+                # Get the two most recent peaks
+                recent_macd_peaks = sorted(macd_peaks)[-2:]
+                recent_price_peaks = sorted(price_peaks)[-2:]
+                
+                # Check distance between MACD peaks (should be 20-40 bars, optimal 20-30)
+                macd_peak_distance = abs(recent_macd_peaks[1] - recent_macd_peaks[0])
+                
+                # Additional validation: ensure peaks are recent enough (within last 50 bars)
+                max_recent_peak = max(recent_macd_peaks)
+                if max_recent_peak >= len(macd_histogram) - 10:  # Peak should be within last 10 bars
+                    if 20 <= macd_peak_distance <= 40:  # Optimal range per research
+                        # Check if price made higher high while MACD-H made lower high
+                        price_higher = close_prices.iloc[recent_price_peaks[1]] > close_prices.iloc[recent_price_peaks[0]]
+                        macd_lower = macd_histogram.iloc[recent_macd_peaks[1]] < macd_histogram.iloc[recent_macd_peaks[0]]
+                        
+                        # Additional validation: ensure the divergence is significant
+                        price_change_pct = abs(close_prices.iloc[recent_price_peaks[1]] - close_prices.iloc[recent_price_peaks[0]]) / close_prices.iloc[recent_price_peaks[0]] * 100
+                        macd_change_pct = abs(macd_histogram.iloc[recent_macd_peaks[1]] - macd_histogram.iloc[recent_macd_peaks[0]]) / abs(macd_histogram.iloc[recent_macd_peaks[0]]) * 100 if macd_histogram.iloc[recent_macd_peaks[0]] != 0 else 0
+                        
+                        if price_higher and macd_lower and price_change_pct > 1.0 and macd_change_pct > 5.0:
+                            return 'bearish'
+            
+            # Check for bullish divergence (price lower lows, MACD-H higher lows)
+            if len(macd_troughs) >= 2 and len(price_troughs) >= 2:
+                # Get the two most recent troughs
+                recent_macd_troughs = sorted(macd_troughs)[-2:]
+                recent_price_troughs = sorted(price_troughs)[-2:]
+                
+                # Check distance between MACD troughs (should be 20-40 bars, optimal 20-30)
+                macd_trough_distance = abs(recent_macd_troughs[1] - recent_macd_troughs[0])
+                
+                # Additional validation: ensure troughs are recent enough (within last 50 bars)
+                max_recent_trough = max(recent_macd_troughs)
+                if max_recent_trough >= len(macd_histogram) - 10:  # Trough should be within last 10 bars
+                    if 20 <= macd_trough_distance <= 40:  # Optimal range per research
+                        # Check if price made lower low while MACD-H made higher low
+                        price_lower = close_prices.iloc[recent_price_troughs[1]] < close_prices.iloc[recent_price_troughs[0]]
+                        macd_higher = macd_histogram.iloc[recent_macd_troughs[1]] > macd_histogram.iloc[recent_macd_troughs[0]]
+                        
+                        # Additional validation: ensure the divergence is significant
+                        price_change_pct = abs(close_prices.iloc[recent_price_troughs[1]] - close_prices.iloc[recent_price_troughs[0]]) / close_prices.iloc[recent_price_troughs[0]] * 100
+                        macd_change_pct = abs(macd_histogram.iloc[recent_macd_troughs[1]] - macd_histogram.iloc[recent_macd_troughs[0]]) / abs(macd_histogram.iloc[recent_macd_troughs[0]]) * 100 if macd_histogram.iloc[recent_macd_troughs[0]] != 0 else 0
+                        
+                        if price_lower and macd_higher and price_change_pct > 1.0 and macd_change_pct > 5.0:
+                            return 'bullish'
+            
+            return 'none'
+            
+        except Exception as e:
+            print(f"Error in enhanced MACD divergence detection: {e}")
+            return 'none'
+    
+    def _detect_rsi_divergence_enhanced(self, close_prices, rsi):
+        """
+        Enhanced RSI divergence detection based on research criteria
+        
+        Research shows most tradable divergences occur when distance between 
+        two peaks/bottoms of RSI is between 20-40 bars, closer to 20 being better.
+        
+        Looks for:
+        1. Two peaks or two bottoms in RSI
+        2. Distance between peaks/bottoms: 20-40 bars (optimal 20-30)
+        3. Price making higher highs while RSI makes lower highs (bearish divergence)
+        4. Price making lower lows while RSI makes higher lows (bullish divergence)
+        """
+        try:
+            # Find peaks and troughs in RSI
+            rsi_peaks = self._find_peaks(rsi, prominence=0.001)
+            rsi_troughs = self._find_troughs(rsi, prominence=0.001)
+            
+            # Find peaks and troughs in price
+            price_peaks = self._find_peaks(close_prices, prominence=0.01)
+            price_troughs = self._find_troughs(close_prices, prominence=0.01)
+            
+            # Check for bearish divergence (price higher highs, RSI lower highs)
+            if len(rsi_peaks) >= 2 and len(price_peaks) >= 2:
+                # Get the two most recent peaks
+                recent_rsi_peaks = sorted(rsi_peaks)[-2:]
+                recent_price_peaks = sorted(price_peaks)[-2:]
+                
+                # Check distance between RSI peaks (should be 20-40 bars, optimal 20-30)
+                rsi_peak_distance = abs(recent_rsi_peaks[1] - recent_rsi_peaks[0])
+                
+                # Additional validation: ensure peaks are recent enough (within last 50 bars)
+                max_recent_rsi_peak = max(recent_rsi_peaks)
+                if max_recent_rsi_peak >= len(rsi) - 10:  # Peak should be within last 10 bars
+                    if 20 <= rsi_peak_distance <= 40:  # Optimal range per research
+                        # Check if price made higher high while RSI made lower high
+                        price_higher = close_prices.iloc[recent_price_peaks[1]] > close_prices.iloc[recent_price_peaks[0]]
+                        rsi_lower = rsi.iloc[recent_rsi_peaks[1]] < rsi.iloc[recent_rsi_peaks[0]]
+                        
+                        # Additional validation: ensure the divergence is significant
+                        price_change_pct = abs(close_prices.iloc[recent_price_peaks[1]] - close_prices.iloc[recent_price_peaks[0]]) / close_prices.iloc[recent_price_peaks[0]] * 100
+                        rsi_change_pct = abs(rsi.iloc[recent_rsi_peaks[1]] - rsi.iloc[recent_rsi_peaks[0]]) / abs(rsi.iloc[recent_rsi_peaks[0]]) * 100 if rsi.iloc[recent_rsi_peaks[0]] != 0 else 0
+                        
+                        if price_higher and rsi_lower and price_change_pct > 1.0 and rsi_change_pct > 5.0:
+                            return 'bearish'
+            
+            # Check for bullish divergence (price lower lows, RSI higher lows)
+            if len(rsi_troughs) >= 2 and len(price_troughs) >= 2:
+                # Get the two most recent troughs
+                recent_rsi_troughs = sorted(rsi_troughs)[-2:]
+                recent_price_troughs = sorted(price_troughs)[-2:]
+                
+                # Check distance between RSI troughs (should be 20-40 bars, optimal 20-30)
+                rsi_trough_distance = abs(recent_rsi_troughs[1] - recent_rsi_troughs[0])
+                
+                # Additional validation: ensure troughs are recent enough (within last 50 bars)
+                max_recent_rsi_trough = max(recent_rsi_troughs)
+                if max_recent_rsi_trough >= len(rsi) - 10:  # Trough should be within last 10 bars
+                    if 20 <= rsi_trough_distance <= 40:  # Optimal range per research
+                        # Check if price made lower low while RSI made higher low
+                        price_lower = close_prices.iloc[recent_price_troughs[1]] < close_prices.iloc[recent_price_troughs[0]]
+                        rsi_higher = rsi.iloc[recent_rsi_troughs[1]] > rsi.iloc[recent_rsi_troughs[0]]
+                        
+                        # Additional validation: ensure the divergence is significant
+                        price_change_pct = abs(close_prices.iloc[recent_price_troughs[1]] - close_prices.iloc[recent_price_troughs[0]]) / close_prices.iloc[recent_price_troughs[0]] * 100
+                        rsi_change_pct = abs(rsi.iloc[recent_rsi_troughs[1]] - rsi.iloc[recent_rsi_troughs[0]]) / abs(rsi.iloc[recent_rsi_troughs[0]]) * 100 if rsi.iloc[recent_rsi_troughs[0]] != 0 else 0
+                        
+                        if price_lower and rsi_higher and price_change_pct > 1.0 and rsi_change_pct > 5.0:
+                            return 'bullish'
+            
+            return 'none'
+            
+        except Exception as e:
+            print(f"Error in enhanced RSI divergence detection: {e}")
+            return 'none'
+    
+    def _find_peaks(self, series, prominence=0.001):
+        """
+        Find peaks in a time series with minimum prominence
+        
+        Args:
+            series: pandas Series with numeric values
+            prominence: minimum prominence for a peak to be considered
+            
+        Returns:
+            List of indices where peaks occur
+        """
+        peaks = []
+        if len(series) < 3:
+            return peaks
+        
+        for i in range(1, len(series) - 1):
+            # Check if current point is higher than neighbors
+            if series.iloc[i] > series.iloc[i-1] and series.iloc[i] > series.iloc[i+1]:
+                # Calculate prominence (minimum drop on either side)
+                left_drop = series.iloc[i] - series.iloc[i-1]
+                right_drop = series.iloc[i] - series.iloc[i+1]
+                min_drop = min(left_drop, right_drop)
+                
+                if min_drop >= prominence:
+                    peaks.append(i)
+        
+        return peaks
+    
+    def _find_troughs(self, series, prominence=0.001):
+        """
+        Find troughs (valleys) in a time series with minimum prominence
+        
+        Args:
+            series: pandas Series with numeric values
+            prominence: minimum prominence for a trough to be considered
+            
+        Returns:
+            List of indices where troughs occur
+        """
+        troughs = []
+        if len(series) < 3:
+            return troughs
+        
+        for i in range(1, len(series) - 1):
+            # Check if current point is lower than neighbors
+            if series.iloc[i] < series.iloc[i-1] and series.iloc[i] < series.iloc[i+1]:
+                # Calculate prominence (minimum rise on either side)
+                left_rise = series.iloc[i-1] - series.iloc[i]
+                right_rise = series.iloc[i+1] - series.iloc[i]
+                min_rise = min(left_rise, right_rise)
+                
+                if min_rise >= prominence:
+                    troughs.append(i)
+        
+        return troughs
     
     def _detect_rsi_extremes(self, rsi):
         """Detect RSI overbought and oversold conditions"""
