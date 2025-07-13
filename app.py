@@ -2535,18 +2535,21 @@ def remove_from_watchlist(remove_clicks, current_watchlist):
     
     return dash.no_update
 
-# Initialize watchlist with open positions on app startup
+
+
+# Preload open positions into watchlist on app startup
 @callback(
     Output('watchlist-store', 'data', allow_duplicate=True),
-    Input('sidebar-tabs', 'active_tab'),
-    prevent_initial_call=True
+    Input('interval-component', 'n_intervals'),
+    prevent_initial_call='initial_duplicate'
 )
-def initialize_watchlist_with_open_positions(active_tab):
-    """Initialize watchlist with open positions from CSV when scanner tab is first accessed"""
-    if active_tab == 'scanner-tab':
-        # Get open positions from CSV
+def preload_open_positions_on_startup(n_intervals):
+    """Preload open positions into watchlist on app startup"""
+    # Only run once on startup (when n_intervals is 0)
+    if n_intervals == 0:
         open_positions = get_open_positions_from_csv()
         if open_positions:
+            print(f"Preloading open positions into watchlist: {open_positions}")
             return open_positions
     raise PreventUpdate
 
