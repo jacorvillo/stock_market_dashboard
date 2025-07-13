@@ -101,8 +101,16 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
             # Use "7d" period to ensure we get enough data for accurate indicator calculations
             ticker = yf.Ticker(symbol)
             try:
-                # Use the specified frequency or default to 1m for yesterday
-                interval_arg = frequency if frequency else "1m"
+                # Check if we need custom resampling (8m, 39m, etc.)
+                custom_intervals = ['8m', '25m', '39m']
+                needs_resampling = frequency in custom_intervals
+                
+                # Always fetch 1m data for custom intervals, then resample
+                if needs_resampling:
+                    interval_arg = "1m"
+                else:
+                    interval_arg = frequency if frequency else "1m"
+                
                 data = ticker.history(period="7d", interval=interval_arg, timeout=3)  # Reduced timeout for faster loading
                 
                 if data.empty:
@@ -129,6 +137,10 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 # Convert from ET to CEST (add 6 hours for summer time)
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
+                
+                # Apply custom resampling if needed
+                if needs_resampling:
+                    data = resample_to_custom_interval(data, frequency)
                 
                 # Keep the full dataset for indicator calculation
                 full_data_for_indicators = data.copy()
@@ -242,9 +254,18 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
             # Fetch minute data using yfinance - Include PREVIOUS DAYS' data for proper indicator calculation
             ticker = yf.Ticker(symbol)
             try:
+                # Check if we need custom resampling (8m, 39m, etc.)
+                custom_intervals = ['8m', '25m', '39m']
+                needs_resampling = frequency in custom_intervals
+                
+                # Always fetch 1m data for custom intervals, then resample
+                if needs_resampling:
+                    interval_arg = "1m"
+                else:
+                    interval_arg = frequency if frequency else "1m"
+                
                 # For intraday, fetch 5 days of minute data to include previous market periods
                 # This ensures indicators have enough historical data to calculate properly from market open
-                interval_arg = frequency if frequency else "1m"
                 data = ticker.history(period="5d", interval=interval_arg, timeout=3)  # Reduced timeout for faster loading
                 
                 # Convert timestamps to CEST timezone for display
@@ -261,6 +282,10 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 # For July 2025, we're in summer time, so EDT to CEST = +6 hours
                 data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
                 data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
+                
+                # Apply custom resampling if needed
+                if needs_resampling:
+                    data = resample_to_custom_interval(data, frequency)
                 
                 # Store the full dataset for indicator calculation
                 full_data_for_indicators = data.copy()
@@ -1536,7 +1561,7 @@ def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_c
     
     return fig
 
-def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None, use_impulse_system=False, bollinger_bands=None, autoenvelope=None):
+def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None, frequency=None, use_impulse_system=False, bollinger_bands=None, autoenvelope=None):
     """Update a combined chart with main price chart on top and indicator chart below"""
     try:
         if not data:
@@ -1843,8 +1868,12 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # Add Bollinger Bands if enabled
         if bollinger_bands and bollinger_bands.get('show'):
             try:
-                period = bollinger_bands.get('period', 26)
+                base_period = bollinger_bands.get('period', 26)
                 stddev = bollinger_bands.get('stddev', 2)
+                
+                # Calculate appropriate period based on timeframe and frequency
+                period = calculate_appropriate_period(base_period, timeframe, frequency)
+                
                 # Calculate Bollinger Bands - requires at least 'period' number of data points
                 if len(df) > period:
                     # Calculate the middle band (Simple Moving Average)
@@ -1896,8 +1925,12 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         # Add Autoenvelope if enabled
         if autoenvelope and autoenvelope.get('show'):
             try:
-                period = autoenvelope.get('period', 26)
+                base_period = autoenvelope.get('period', 26)
                 percent = autoenvelope.get('percent', 6)
+                
+                # Calculate appropriate period based on timeframe and frequency
+                period = calculate_appropriate_period(base_period, timeframe, frequency)
+                
                 # Calculate Autoenvelope - requires at least 'period' number of data points
                 if len(df) > period:
                     # Calculate the middle line (Simple Moving Average)
@@ -2886,3 +2919,90 @@ def update_stock_status_indicator(symbol_info):
     )
     
     return html.Div(content, style={'textAlign': 'left', 'padding': '5px', 'borderRadius': '4px'})
+
+def resample_to_custom_interval(data, target_interval):
+    """
+    Resample minute data to custom intervals like 8m, 39m, etc.
+    
+    Args:
+        data: DataFrame with minute-level data
+        target_interval: String like '8m', '39m' (must end with 'm')
+    
+    Returns:
+        Resampled DataFrame
+    """
+    if not target_interval.endswith('m'):
+        return data
+    
+    try:
+        minutes = int(target_interval[:-1])
+        if minutes <= 0:
+            return data
+            
+        # Set the Date column as index for resampling
+        data_copy = data.copy()
+        data_copy['Date'] = pd.to_datetime(data_copy['Date'])
+        data_copy.set_index('Date', inplace=True)
+        
+        # Resample to custom interval
+        resampled = data_copy.resample(f'{minutes}T').agg({
+            'Open': 'first',
+            'High': 'max',
+            'Low': 'min',
+            'Close': 'last',
+            'Volume': 'sum'
+        }).dropna()
+        
+        # Reset index to get Date column back
+        resampled.reset_index(inplace=True)
+        return resampled
+        
+    except (ValueError, TypeError) as e:
+        print(f"Error resampling to {target_interval}: {e}")
+        return data
+
+def calculate_appropriate_period(base_period, timeframe, frequency=None):
+    """
+    Calculate appropriate periods for indicators based on timeframe and frequency.
+    
+    Args:
+        base_period: The base period (e.g., 26 for daily data)
+        timeframe: The timeframe ('1d', 'yesterday', '6mo', '1y', etc.)
+        frequency: The frequency ('1m', '5m', '8m', '15m', '25m', '30m', '39m', etc.)
+    
+    Returns:
+        Adjusted period appropriate for the timeframe
+    """
+    # For daily and longer timeframes, use the base period as-is
+    if timeframe not in ['1d', 'yesterday']:
+        return base_period
+    
+    # For intraday data, we need to scale the period based on frequency
+    if not frequency or frequency == '1d':
+        return base_period
+    
+    # Convert frequency to minutes
+    if frequency.endswith('m'):
+        try:
+            minutes = int(frequency[:-1])
+        except ValueError:
+            minutes = 1
+    elif frequency == '1h':
+        minutes = 60
+    else:
+        minutes = 1
+    
+    # For intraday, we want to maintain roughly the same time coverage
+    # A 26-period daily indicator covers about 26 days = 26 * 6.5 hours = 169 hours
+    # For intraday, we want to cover roughly the same time period
+    target_hours = base_period * 6.5  # 6.5 hours per trading day
+    
+    # Calculate how many bars we need to cover the same time period
+    bars_needed = int((target_hours * 60) / minutes)
+    
+    # Ensure minimum and maximum reasonable values
+    # For intraday, we want to cover roughly 1-2 weeks of trading time
+    max_bars = min(100, int((14 * 6.5 * 60) / minutes))  # 2 weeks max
+    bars_needed = max(5, min(bars_needed, max_bars))
+    
+    return bars_needed

@@ -690,15 +690,11 @@ app.layout = dbc.Container([
                                                                 {'label': '1m', 'value': '1m'},
                                                                 {'label': '2m', 'value': '2m'},
                                                                 {'label': '5m', 'value': '5m'},
+                                                                {'label': '8m', 'value': '8m'},  # Elder's tactical timeframe
                                                                 {'label': '15m', 'value': '15m'},
+                                                                {'label': '25m', 'value': '25m'},  # Custom 25m interval
                                                                 {'label': '30m', 'value': '30m'},
-                                                                {'label': '60m', 'value': '60m'},
-                                                                {'label': '90m', 'value': '90m'},
-                                                                {'label': '1h', 'value': '1h'},
-                                                                {'label': '1d', 'value': '1d'},
-                                                                {'label': '5d', 'value': '5d'},
-                                                                {'label': '1wk', 'value': '1wk'},
-                                                                {'label': '3mo', 'value': '3mo'}
+                                                                {'label': '39m', 'value': '39m'},  # Elder's strategic timeframe
                                                             ],
                                                             value='1m',
                                                             className="mb-3",
@@ -1453,10 +1449,11 @@ def update_frequency_options(timeframe):
             {'label': '1m', 'value': '1m'},
             {'label': '2m', 'value': '2m'},
             {'label': '5m', 'value': '5m'},
+            {'label': '8m', 'value': '8m'},  # Elder's tactical timeframe
             {'label': '15m', 'value': '15m'},
+            {'label': '25m', 'value': '25m'},  # Custom 25m interval
             {'label': '30m', 'value': '30m'},
-            {'label': '60m', 'value': '60m'},
-            {'label': '90m', 'value': '90m'}
+            {'label': '39m', 'value': '39m'},  # Elder's strategic timeframe
         ]
         value = '1m'  # Default to 1m for intraday
     elif timeframe in ['6mo', 'ytd', '1y', '5y', 'max']:
@@ -1552,7 +1549,7 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
         fig, style, market_closed = update_combined_chart(
             data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
             lower_chart_type, adx_components, volume_comparison, relayout_data, 
-            timeframe, use_impulse_system, bollinger_bands, autoenvelope
+            timeframe, frequency, use_impulse_system, bollinger_bands, autoenvelope
         )
         return fig, style, market_closed, unreliable_warning, unreliable_class
 
@@ -1605,7 +1602,7 @@ def update_combined_chart_volume_comparison(volume_comparison, data, symbol, cha
             return empty_fig, {'display': 'none'}, 'd-block'
         else:
             # Normal case - show the chart and hide the message
-            fig, style, market_closed = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe, use_impulse_system, bollinger_bands, autoenvelope)
+            fig, style, market_closed = update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison, relayout_data, timeframe, None, use_impulse_system, bollinger_bands, autoenvelope)
             return fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-none'
     else:
         # Return no update if not volume chart
