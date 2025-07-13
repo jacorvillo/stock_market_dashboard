@@ -520,7 +520,8 @@ app.layout = dbc.Container([
                                                                         'borderRadius': '8px',
                                                                         'padding': '8px 12px',
                                                                         'fontSize': '14px',
-                                                                        'fontWeight': '500'
+                                                                        'fontWeight': '500',
+                                                                        'height': '40px'  # Set fixed height
                                                                     },
                                                                     className="text-uppercase"
                                                                 )
@@ -535,11 +536,14 @@ app.layout = dbc.Container([
                                                                     style={
                                                                         'background': 'linear-gradient(45deg, #00d4aa, #00ff88)',
                                                                         'border': 'none',
-                                                                        'fontWeight': 'bold'
+                                                                        'fontWeight': 'bold',
+                                                                        'height': '40px',  # Match input height
+                                                                        'padding': '0',    # Remove extra padding
+                                                                        'borderRadius': '8px'
                                                                     }
                                                                 )
                                                             ], width=4)
-                                                        ], className="mb-3"),
+                                                        ], className="mb-3", align="center"),  # Add align="center"
                                                         
                                                         # Watchlist Status
                                                         html.Div(id="watchlist-status", className="text-center mb-3"),
