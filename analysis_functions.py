@@ -40,9 +40,20 @@ def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
     _ticker_cache[cache_key] = (data.copy(), start_date, end_date, is_minute_data)
     _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
 
+def _clear_cache_for_symbol(symbol, timeframe):
+    """Clear cache for a specific symbol and timeframe to force fresh data fetch"""
+    cache_key = f"{symbol}_{timeframe}"
+    if cache_key in _ticker_cache:
+        del _ticker_cache[cache_key]
+    if cache_key in _cache_expiry:
+        del _cache_expiry[cache_key]
+
 # Function to fetch stock data with lookback for indicators
 def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 26]):
     """Fetch stock data from yfinance with caching for faster ticker switching, with extended lookback for intraday EMA warmup."""
+    # Check if 1mo period is requested (no longer supported)
+    if period == "1mo":
+        raise Exception("1-month period is no longer supported. Please use 6-month or longer timeframes.")
     try:
         # Check cache first for non-intraday data (intraday needs real-time updates)
         if period != "1d":
@@ -82,21 +93,32 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
             current_date = now_cest.date()
             
             # Go back one day and find the previous business day
-            prev_day = current_date - pd.Timedelta(days=1)
+            prev_day = current_date - timedelta(days=1)
             while prev_day.weekday() > 4:  # 5=Saturday, 6=Sunday
-                prev_day = prev_day - pd.Timedelta(days=1)
+                prev_day = prev_day - timedelta(days=1)
                 
             # Fetch minute data for a period that includes multiple previous trading days for indicator calculation
             # Use "7d" period to ensure we get enough data for accurate indicator calculations
             ticker = yf.Ticker(symbol)
             try:
-                data = ticker.history(period="7d", interval="1m", timeout=5)
+                # Use the specified frequency or default to 1m for yesterday
+                interval_arg = frequency if frequency else "1m"
+                data = ticker.history(period="7d", interval=interval_arg, timeout=3)  # Reduced timeout for faster loading
                 
                 if data.empty:
-                    # Fallback to daily data and then filter
-                    data = ticker.history(period="7d", interval="1d", timeout=5)
-                    if data.empty:
-                        return pd.DataFrame(), pd.Timestamp(prev_day), pd.Timestamp(prev_day), True  # Return empty DataFrame instead of falling back to SPY
+                    # Return empty dataset if no data for yesterday
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
+                    start_date = pd.Timestamp(prev_day)
+                    end_date = pd.Timestamp(prev_day)
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
                 
                 data.reset_index(inplace=True)
         
@@ -119,20 +141,36 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 
                 if data.empty:
                     # Return empty dataset if no data for yesterday
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
                     start_date = pd.Timestamp(prev_day)
                     end_date = pd.Timestamp(prev_day)
                     is_minute_data = True
                     return empty_df, start_date, end_date, is_minute_data
                 
                 # Filter to market hours (15:30 to 22:00 CEST, which is 9:30 AM to 4:00 PM ET)
+                market_start = pd.Timestamp('15:30:00').time()
+                market_end = pd.Timestamp('22:00:00').time()
                 data = data[
-                    (data['Date'].dt.time >= pd.Timestamp('15:30:00').time()) &
-                    (data['Date'].dt.time <= pd.Timestamp('22:00:00').time())
+                    (data['Date'].dt.time >= market_start) &
+                    (data['Date'].dt.time <= market_end)
                 ]
                 
                 if data.empty:
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
                     start_date = pd.Timestamp(prev_day)
                     end_date = pd.Timestamp(prev_day)
                     is_minute_data = True
@@ -147,7 +185,14 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 
             except Exception as e:
                 # Return empty dataset on error
-                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                empty_df = pd.DataFrame({
+                    'Date': [],
+                    'Open': [],
+                    'High': [],
+                    'Low': [],
+                    'Close': [],
+                    'Volume': []
+                })
                 start_date = pd.Timestamp(prev_day)
                 end_date = pd.Timestamp(prev_day)
                 is_minute_data = True
@@ -164,7 +209,14 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 
                 if is_weekend:
                     # Return empty dataset when it's weekend
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -172,7 +224,14 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 elif is_pre_market or is_after_market:
                     # During trading days but outside market hours, return empty dataset
                     # This ensures we only show data during active market hours
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -186,7 +245,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 # For intraday, fetch 5 days of minute data to include previous market periods
                 # This ensures indicators have enough historical data to calculate properly from market open
                 interval_arg = frequency if frequency else "1m"
-                data = ticker.history(period="5d", interval=interval_arg, timeout=5)  # Extended period for indicators
+                data = ticker.history(period="5d", interval=interval_arg, timeout=3)  # Reduced timeout for faster loading
                 
                 # Convert timestamps to CEST timezone for display
                 data.reset_index(inplace=True)
@@ -212,7 +271,14 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 
                 # If today's data is empty, return empty dataset
                 if display_data.empty:
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -222,7 +288,14 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 data = display_data
                 
                 if data.empty:
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -237,7 +310,14 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 
             except Exception as e:
                 # Return empty dataset on error
-                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                empty_df = pd.DataFrame({
+                    'Date': [],
+                    'Open': [],
+                    'High': [],
+                    'Low': [],
+                    'Close': [],
+                    'Volume': []
+                })
                 start_date = now_cest
                 end_date = now_cest
                 is_minute_data = True
@@ -246,9 +326,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
             # Calculate optimized period for faster loading while maintaining indicator accuracy
             # Reduced extended periods for faster ticker switching
             extended_period = period
-            if period == "1mo":
-                extended_period = "3mo"  # Reduced from 6mo for faster loading
-            elif period == "6mo":
+            if period == "6mo":
                 extended_period = "1y"   # Keep as is (reasonable)
             elif period == "ytd":
                 extended_period = "1y"   # Reduced from 2y for faster loading
@@ -261,14 +339,13 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
             ticker = yf.Ticker(symbol)
             interval_arg = frequency if frequency else None
             if interval_arg:
-                data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout for faster switching
+                data = ticker.history(period=extended_period, interval=interval_arg, timeout=2)  # Further reduced timeout for faster switching
             else:
-                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
+                data = ticker.history(period=extended_period, timeout=2)  # Further reduced timeout for faster switching
         
         if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
             # Return empty DataFrame instead of falling back to SPY
             return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False
-        
         data.reset_index(inplace=True)
         
         # Handle the Date/Datetime column
@@ -308,9 +385,8 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                     end_date = trading_day.replace(hour=16, minute=0)
                 
             else:
-                start_date = end_date - pd.Timedelta(days=1)
-        elif period == "1mo":
-            start_date = end_date - pd.DateOffset(months=1)
+                start_date = end_date - timedelta(days=1)
+        # Removed 1mo period - no longer supported
         elif period == "6mo":
             start_date = end_date - pd.DateOffset(months=6)
         elif period == "ytd":
@@ -318,7 +394,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
             # Using ET (market time) for the determination
             if is_pre_market:
                 # Adjust end_date to previous day's end
-                end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) - pd.Timedelta(days=1)
+                end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
                 end_date = end_date.replace(hour=23, minute=59, second=59)
                 
             # Create a naive datetime object for January 1st of the current year
@@ -699,7 +775,7 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
     
     try:
         symbol = symbol or 'SPY'
-        timeframe = timeframe or '1mo'
+        timeframe = timeframe or '6mo'
         ema_periods = ema_periods or [13, 26]
         # Use default values if the components don't exist in the layout
         macd_fast = 12 if macd_fast is None else macd_fast
@@ -713,15 +789,21 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         # Track if we're using sample data
         using_sample_data = False
         
+        # Clear cache when frequency changes to ensure fresh data
+        if frequency:
+            _clear_cache_for_symbol(symbol, timeframe)
+        
         # Get extended data for proper indicator calculation
         try:
-            # Check cache first
+            # Check cache first (but we just cleared it if frequency changed)
             cached_result = _get_cached_data(symbol, timeframe)
             if cached_result is not None:
                 full_data, start_date, end_date, is_minute_data = cached_result
             else:
                 full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe, frequency)
-                _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)  # Cache the result
+                # Cache the result for faster subsequent access
+                if timeframe not in ["1d", "yesterday"]:  # Don't cache intraday data
+                    _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)
         except Exception as data_error:
             full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)  # Fall back to SPY
             error_msg = [
@@ -737,7 +819,9 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             return [], [], "alert alert-warning fade show d-none"  # Hidden error class
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
-        fast_mode = len(full_data) > 1000  # Use fast mode for large datasets to speed up calculations
+        # Determine if we should use fast mode based on data size and frequency
+        is_high_frequency = frequency in ['1m', '2m', '5m', '15m', '30m']
+        fast_mode = len(full_data) > 1000 or is_high_frequency  # Use fast mode for large datasets or high-frequency data
         
         # For intraday data (1d and yesterday), we need to separate display data from indicator calculation data
         # This ensures all indicators have sufficient historical data to calculate properly from market open
@@ -1863,10 +1947,10 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         
         # Add previous day's close line for intraday charts (Today or Previous Market Period)
         if is_intraday and len(df) > 0:
-            # Get the official previous close from a 1-month timeframe (like shown in 1M+ views)
+            # Get the official previous close from a 6-month timeframe (like shown in 6M+ views)
             try:
-                # Get 1-month daily data to ensure we get the official previous close price
-                monthly_data = yf.download(symbol, period="1mo", interval="1d", progress=False)
+                # Get 6-month daily data to ensure we get the official previous close price
+                monthly_data = yf.download(symbol, period="6mo", interval="1d", progress=False)
                 
                 if not monthly_data.empty:
                     # Get yesterday's close or the last available close price

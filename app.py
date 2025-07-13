@@ -656,7 +656,6 @@ app.layout = dbc.Container([
                                                     options=[
                                                         {'label': '📅 Today', 'value': '1d'},
                                                         {'label': '📅 Previous Market Period', 'value': 'yesterday'},
-                                                        {'label': '📅 1 Month', 'value': '1mo'},
                                                         {'label': '📅 6 Months', 'value': '6mo'},
                                                         {'label': '📅 Year to Date', 'value': 'ytd'},
                                                         {'label': '📅 1 Year', 'value': '1y'},
@@ -670,17 +669,30 @@ app.layout = dbc.Container([
                                                 
                                                 # Add frequency dropdown below timeframe dropdown
                                                 dbc.Label("Frequency:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
-                                                dbc.Select(
-                                                    id='frequency-dropdown',
-                                                    options=[
-                                                        {'label': '1m', 'value': '1m'},
-                                                        {'label': '2m', 'value': '2m'},
-                                                        {'label': '10m', 'value': '10m'}
-                                                    ],
-                                                    value='1m',
-                                                    className="mb-3",
-                                                    style={'backgroundColor': '#000000', 'color': '#fff'}
-                                                ),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Select(
+                                                            id='frequency-dropdown',
+                                                            options=[
+                                                                {'label': '1m', 'value': '1m'},
+                                                                {'label': '2m', 'value': '2m'},
+                                                                {'label': '5m', 'value': '5m'},
+                                                                {'label': '15m', 'value': '15m'},
+                                                                {'label': '30m', 'value': '30m'},
+                                                                {'label': '60m', 'value': '60m'},
+                                                                {'label': '90m', 'value': '90m'},
+                                                                {'label': '1h', 'value': '1h'},
+                                                                {'label': '1d', 'value': '1d'},
+                                                                {'label': '5d', 'value': '5d'},
+                                                                {'label': '1wk', 'value': '1wk'},
+                                                                {'label': '3mo', 'value': '3mo'}
+                                                            ],
+                                                            value='1m',
+                                                            className="mb-3",
+                                                            style={'backgroundColor': '#000000', 'color': '#fff'}
+                                                        )
+                                                    ], width=8)
+                                                ], className="mb-3"),
                                                 
                                                 # Chart Type Section
                                                 dbc.Label("Chart Type:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
@@ -1403,29 +1415,28 @@ def update_rsi_store_callback(period):
     [Input('timeframe-dropdown', 'value')]
 )
 def update_frequency_options(timeframe):
+    """Update frequency options based on timeframe with proper Yahoo Finance intervals"""
     if timeframe in ['1d', 'yesterday']:
+        # Intraday frequencies - only available for 1d and yesterday
         options = [
             {'label': '1m', 'value': '1m'},
             {'label': '2m', 'value': '2m'},
             {'label': '5m', 'value': '5m'},
-            {'label': '15m', 'value': '15m'}
+            {'label': '15m', 'value': '15m'},
+            {'label': '30m', 'value': '30m'},
+            {'label': '60m', 'value': '60m'},
+            {'label': '90m', 'value': '90m'}
         ]
-        value = '1m'
-    elif timeframe in ['1mo', '6mo']:
+        value = '1m'  # Default to 1m for intraday
+    elif timeframe in ['6mo', 'ytd', '1y', '5y', 'max']:
+        # For 6 months onwards, only daily or weekly data
         options = [
             {'label': '1d', 'value': '1d'},
-            {'label': '1h', 'value': '1h'},
-            {'label': '4h', 'value': '4h'}
+            {'label': '1wk', 'value': '1wk'}
         ]
-        value = '1d'
-    elif timeframe in ['1y', '5y', 'max']:
-        options = [
-            {'label': '1d', 'value': '1d'},
-            {'label': '1wk', 'value': '1wk'},
-            {'label': '1mo', 'value': '1mo'}
-        ]
-        value = '1d'
+        value = '1d'  # Default to daily for longer timeframes
     else:
+        # Default fallback
         options = [{'label': '1d', 'value': '1d'}]
         value = '1d'
     return options, value
