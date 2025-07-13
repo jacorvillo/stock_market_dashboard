@@ -46,7 +46,7 @@ from functions.scanner_functions import StockScanner, get_preset_filter, get_ava
 from functions.insights_functions import TechnicalInsights, generate_insights_summary
 
 # Import IRL trading functions
-from functions.irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price
+from functions.irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price, calculate_trade_apgar
 
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
@@ -331,7 +331,7 @@ app.layout = dbc.Container([
                                                         dbc.Button("High Volume", id="preset-volume", size="sm", color="success", outline=True, className="mb-2 w-100")
                                                     ], width=6),
                                                     dbc.Col([
-                                                        dbc.Button("Random 25", id="preset-random", size="sm", color="secondary", outline=True, className="mb-2 w-100")
+                                                        dbc.Button("Trade Apgar > 7", id="preset-apgar", size="sm", color="success", outline=True, className="mb-2 w-100")
                                                     ], width=6)
                                                 ], className="mb-3"),
                                                 
@@ -1070,9 +1070,23 @@ app.layout = dbc.Container([
                                                     style={'fontSize': '22px', 'fontWeight': 'bold', 'marginBottom': '20px'}
                                                 ),
 
-                                                # Stock search
+                                                # Stock search and Trade Apgar section
                                                 dbc.Label("Stock Symbol:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
-                                                dbc.Input(id='irl-stock-symbol-input', placeholder="Enter stock symbol", type="text", className="mb-3 text-uppercase"),
+                                                dbc.Row([
+                                                    dbc.Col([
+                                                        dbc.Input(id='irl-stock-symbol-input', placeholder="Enter stock symbol", type="text", className="mb-2 text-uppercase")
+                                                    ], width=8),
+                                                    dbc.Col([
+                                                        dbc.Button("🔍 Check Apgar", id="irl-check-apgar-btn", color="info", size="sm", className="w-100")
+                                                    ], width=4)
+                                                ], className="mb-3"),
+                                                
+                                                # Trade Apgar Results (initially hidden)
+                                                html.Div(
+                                                    id="irl-apgar-results",
+                                                    className="d-none",
+                                                    children=[]
+                                                ),
 
                                                 # Open position form
                                                 dbc.Label("Open Position:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
@@ -1925,10 +1939,10 @@ def create_indicator_display(name, data):
     [Input('preset-divergence', 'n_clicks'),
      Input('preset-rsi-extremes', 'n_clicks'),
      Input('preset-volume', 'n_clicks'),
-     Input('preset-random', 'n_clicks')],
+     Input('preset-apgar', 'n_clicks')],
     prevent_initial_call=True
 )
-def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks, random_clicks):
+def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks, apgar_clicks):
     """Handle quick preset scan button clicks"""
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -1944,8 +1958,8 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
         return [], 'any', 500000, ['sp500'], 25
     elif button_id == 'preset-volume':
         return [], 'any', 5000000, ['sp500', 'nasdaq100'], 25
-    elif button_id == 'preset-random':
-        return [], 'any', 0, ['sp500'], 25
+    elif button_id == 'preset-apgar':
+        return [], 'any', 500000, ['sp500'], 25
     
     raise PreventUpdate
 
@@ -2061,21 +2075,25 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         # Initialize scanner and run scan
         scanner = StockScanner()
         
-        # Determine if this is a random scan (for preset-random button)
+        # Determine if this is a Trade Apgar scan (for preset-apgar button)
         ctx = dash.callback_context
-        random_sample = False
+        apgar_filter = False
         if ctx.triggered:
-            # Check if this was triggered by preset-random indirectly
-            if not elder_filters and rsi_preset == 'any' and volume_preset == 0:
-                random_sample = 25
+            # Check if this was triggered by preset-apgar indirectly
+            if not elder_filters and rsi_preset == 'any' and volume_preset == 500000:
+                apgar_filter = True
+        
+        # Add Trade Apgar filter if requested
+        if apgar_filter:
+            filters['min_apgar_score'] = 7
         
         # Run the scan
         results_df = scanner.scan_stocks(
-            filters=filters if not random_sample else None,
+            filters=filters,
             universes=universe_selection or ['sp500'],
             max_results=result_limit or 25,
             sort_by=sort_by or 'volume',
-            random_sample=random_sample
+            random_sample=False
         )
         
         if results_df.empty:
@@ -2106,12 +2124,10 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'price' in table_data.columns:
             table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_13' in table_data.columns:
-            table_data['ema_13'] = table_data['ema_13'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_26' in table_data.columns:
-            table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'volume' in table_data.columns:
             table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
+        if 'trade_apgar' in table_data.columns:
+            table_data['trade_apgar'] = table_data['trade_apgar'].apply(lambda x: int(x) if pd.notna(x) else None)
         
         # Format divergence and RSI extreme columns for display
         if 'macd_divergence' in table_data.columns:
@@ -2132,12 +2148,11 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
                 {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
-                {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'}
+                {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
+                {'name': 'Trade Apgar', 'id': 'trade_apgar', 'type': 'numeric'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -2257,6 +2272,34 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'fontWeight': 'bold',
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
+                },
+                # Highlight high Trade Apgar scores (7+)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 7',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Highlight medium Trade Apgar scores (5-6)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 5 and {trade_apgar} < 7',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00'
+                },
+                # Highlight low Trade Apgar scores (< 5)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} < 5',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
                 }
             ],
             sort_action="native",
@@ -2265,7 +2308,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         )
         
         # Create summary info
-        scan_type = "Random Sample" if random_sample else "Filtered Scan"
+        scan_type = "Trade Apgar > 7" if apgar_filter else "Filtered Scan"
         universes_str = ", ".join(universe_selection or ['sp500']).upper();
         
         success_msg = dbc.Alert([
@@ -2667,12 +2710,10 @@ def load_watchlist_scan(n_clicks, watchlist_data):
             table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'price' in table_data.columns:
             table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_13' in table_data.columns:
-            table_data['ema_13'] = table_data['ema_13'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'ema_26' in table_data.columns:
-            table_data['ema_26'] = table_data['ema_26'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
         if 'volume' in table_data.columns:
             table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
+        if 'trade_apgar' in table_data.columns:
+            table_data['trade_apgar'] = table_data['trade_apgar'].apply(lambda x: int(x) if pd.notna(x) else None)
         
         # Format divergence and RSI extreme columns
         if 'macd_divergence' in table_data.columns:
@@ -2693,12 +2734,11 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
                 {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
-                {'name': 'EMA 13', 'id': 'ema_13', 'type': 'numeric'},
-                {'name': 'EMA 26', 'id': 'ema_26', 'type': 'numeric'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
-                {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'}
+                {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
+                {'name': 'Trade Apgar', 'id': 'trade_apgar', 'type': 'numeric'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -2755,6 +2795,34 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'fontWeight': 'bold',
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
+                },
+                # Highlight high Trade Apgar scores (7+)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 7',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Highlight medium Trade Apgar scores (5-6)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 5 and {trade_apgar} < 7',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00'
+                },
+                # Highlight low Trade Apgar scores (< 5)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} < 5',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
                 }
             ],
             page_size=10,
@@ -3091,6 +3159,163 @@ def change_stop_price(change_n, data, new_stops):
         return df2.to_dict('records'), f"Stop price updated for {stock} to {new_stop}"
     except Exception as e:
         return dash.no_update, f"Error: {e}"
+
+# Callback: Check Trade Apgar score
+@callback(
+    [Output('irl-apgar-results', 'children'),
+     Output('irl-apgar-results', 'className')],
+    [Input('irl-check-apgar-btn', 'n_clicks')],
+    [State('irl-stock-symbol-input', 'value')],
+    prevent_initial_call=True,
+    running=[(Output("irl-check-apgar-btn", "disabled"), True, False)]
+)
+def check_trade_apgar(n_clicks, symbol):
+    """Check Trade Apgar score for the entered symbol"""
+    if not n_clicks or not symbol:
+        raise PreventUpdate
+    
+    try:
+        # Calculate Trade Apgar score
+        apgar_result = calculate_trade_apgar(symbol.strip().upper())
+        
+        if apgar_result.get('error'):
+            return [
+                dbc.Alert([
+                    html.H6("❌ Trade Apgar Check Failed", style={'marginBottom': '10px'}),
+                    html.P(apgar_result['error'], style={'marginBottom': '0', 'fontSize': '14px'})
+                ], color="danger"),
+                'd-block'
+            ]
+        
+        # Create detailed results display
+        details = apgar_result['details']
+        total_score = apgar_result['total_score']
+        passed = apgar_result['passed']
+        
+        # Color coding for pass/fail
+        if passed:
+            header_color = "success"
+            header_icon = "✅"
+            status_text = "PASSED - Good trading conditions!"
+        else:
+            header_color = "warning"
+            header_icon = "⚠️"
+            status_text = "ADVISORY - Consider finding a better trade"
+        
+        # Create score breakdown
+        score_items = [
+            html.Div([
+                html.Strong(f"1. Weekly Impulse: ", style={'color': '#fff'}),
+                html.Span(f"{details['weekly_impulse']['score']}/2", 
+                         style={'color': '#00d4aa', 'fontWeight': 'bold'}),
+                html.Br(),
+                html.Small(f"Color: {details['weekly_impulse']['color'].title()}", 
+                          style={'color': '#ccc', 'fontStyle': 'italic'}),
+                html.Br(),
+                html.Small(details['weekly_impulse']['reason'], 
+                          style={'color': '#aaa', 'fontSize': '10px'})
+            ], className="mb-2"),
+            
+            html.Div([
+                html.Strong(f"2. Daily Impulse: ", style={'color': '#fff'}),
+                html.Span(f"{details['daily_impulse']['score']}/2", 
+                         style={'color': '#00d4aa', 'fontWeight': 'bold'}),
+                html.Br(),
+                html.Small(f"Color: {details['daily_impulse']['color'].title()}", 
+                          style={'color': '#ccc', 'fontStyle': 'italic'}),
+                html.Br(),
+                html.Small(details['daily_impulse']['reason'], 
+                          style={'color': '#aaa', 'fontSize': '10px'})
+            ], className="mb-2"),
+            
+            html.Div([
+                html.Strong(f"3. Daily Price vs Value: ", style={'color': '#fff'}),
+                html.Span(f"{details['daily_price']['score']}/2", 
+                         style={'color': '#00d4aa', 'fontWeight': 'bold'}),
+                html.Br(),
+                html.Small(f"Position: {details['daily_price']['position'].replace('_', ' ').title()}", 
+                          style={'color': '#ccc', 'fontStyle': 'italic'}),
+                html.Br(),
+                html.Small(details['daily_price']['reason'], 
+                          style={'color': '#aaa', 'fontSize': '10px'})
+            ], className="mb-2"),
+            
+            html.Div([
+                html.Strong(f"4. False Breakout: ", style={'color': '#fff'}),
+                html.Span(f"{details['false_breakout']['score']}/2", 
+                         style={'color': '#00d4aa', 'fontWeight': 'bold'}),
+                html.Br(),
+                html.Small(f"Status: {details['false_breakout']['status'].replace('_', ' ').title()}", 
+                          style={'color': '#ccc', 'fontStyle': 'italic'}),
+                html.Br(),
+                html.Small(details['false_breakout']['reason'], 
+                          style={'color': '#aaa', 'fontSize': '10px'})
+            ], className="mb-2"),
+            
+            html.Div([
+                html.Strong(f"5. Perfection: ", style={'color': '#fff'}),
+                html.Span(f"{details['perfection']['score']}/2", 
+                         style={'color': '#00d4aa', 'fontWeight': 'bold'}),
+                html.Br(),
+                html.Small(f"Perfect timeframes: {details['perfection']['timeframes']}", 
+                          style={'color': '#ccc', 'fontStyle': 'italic'}),
+                html.Br(),
+                html.Small(details['perfection']['reason'], 
+                          style={'color': '#aaa', 'fontSize': '10px'})
+            ], className="mb-2")
+        ]
+        
+        # Create the results card
+        results_card = dbc.Card([
+            dbc.CardHeader([
+                html.H6([
+                    html.Span(header_icon, style={'marginRight': '8px', 'fontSize': '18px'}),
+                    f"Trade Apgar Score: {total_score}/10"
+                ], style={'color': '#fff', 'marginBottom': '0'})
+            ], style={'backgroundColor': f'#{header_color}', 'border': 'none'}),
+            dbc.CardBody([
+                html.Div([
+                    html.H6(status_text, style={'color': '#fff', 'marginBottom': '15px'}),
+                    html.P([
+                        "The Trade Apgar evaluates 5 components on a scale of 0-2. ",
+                        html.Strong("Elder recommends a total score of 7+ with no zeros for A-trades."),
+                        html.Br(),
+                        html.Small("Based on Elder's methodology from 'Trading for a Living'", 
+                                 style={'color': '#ccc', 'fontStyle': 'italic'})
+                    ], style={'color': '#ccc', 'marginBottom': '20px'}),
+                    
+                    # Score breakdown
+                    html.Div(score_items),
+                    
+                    # Advisory message
+                    html.Div([
+                        html.Hr(style={'borderColor': '#333', 'margin': '20px 0'}),
+                        html.Div([
+                            html.Strong("⚠️ Advisory:" if not passed else "✅ A-Trade Criteria Met:", 
+                                      style={'color': '#ffc107' if not passed else '#28a745'}),
+                            html.P([
+                                "This trade doesn't meet Elder's A-trade criteria. " if not passed else "This trade meets Elder's A-trade criteria. ",
+                                html.Strong("You can still trade, but consider finding a better opportunity." if not passed else "Good conditions for trading!"),
+                                html.Br() if not passed else "",
+                                html.Small("Score < 7 or has zero components" if not passed else "", 
+                                         style={'color': '#ccc', 'fontStyle': 'italic'}) if not passed else ""
+                            ], style={'color': '#ccc', 'marginTop': '5px'})
+                        ])
+                    ])
+                ])
+            ])
+        ], style={'backgroundColor': '#1a1a1a', 'border': '1px solid #444'})
+        
+        return [results_card], 'd-block'
+        
+    except Exception as e:
+        return [
+            dbc.Alert([
+                html.H6("❌ Trade Apgar Check Failed", style={'marginBottom': '10px'}),
+                html.P(f"Error: {str(e)}", style={'marginBottom': '0', 'fontSize': '14px'})
+            ], color="danger"),
+            'd-block'
+        ]
 
 # Run the server
 if __name__ == '__main__':

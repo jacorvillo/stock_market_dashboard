@@ -14,6 +14,7 @@ technical indicator filters and market universe management.
 import pandas as pd
 import numpy as np
 import yfinance as yf
+import ta
 import json
 import os
 from datetime import datetime, timedelta
@@ -24,6 +25,7 @@ import random
 
 # Import technical analysis functions from existing functions.py
 from .analysis_functions import calculate_indicators
+from functions.irl_trading_functions import calculate_trade_apgar
 
 class StockScanner:
     def __init__(self, cache_file='scanner_cache.json'):
@@ -206,6 +208,10 @@ class StockScanner:
             true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
             atr = pd.Series(true_range.rolling(window=13).mean(), index=close_prices.index)
             
+            # Calculate Trade Apgar score
+            apgar_result = calculate_trade_apgar(symbol)
+            apgar_score = apgar_result.get('total_score', 0) if apgar_result else 0
+            
             # Get latest values with explicit scalar conversion
             latest = data.iloc[-1]
             latest_close = float(latest['Close'])
@@ -247,8 +253,6 @@ class StockScanner:
                 'price': round(latest_close, 2),
                 'volume': latest_volume,
                 'volume_vs_avg': round(volume_vs_avg, 2),
-                'ema_13': round(latest_ema_13, 2) if not pd.isna(latest_ema_13) else None,
-                'ema_26': round(latest_ema_26, 2) if not pd.isna(latest_ema_26) else None,
                 'in_value_zone': self._check_value_zone(latest_close, latest_ema_13, latest_ema_26),
                 'above_ema_13': latest_close > latest_ema_13 if not pd.isna(latest_ema_13) else False,
                 'above_ema_26': latest_close > latest_ema_26 if not pd.isna(latest_ema_26) else False,
@@ -260,6 +264,7 @@ class StockScanner:
                 'rsi_divergence': divergences['rsi_divergence'],
                 'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) else None,
                 'price_change_pct': round(price_change_pct, 2),
+                'trade_apgar': apgar_score,
                 'last_updated': datetime.now().isoformat()
             }
             
@@ -769,6 +774,13 @@ class StockScanner:
                 filtered_df = filtered_df[filtered_df['price_change_pct'] >= filters['change_min']]
             if filters.get('change_max') is not None:
                 filtered_df = filtered_df[filtered_df['price_change_pct'] <= filters['change_max']]
+            
+            # Trade Apgar filter
+            if filters.get('min_apgar_score') is not None:
+                filtered_df = filtered_df[
+                    (filtered_df['trade_apgar'].notna()) & 
+                    (filtered_df['trade_apgar'] >= filters['min_apgar_score'])
+                ]
                 
         except Exception as e:
             print(f"Error applying filters: {e}")
