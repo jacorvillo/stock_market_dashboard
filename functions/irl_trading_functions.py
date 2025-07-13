@@ -9,7 +9,7 @@ FIELDS = [
     'equity',
     'open_positions',
     'amount_invested',
-    'side',  # New field to store buy/sell
+    'side',  # Field to store buy/sell as string
     'stop_price',
     'value_at_entry',
     'stocks_in_positions',
@@ -18,8 +18,8 @@ FIELDS = [
     'net_gain_loss_amount',
     'net_gain_loss_percent',
     'target_price',
-    'stop_hit',  # New field to track if stop was hit
-    'stop_hit_price',  # New field to store the price when stop was hit
+    'stop_hit',  # Field to track if stop was hit
+    'stop_hit_price',  # Field to store the price when stop was hit
 ]
 
 def load_trading_df():
@@ -28,16 +28,28 @@ def load_trading_df():
 def save_trading_df(df):
     df.to_csv(CSV_FILE, index=False)
 
-def calculate_trade_apgar(stock_symbol):
+def calculate_trade_apgar(stock_symbol, side='buy'):
     """
     Calculate Trade Apgar score based on Elder's methodology
     
     The Trade Apgar evaluates 5 components on a scale of 0-2:
+    For BUY positions:
     1. Weekly Impulse: Red=0, Green=1, Blue=2
     2. Daily Impulse: Red=0, Green=1, Blue=2  
     3. Daily Price vs Value: Above=0, In Zone=1, Below=2
     4. False Breakout: None=0, Happened=1, On Verge=2
     5. Perfection: Neither=0, One=1, Both=2
+    
+    For SELL/SHORT positions:
+    1. Weekly Impulse: Red=2, Green=0, Blue=1
+    2. Daily Impulse: Red=2, Green=0, Blue=1
+    3. Daily Price vs Value: Above=2, In Zone=1, Below=0
+    4. False Breakout: None=0, Happened=1, On Verge=2
+    5. Perfection: Neither=0, One=1, Both=2
+    
+    Args:
+        stock_symbol: Stock symbol to analyze
+        side: 'buy' for long positions, 'sell' for short positions
     
     Returns:
     - Dictionary with detailed scores and total
@@ -68,19 +80,19 @@ def calculate_trade_apgar(stock_symbol):
         daily_data = calculate_indicators_for_apgar(daily_data)
         
         # 1. Weekly Impulse Score
-        weekly_impulse = calculate_impulse_score(weekly_data)
+        weekly_impulse = calculate_impulse_score(weekly_data, side)
         
         # 2. Daily Impulse Score  
-        daily_impulse = calculate_impulse_score(daily_data)
+        daily_impulse = calculate_impulse_score(daily_data, side)
         
         # 3. Daily Price vs Value Score
-        daily_price_score = calculate_price_vs_value_score(daily_data)
+        daily_price_score = calculate_price_vs_value_score(daily_data, side)
         
         # 4. False Breakout Score
-        false_breakout_score = calculate_false_breakout_score(daily_data)
+        false_breakout_score = calculate_false_breakout_score(daily_data, side)
         
         # 5. Perfection Score (both timeframes looking perfect)
-        perfection_score = calculate_perfection_score(weekly_data, daily_data)
+        perfection_score = calculate_perfection_score(weekly_data, daily_data, side)
         
         # Calculate total score
         total_score = (weekly_impulse['score'] + daily_impulse['score'] + 
@@ -98,6 +110,7 @@ def calculate_trade_apgar(stock_symbol):
         return {
             'total_score': total_score,
             'passed': passed,
+            'side': side,
             'details': {
                 'weekly_impulse': weekly_impulse,
                 'daily_impulse': daily_impulse,
@@ -111,6 +124,7 @@ def calculate_trade_apgar(stock_symbol):
         return {
             'total_score': 0,
             'passed': False,
+            'side': side,
             'error': str(e),
             'details': {
                 'weekly_impulse': {'score': 0, 'color': 'unknown', 'reason': f'Error: {str(e)}'},
@@ -141,7 +155,7 @@ def calculate_indicators_for_apgar(df):
     
     return df
 
-def calculate_impulse_score(df):
+def calculate_impulse_score(df, side='buy'):
     """Calculate impulse score (0-2) based on EMA trend and MACD momentum"""
     if len(df) < 2:
         return {'score': 0, 'color': 'unknown', 'reason': 'Insufficient data'}
@@ -154,15 +168,26 @@ def calculate_impulse_score(df):
     ema_rising = latest['ema_slope'] > 0
     macd_rising = latest['macd_hist_change'] > 0
     
-    if ema_rising and macd_rising:
-        color = 'green'
-        score = 1
-    elif not ema_rising and not macd_rising:
-        color = 'red'
-        score = 0
-    else:
-        color = 'blue'
-        score = 2
+    if side == 'buy':
+        if ema_rising and macd_rising:
+            color = 'green'
+            score = 1
+        elif not ema_rising and not macd_rising:
+            color = 'red'
+            score = 0
+        else:
+            color = 'blue'
+            score = 2
+    else: # side == 'sell' or 'short'
+        if ema_rising and macd_rising:
+            color = 'red'
+            score = 2
+        elif not ema_rising and not macd_rising:
+            color = 'green'
+            score = 0
+        else:
+            color = 'blue'
+            score = 1
     
     # Blue after red gets bonus (bears losing power)
     if color == 'blue' and len(df) > 2:
@@ -176,7 +201,7 @@ def calculate_impulse_score(df):
         'reason': f'EMA {"rising" if ema_rising else "falling"}, MACD {"rising" if macd_rising else "falling"}'
     }
 
-def calculate_price_vs_value_score(df):
+def calculate_price_vs_value_score(df, side='buy'):
     """Calculate price vs value score (0-2)"""
     if len(df) < 20:
         return {'score': 0, 'position': 'unknown', 'reason': 'Insufficient data'}
@@ -190,15 +215,26 @@ def calculate_price_vs_value_score(df):
     value_upper = sma_20 * 1.05
     value_lower = sma_20 * 0.95
     
-    if latest_price > value_upper:
-        position = 'above'
-        score = 0
-    elif value_lower <= latest_price <= value_upper:
-        position = 'in_zone'
-        score = 1
-    else:
-        position = 'below'
-        score = 2
+    if side == 'buy':
+        if latest_price > value_upper:
+            position = 'above'
+            score = 0
+        elif value_lower <= latest_price <= value_upper:
+            position = 'in_zone'
+            score = 1
+        else:
+            position = 'below'
+            score = 2
+    else: # side == 'sell' or 'short'
+        if latest_price > value_upper:
+            position = 'above'
+            score = 2
+        elif value_lower <= latest_price <= value_upper:
+            position = 'in_zone'
+            score = 1
+        else:
+            position = 'below'
+            score = 0
     
     return {
         'score': score,
@@ -206,7 +242,7 @@ def calculate_price_vs_value_score(df):
         'reason': f'Price ${latest_price:.2f} vs Value Zone ${value_lower:.2f}-${value_upper:.2f}'
     }
 
-def calculate_false_breakout_score(df):
+def calculate_false_breakout_score(df, side='buy'):
     """Calculate false breakout score (0-2)"""
     if len(df) < 20:
         return {'score': 0, 'status': 'unknown', 'reason': 'Insufficient data'}
@@ -220,20 +256,36 @@ def calculate_false_breakout_score(df):
     near_high = current_price >= recent_high * 0.98
     near_low = current_price <= recent_low * 1.02
     
-    if near_high or near_low:
-        status = 'on_verge'
-        score = 2
-    else:
-        # Check for recent failed breakouts
-        high_breakout_failed = (df['High'].tail(5) > recent_high * 1.01).any() and current_price < recent_high
-        low_breakout_failed = (df['Low'].tail(5) < recent_low * 0.99).any() and current_price > recent_low
-        
-        if high_breakout_failed or low_breakout_failed:
-            status = 'happened'
-            score = 1
+    if side == 'buy':
+        if near_high or near_low:
+            status = 'on_verge'
+            score = 2
         else:
-            status = 'none'
-            score = 0
+            # Check for recent failed breakouts
+            high_breakout_failed = (df['High'].tail(5) > recent_high * 1.01).any() and current_price < recent_high
+            low_breakout_failed = (df['Low'].tail(5) < recent_low * 0.99).any() and current_price > recent_low
+            
+            if high_breakout_failed or low_breakout_failed:
+                status = 'happened'
+                score = 1
+            else:
+                status = 'none'
+                score = 0
+    else: # side == 'sell' or 'short'
+        if near_high or near_low:
+            status = 'on_verge'
+            score = 2
+        else:
+            # Check for recent failed breakouts
+            high_breakout_failed = (df['High'].tail(5) < recent_high * 0.99).any() and current_price > recent_high
+            low_breakout_failed = (df['Low'].tail(5) > recent_low * 1.01).any() and current_price < recent_low
+            
+            if high_breakout_failed or low_breakout_failed:
+                status = 'happened'
+                score = 1
+            else:
+                status = 'none'
+                score = 0
     
     return {
         'score': score,
@@ -241,10 +293,10 @@ def calculate_false_breakout_score(df):
         'reason': f'Current price ${current_price:.2f}, recent range ${recent_low:.2f}-${recent_high:.2f}'
     }
 
-def calculate_perfection_score(weekly_df, daily_df):
+def calculate_perfection_score(weekly_df, daily_df, side='buy'):
     """Calculate perfection score (0-2) - both timeframes looking perfect"""
-    weekly_perfect = is_timeframe_perfect(weekly_df)
-    daily_perfect = is_timeframe_perfect(daily_df)
+    weekly_perfect = is_timeframe_perfect(weekly_df, side)
+    daily_perfect = is_timeframe_perfect(daily_df, side)
     
     perfect_count = sum([weekly_perfect, daily_perfect])
     
@@ -261,7 +313,7 @@ def calculate_perfection_score(weekly_df, daily_df):
         'reason': f'Weekly: {"Perfect" if weekly_perfect else "Not perfect"}, Daily: {"Perfect" if daily_perfect else "Not perfect"}'
     }
 
-def is_timeframe_perfect(df):
+def is_timeframe_perfect(df, side='buy'):
     """Check if a timeframe looks perfect for trading"""
     if len(df) < 5:
         return False
@@ -275,12 +327,15 @@ def is_timeframe_perfect(df):
     macd_positive = latest['MACD_hist'] > 0
     volume_good = latest['Volume'] > df['Volume'].tail(10).mean()
     
-    return price_rising and ema_rising and macd_positive and volume_good
+    if side == 'buy':
+        return price_rising and ema_rising and macd_positive and volume_good
+    else: # side == 'sell' or 'short'
+        return price_rising and ema_rising and macd_positive and volume_good
 
 # Open a new position (buy or sell) - now with optional Apgar validation
 def open_position(df, stock, amount, price_at_entry, stop_price, target_price, side, require_apgar=False):
     # Calculate Trade Apgar score for informational purposes
-    apgar_result = calculate_trade_apgar(stock)
+    apgar_result = calculate_trade_apgar(stock, side)
     
     # Only enforce Apgar validation if explicitly required
     if require_apgar and not apgar_result['passed']:
@@ -295,7 +350,7 @@ def open_position(df, stock, amount, price_at_entry, stop_price, target_price, s
     new_row['equity'] = new_equity
     new_row['open_positions'] = 1.0
     new_row['amount_invested'] = amount
-    new_row['side'] = side
+    new_row['side'] = str(side)  # Ensure side is stored as string
     new_row['stop_price'] = stop_price
     new_row['value_at_entry'] = amount
     new_row['stocks_in_positions'] = stock

@@ -1456,13 +1456,20 @@ def update_frequency_options(timeframe):
             {'label': '39m', 'value': '39m'},  # Elder's strategic timeframe
         ]
         value = '1m'  # Default to 1m for intraday
-    elif timeframe in ['6mo', 'ytd', '1y', '5y', 'max']:
-        # For 6 months onwards, only daily or weekly data
+    elif timeframe == '6mo':
+        # For 6 months, keep daily as default
         options = [
             {'label': '1d', 'value': '1d'},
             {'label': '1wk', 'value': '1wk'}
         ]
-        value = '1d'  # Default to daily for longer timeframes
+        value = '1d'  # Default to daily for 6 months
+    elif timeframe in ['ytd', '1y', '5y', 'max']:
+        # For YTD, 1Y, 5Y and max, default to weekly
+        options = [
+            {'label': '1d', 'value': '1d'},
+            {'label': '1wk', 'value': '1wk'}
+        ]
+        value = '1wk'  # Default to weekly for longer timeframes
     else:
         # Default fallback
         options = [{'label': '1d', 'value': '1d'}]
@@ -2155,7 +2162,8 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
                 {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
-                {'name': 'Trade Apgar', 'id': 'trade_apgar', 'type': 'numeric'}
+                {'name': 'Trade Apgar (Buy)', 'id': 'trade_apgar', 'type': 'numeric'},
+                {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -2313,6 +2321,44 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
+                },
+                # Highlight true A-trade sell scores (7+ with no zeros) - Green
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = false',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Highlight sell scores 7+ but with zeros - Yellow warning
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = true',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00',
+                    'fontWeight': 'bold'
+                },
+                # Highlight medium sell Trade Apgar scores (5-6)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 5 and {trade_apgar_sell} < 7',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00'
+                },
+                # Highlight low sell Trade Apgar scores (< 5)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} < 5',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
                 }
             ],
             sort_action="native",
@@ -2340,7 +2386,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             html.P([
                 "💡 Tip: Click on any ",
                 html.Strong("Symbol", style={'color': '#00d4aa'}),
-                " in the table to load its 6-month chart for detailed analysis.",
+                " in the table to load its 5-year weekly chart for detailed analysis.",
             ], style={'marginBottom': '0', 'fontSize': '12px', 'fontStyle': 'italic'})
         ], color="info", className="mb-2")
         
@@ -2423,6 +2469,7 @@ def update_apgar_button_style(active_preset):
     [Output('stock-symbol-input', 'value', allow_duplicate=True),
      Output('current-symbol-store', 'data', allow_duplicate=True),
      Output('timeframe-dropdown', 'value', allow_duplicate=True),
+     Output('frequency-dropdown', 'value', allow_duplicate=True),
      Output('sidebar-tabs', 'active_tab', allow_duplicate=True)],
     [Input('scan-results-table', 'active_cell')],
     [State('scan-results-table', 'data')],
@@ -2439,7 +2486,8 @@ def load_symbol_from_scanner(active_cell, table_data):
             return (
                 clean_symbol,                                        # Update symbol input
                 clean_symbol,                                        # Update symbol store
-                '6mo',                                               # Set timeframe to 6 months
+                '5y',                                                # Set timeframe to 5 years
+                '1wk',                                               # Set frequency to weekly
                 'stock-search-tab'                                   # Switch to stock search tab
             )
     raise PreventUpdate
@@ -3189,18 +3237,20 @@ def change_stop_price(change_n, data, new_stops):
     [Output('irl-apgar-results', 'children'),
      Output('irl-apgar-results', 'className')],
     [Input('irl-check-apgar-btn', 'n_clicks')],
-    [State('irl-stock-symbol-input', 'value')],
+    [State('irl-stock-symbol-input', 'value'),
+     State('irl-buy-sell-radio', 'value')],
     prevent_initial_call=True,
     running=[(Output("irl-check-apgar-btn", "disabled"), True, False)]
 )
-def check_trade_apgar(n_clicks, symbol):
+def check_trade_apgar(n_clicks, symbol, side):
     """Check Trade Apgar score for the entered symbol"""
     if not n_clicks or not symbol:
         raise PreventUpdate
     
     try:
-        # Calculate Trade Apgar score
-        apgar_result = calculate_trade_apgar(symbol.strip().upper())
+        # Calculate Trade Apgar score for the selected side
+        side = side or 'buy'  # Default to buy if not specified
+        apgar_result = calculate_trade_apgar(symbol.strip().upper(), side)
         
         if apgar_result.get('error'):
             return [
@@ -3215,6 +3265,7 @@ def check_trade_apgar(n_clicks, symbol):
         details = apgar_result['details']
         total_score = apgar_result['total_score']
         passed = apgar_result['passed']
+        side_used = apgar_result.get('side', side)
         
         # Color coding for pass/fail
         if passed:
@@ -3299,7 +3350,7 @@ def check_trade_apgar(n_clicks, symbol):
             dbc.CardHeader([
                 html.H6([
                     html.Span(header_icon, style={'marginRight': '8px', 'fontSize': '18px'}),
-                    f"Trade Apgar Score: {total_score}/10"
+                    f"Trade Apgar Score ({side_used.upper()}): {total_score}/10"
                 ], style={'color': '#fff', 'marginBottom': '0'})
             ], style={'backgroundColor': f'#{header_color}', 'border': 'none'}),
             dbc.CardBody([

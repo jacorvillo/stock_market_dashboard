@@ -208,15 +208,30 @@ class StockScanner:
             true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
             atr = pd.Series(true_range.rolling(window=13).mean(), index=close_prices.index)
             
-            # Calculate Trade Apgar score
-            apgar_result = calculate_trade_apgar(symbol)
-            apgar_score = apgar_result.get('total_score', 0) if apgar_result else 0
+            # Calculate Trade Apgar score for both buy and sell scenarios
+            apgar_buy_result = calculate_trade_apgar(symbol, 'buy')
+            apgar_sell_result = calculate_trade_apgar(symbol, 'sell')
+            
+            apgar_buy_score = apgar_buy_result.get('total_score', 0) if apgar_buy_result else 0
+            apgar_sell_score = apgar_sell_result.get('total_score', 0) if apgar_sell_result else 0
             
             # Check if Trade Apgar has zero components (for proper color coding)
-            apgar_has_zeros = False
-            if apgar_result and 'details' in apgar_result:
-                details = apgar_result['details']
-                apgar_has_zeros = any([
+            apgar_buy_has_zeros = False
+            apgar_sell_has_zeros = False
+            
+            if apgar_buy_result and 'details' in apgar_buy_result:
+                details = apgar_buy_result['details']
+                apgar_buy_has_zeros = any([
+                    details.get('weekly_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_price', {}).get('score', 0) == 0,
+                    details.get('false_breakout', {}).get('score', 0) == 0,
+                    details.get('perfection', {}).get('score', 0) == 0
+                ])
+            
+            if apgar_sell_result and 'details' in apgar_sell_result:
+                details = apgar_sell_result['details']
+                apgar_sell_has_zeros = any([
                     details.get('weekly_impulse', {}).get('score', 0) == 0,
                     details.get('daily_impulse', {}).get('score', 0) == 0,
                     details.get('daily_price', {}).get('score', 0) == 0,
@@ -276,8 +291,10 @@ class StockScanner:
                 'rsi_divergence': divergences['rsi_divergence'],
                 'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) else None,
                 'price_change_pct': round(price_change_pct, 2),
-                'trade_apgar': apgar_score,
-                'trade_apgar_has_zeros': apgar_has_zeros,
+                'trade_apgar': apgar_buy_score, # Store buy score
+                'trade_apgar_has_zeros': apgar_buy_has_zeros,
+                'trade_apgar_sell': apgar_sell_score, # Store sell score
+                'trade_apgar_sell_has_zeros': apgar_sell_has_zeros,
                 'last_updated': datetime.now().isoformat()
             }
             
@@ -785,11 +802,18 @@ class StockScanner:
             if filters.get('change_max') is not None:
                 filtered_df = filtered_df[filtered_df['price_change_pct'] <= filters['change_max']]
             
-            # Trade Apgar filter
+            # Trade Apgar filter for buy positions
             if filters.get('min_apgar_score') is not None:
                 filtered_df = filtered_df[
                     (filtered_df['trade_apgar'].notna()) & 
                     (filtered_df['trade_apgar'] >= filters['min_apgar_score'])
+                ]
+            
+            # Trade Apgar filter for sell positions
+            if filters.get('min_apgar_sell_score') is not None:
+                filtered_df = filtered_df[
+                    (filtered_df['trade_apgar_sell'].notna()) & 
+                    (filtered_df['trade_apgar_sell'] >= filters['min_apgar_sell_score'])
                 ]
                 
         except Exception as e:
