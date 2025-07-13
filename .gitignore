@@ -1,13 +1,32 @@
+# IDE and editor files
 .github/copilot-instructions.md
 .vscode/tasks.json
-__pycache__/app.cpython-312.pyc
-__pycache__/functions.cpython-312.pyc
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Data files
 scanner_cache.json
-__pycache__/insights_functions.cpython-312.pyc
-__pycache__/scanner_functions.cpython-312.pyc
-__pycache__/analysis_functions.cpython-312.pyc
-__pycache__/analysis_functions.cpython-312.pyc
-__pycache__/irl_trading_functions.cpython-312.pyc
-__pycache__/scanner_functions.cpython-312.pyc
-scanner_cache.json
-__pycache__/scanner_functions.cpython-312.pyc
+
+# Environment files
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
