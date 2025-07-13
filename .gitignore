@@ -119,7 +119,18 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Project specific
-scanner_cache.json
+# IDE and editor files
 .github/copilot-instructions.md
 .vscode/tasks.json
+
+# Data files
+scanner_cache.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
