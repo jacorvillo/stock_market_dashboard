@@ -212,6 +212,18 @@ class StockScanner:
             apgar_result = calculate_trade_apgar(symbol)
             apgar_score = apgar_result.get('total_score', 0) if apgar_result else 0
             
+            # Check if Trade Apgar has zero components (for proper color coding)
+            apgar_has_zeros = False
+            if apgar_result and 'details' in apgar_result:
+                details = apgar_result['details']
+                apgar_has_zeros = any([
+                    details.get('weekly_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_price', {}).get('score', 0) == 0,
+                    details.get('false_breakout', {}).get('score', 0) == 0,
+                    details.get('perfection', {}).get('score', 0) == 0
+                ])
+            
             # Get latest values with explicit scalar conversion
             latest = data.iloc[-1]
             latest_close = float(latest['Close'])
@@ -265,6 +277,7 @@ class StockScanner:
                 'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) else None,
                 'price_change_pct': round(price_change_pct, 2),
                 'trade_apgar': apgar_score,
+                'trade_apgar_has_zeros': apgar_has_zeros,
                 'last_updated': datetime.now().isoformat()
             }
             
@@ -293,12 +306,9 @@ class StockScanner:
         else:
             return 'bearish'
     
-    def _detect_divergences(self, close_prices, rsi, macd_line, lookback=50):
+    def _detect_divergences(self, close_prices, rsi, macd_histogram, lookback=50):
         """
         Enhanced divergence detection based on research criteria
-        
-        Research shows most tradable divergences occur when distance between 
-        two peaks/bottoms of MACD-H is between 20-40 bars, closer to 20 being better.
         """
         if len(close_prices) < lookback:
             return {'macd_divergence': 'none', 'rsi_divergence': 'none'}
@@ -306,13 +316,13 @@ class StockScanner:
         # Get recent data for analysis
         recent_close = close_prices.tail(lookback)
         recent_rsi = rsi.tail(lookback) if rsi is not None and len(rsi) >= lookback else None
-        recent_macd = macd_line.tail(lookback) if macd_line is not None and len(macd_line) >= lookback else None
+        recent_macd_hist = macd_histogram.tail(lookback) if macd_histogram is not None and len(macd_histogram) >= lookback else None
         
         divergences = {'macd_divergence': 'none', 'rsi_divergence': 'none'}
         
         # Enhanced MACD Divergence Detection
-        if recent_macd is not None and not recent_macd.isna().all():
-            macd_div = self._detect_macd_divergence_enhanced(recent_close, recent_macd)
+        if recent_macd_hist is not None and not recent_macd_hist.isna().all():
+            macd_div = self._detect_macd_divergence_enhanced(recent_close, recent_macd_hist)
             divergences['macd_divergence'] = macd_div
         
         # RSI Divergence Detection (enhanced to match MACD approach)

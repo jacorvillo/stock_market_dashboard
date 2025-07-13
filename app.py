@@ -334,6 +334,15 @@ app.layout = dbc.Container([
                                                         dbc.Button("Trade Apgar > 7", id="preset-apgar", size="sm", color="success", outline=True, className="mb-2 w-100")
                                                     ], width=6)
                                                 ], className="mb-3"),
+                                                # Remove All Filters Button
+                                                dbc.Button(
+                                                    "🗑️ Remove All Filters",
+                                                    id="remove-all-filters",
+                                                    size="sm",
+                                                    color="danger",
+                                                    outline=True,
+                                                    className="w-100 mb-3"
+                                                ),
                                                 
                                                 html.Hr(style={'borderColor': '#333'}),
                                                 
@@ -1276,7 +1285,11 @@ app.layout = dbc.Container([
     dcc.Store(id='rsi-period-store', data=13),
     # New stores for Bollinger Bands and Autoenvelope
     dcc.Store(id='bollinger-bands-store', data={'show': False, 'period': 26, 'stddev': 2}),
-    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 26, 'percent': 6})
+    dcc.Store(id='autoenvelope-store', data={'show': False, 'period': 26, 'percent': 6}),
+    # Store to track Trade Apgar preset
+    dcc.Store(id='apgar-preset-store', data=False),
+    # Store to track active preset button
+    dcc.Store(id='active-preset-store', data=None)
 ], fluid=True)  # Make container full width
 
 # Callback to update dynamic lower chart settings based on selection
@@ -1935,15 +1948,18 @@ def create_indicator_display(name, data):
      Output('rsi-preset', 'value'),
      Output('volume-preset', 'value'),
      Output('universe-selection', 'value'),
-     Output('result-limit', 'value')],
+     Output('result-limit', 'value'),
+     Output('apgar-preset-store', 'data'),
+     Output('active-preset-store', 'data')],
     [Input('preset-divergence', 'n_clicks'),
      Input('preset-rsi-extremes', 'n_clicks'),
      Input('preset-volume', 'n_clicks'),
-     Input('preset-apgar', 'n_clicks')],
+     Input('preset-apgar', 'n_clicks'),
+     Input('remove-all-filters', 'n_clicks')],
     prevent_initial_call=True
 )
-def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks, apgar_clicks):
-    """Handle quick preset scan button clicks"""
+def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks, apgar_clicks, remove_clicks):
+    """Handle quick preset scan button clicks and remove all filters"""
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
@@ -1952,14 +1968,17 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
     
     if button_id == 'preset-divergence':
         # For divergence, we'll set up filters that can be refined in the UI
-        return [], 'any', 500000, ['sp500'], 25
+        return [], 'any', 500000, ['sp500'], 25, False, 'divergence'
     elif button_id == 'preset-rsi-extremes':
         # For RSI extremes, we'll set up filters that can be refined in the UI
-        return [], 'any', 500000, ['sp500'], 25
+        return [], 'any', 500000, ['sp500'], 25, False, 'rsi_extremes'
     elif button_id == 'preset-volume':
-        return [], 'any', 5000000, ['sp500', 'nasdaq100'], 25
+        return [], 'any', 5000000, ['sp500', 'nasdaq100'], 25, False, 'volume'
     elif button_id == 'preset-apgar':
-        return [], 'any', 500000, ['sp500'], 25
+        return [], 'any', 500000, ['sp500'], 25, True, 'apgar'
+    elif button_id == 'remove-all-filters':
+        # Reset all filters to default values with minimal volume filter
+        return [], 'any', 0, ['sp500'], 25, False, None
     
     raise PreventUpdate
 
@@ -1976,12 +1995,13 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
      State('change-preset', 'value'),
      State('universe-selection', 'value'),
      State('result-limit', 'value'),
-     State('sort-by', 'value')],
+     State('sort-by', 'value'),
+     State('apgar-preset-store', 'data')],
     prevent_initial_call=True,
     running=[(Output("start-scan-button", "disabled"), True, False)]
 )
 def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_preset, 
-                  change_preset, universe_selection, result_limit, sort_by):
+                  change_preset, universe_selection, result_limit, sort_by, apgar_preset):
     """Handle the stock scan when the button is clicked"""
     if not n_clicks:
         raise PreventUpdate
@@ -2074,17 +2094,14 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         # Initialize scanner and run scan
         scanner = StockScanner()
         
-        # Determine if this is a Trade Apgar scan (for preset-apgar button)
-        ctx = dash.callback_context
-        apgar_filter = False
-        if ctx.triggered:
-            # Check if this was triggered by preset-apgar indirectly
-            if not elder_filters and rsi_preset == 'any' and volume_preset == 500000:
-                apgar_filter = True
-        
-        # Add Trade Apgar filter if requested
-        if apgar_filter:
+        # Add Trade Apgar filter if requested (score >= 7, regardless of zeros)
+        if apgar_preset:
             filters['min_apgar_score'] = 7
+        
+        # Debug: Print the filters being applied
+        print(f"Scanner filters: {filters}")
+        print(f"Universe: {universe_selection or ['sp500']}")
+        print(f"Max results: {result_limit or 25}")
         
         # Run the scan
         results_df = scanner.scan_stocks(
@@ -2262,14 +2279,24 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Highlight high Trade Apgar scores (7+)
+                # Highlight true A-trade scores (7+ with no zeros) - Green
                 {
                     'if': {
-                        'filter_query': '{trade_apgar} >= 7',
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
                         'column_id': 'trade_apgar'
                     },
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Highlight scores 7+ but with zeros - Yellow warning
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00',
                     'fontWeight': 'bold'
                 },
                 # Highlight medium Trade Apgar scores (5-6)
@@ -2297,7 +2324,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         )
         
         # Create summary info
-        scan_type = "Trade Apgar > 7" if apgar_filter else "Filtered Scan"
+        scan_type = "Trade Apgar ≥ 7" if apgar_preset else "Filtered Scan"
         universes_str = ", ".join(universe_selection or ['sp500']).upper();
         
         success_msg = dbc.Alert([
@@ -2328,6 +2355,70 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             html.P(f"Error: {str(e)}", style={'marginBottom': '0', 'fontSize': '14px'})
         ], color="danger")
         return error_msg, [], 'd-none'
+
+# Callback to reset preset stores after scan
+@callback(
+    [Output('apgar-preset-store', 'data', allow_duplicate=True),
+     Output('active-preset-store', 'data', allow_duplicate=True)],
+    [Input('start-scan-button', 'n_clicks')],
+    prevent_initial_call=True
+)
+def reset_preset_stores_after_scan(n_clicks):
+    """Reset the preset stores after a scan is completed"""
+    return False, None
+
+# Callbacks to update button styles based on active preset
+@callback(
+    [Output('preset-divergence', 'color'),
+     Output('preset-divergence', 'outline')],
+    [Input('active-preset-store', 'data')],
+    prevent_initial_call=True
+)
+def update_divergence_button_style(active_preset):
+    """Update divergence button style based on active preset"""
+    if active_preset == 'divergence':
+        return 'info', False  # Filled button
+    else:
+        return 'info', True   # Outline button
+
+@callback(
+    [Output('preset-rsi-extremes', 'color'),
+     Output('preset-rsi-extremes', 'outline')],
+    [Input('active-preset-store', 'data')],
+    prevent_initial_call=True
+)
+def update_rsi_extremes_button_style(active_preset):
+    """Update RSI extremes button style based on active preset"""
+    if active_preset == 'rsi_extremes':
+        return 'warning', False  # Filled button
+    else:
+        return 'warning', True   # Outline button
+
+@callback(
+    [Output('preset-volume', 'color'),
+     Output('preset-volume', 'outline')],
+    [Input('active-preset-store', 'data')],
+    prevent_initial_call=True
+)
+def update_volume_button_style(active_preset):
+    """Update volume button style based on active preset"""
+    if active_preset == 'volume':
+        return 'success', False  # Filled button
+    else:
+        return 'success', True   # Outline button
+
+@callback(
+    [Output('preset-apgar', 'color'),
+     Output('preset-apgar', 'outline')],
+    [Input('active-preset-store', 'data')],
+    prevent_initial_call=True
+)
+def update_apgar_button_style(active_preset):
+    """Update apgar button style based on active preset"""
+    if active_preset == 'apgar':
+        return 'success', False  # Filled button
+    else:
+        return 'success', True   # Outline button
 
 # Callback to load clicked symbol into main chart and switch back to chart view
 # Callback to load clicked symbol into main chart and switch back to chart view
@@ -2730,14 +2821,24 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Highlight high Trade Apgar scores (7+)
+                # Highlight true A-trade scores (7+ with no zeros) - Green
                 {
                     'if': {
-                        'filter_query': '{trade_apgar} >= 7',
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
                         'column_id': 'trade_apgar'
                     },
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Highlight scores 7+ but with zeros - Yellow warning
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00',
                     'fontWeight': 'bold'
                 },
                 # Highlight medium Trade Apgar scores (5-6)
@@ -3126,7 +3227,12 @@ def check_trade_apgar(n_clicks, symbol):
         else:
             header_color = "warning"
             header_icon = "⚠️"
-            status_text = "ADVISORY - Consider finding a better trade"
+            # Check if it's due to score or zeros
+            has_zeros = any(d['score'] == 0 for d in [details['weekly_impulse'], details['daily_impulse'], details['daily_price'], details['false_breakout'], details['perfection']])
+            if has_zeros:
+                status_text = f"ADVISORY - Score {total_score}/10 but has zero components"
+            else:
+                status_text = f"ADVISORY - Score {total_score}/10 (need 7+)"
         
         # Create score breakdown
         score_items = [
@@ -3204,7 +3310,7 @@ def check_trade_apgar(n_clicks, symbol):
                     html.H6(status_text, style={'color': '#fff', 'marginBottom': '15px'}),
                     html.P([
                         "The Trade Apgar evaluates 5 components on a scale of 0-2. ",
-                        html.Strong("Elder recommends a total score of 7+ with no zeros for A-trades."),
+                        html.Strong("Elder's A-trade criteria: Total score ≥ 7 AND no zero components."),
                         html.Br(),
                         html.Small("Based on Elder's methodology from 'Trading for a Living'", 
                                  style={'color': '#ccc', 'fontStyle': 'italic'})
@@ -3223,7 +3329,7 @@ def check_trade_apgar(n_clicks, symbol):
                                 "This trade doesn't meet Elder's A-trade criteria. " if not passed else "This trade meets Elder's A-trade criteria. ",
                                 html.Strong("You can still trade, but consider finding a better opportunity." if not passed else "Good conditions for trading!"),
                                 html.Br() if not passed else "",
-                                html.Small("Score < 7 or has zero components" if not passed else "", 
+                                html.Small(f"Score {total_score}/10 - {'Has zero components' if any(d['score'] == 0 for d in [details['weekly_impulse'], details['daily_impulse'], details['daily_price'], details['false_breakout'], details['perfection']]) else 'Below 7'} or has zero components" if not passed else "", 
                                          style={'color': '#ccc', 'fontStyle': 'italic'}) if not passed else ""
                             ], style={'color': '#ccc', 'marginTop': '5px'})
                         ])
