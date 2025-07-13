@@ -1,0 +1,934 @@
+The New Trading for a Living: Psychology, Discipline, Trading Tools and Systems, Risk Control, Trade Management (Wiley Trading)
+
+For many years I had a friend whose wife was fat. She was an elegant dresser, and she had been on a diet for as long as I had known her. She said she wanted to lose weight and she didn't eat cake or potatoes in front of people—but when I came into her kitchen, I'd see her go at it with a big fork. She said she wanted to be slim, but remained fat.The short-term pleasure of eating was stronger for her than the delayed pleasure and health benefits of weight loss. My friend's wife reminded me of a great many traders who say they want to be successful but keep making impulsive trades—going for the short-term thrills of gambling in the markets.People deceive and play games with themselves. Lying to others is bad, but lying to yourself is hopeless. Bookstores are full of good books on dieting, but the world is still full of overweight people.This book will teach you how to analyze and trade the markets, control risks, and deal with your own mind. I can give you the knowledge. Only you can supply the motivation.
+
+When you reduce risks, you gain an added sense of accomplishment and control. The same goes for trading.
+
+You can succeed in trading only if you handle it as a serious intellectual pursuit. Emotional trading is lethal. To help ensure success, practice defensive money management. A good trader watches his capital as carefully as a professional scuba diver watches his air supply.
+
+The majority of traders spend most of their time looking for good trades. Once they enter a trade, they don't manage it but either squirm from pain or grin from pleasure. They ride an emotional roller coaster and miss the essential element of winning—the management of their emotions. Their inability to manage themselves leads to poor risk management and losses.If your mind is not in gear with the markets, or if you ignore changes in mass psychology of crowds, you have no chance of making money trading. All winning professionals know the enormous importance of psychology. Most losing amateurs ignore it.
+
+Part Six will focus on the best tools for analyzing the stock market as a whole. They can be especially helpful for stock index futures and options traders
+
+Markets are actually set up so that most traders must lose money. The trading industry slowly kills traders with commissions and slippage.
+
+You pay commissions for entering and exiting trades. Slippage is the difference between the price at which you place your order and the price at which it gets filled. When you place a limit order, it is filled at your price or better, or not at all. When you feel eager to enter or exit and place a market order, it's often filled at a worse price than prevailed when you placed it
+
+If you ignore slippage and deal with a broker who charges high commissions, you're acting like a peasant who drinks from a communal pool during a cholera epidemic
+
+The trading industry keeps draining huge amounts of money from the markets. Exchanges, regulators, brokers, and advisors live off the markets, while generations of traders keep washing out. Markets need a fresh supply of losers just as builders of the ancient pyramids needed a fresh supply of slaves. Losers bring money into the markets, which is necessary for the prosperity of the trading industry.
+
+People buy the industry's propaganda about trading being a zero-sum game, take the bait, and open accounts. They don't realize that trading is a minus-sum game. Winners receive less than what losers lose because the industry drains money from the markets
+
+For example, roulette in a casino is a minus-sum game because the casino sweeps away between three and six percent of every bet. This makes roulette unwinnable in the long run. You and I can get into in a minus-sum game if we make the same $20 bet on the next 100-point move in the Dow through brokers. When we settle, the loser will be out $23, and the winner will collect only $17, while two brokers will smile on their way to the bank
+
+Commissions and slippage are to traders what death and taxes are to all of us. They take some fun out of life and ultimately bring it to an end
+
+Commissions have become much smaller in the past two decades. Twenty years ago, there were still brokers who charged one-way commissions of between half a percent and one percent of trade value. Buying a thousand shares of GE at $20 a share, with a total value of $20,000, would have set you back $100 to $200 on the way in—and again on the way out. Fortunately for traders, commission rates have plummeted
+
+The extortionate rates haven't completely disappeared. While preparing this book for publication, I received an e-mail from a client in Greece with a small account whose broker—a major European bank—charged him a $40 minimum on any trade. I told him of my broker whose minimum for a hundred shares is only $1.
+
+Shop for the lowest possible commissions. Don't be shy about bargaining for lower rates. I've heard many brokers complain about a shortage of customers—but not many customers complain about the shortage of brokers. Tell your broker it is in his best interest to charge you low commissions because you will survive and remain a client for a long time. Design a trading system that will trade less often.
+
+ A beginning trader, making his first steps, should look for a penny-a-share broker. Then you can trade your 100 shares for a dollar.
+
+There are two main types of orders: market and limit. Your slippage depends on which of these types you use.A limit order says—‘give me that apple at 49 cents.’ It guarantees the price, but doesn't guarantee a fill. You'll pay no more than 49 cents, but you may end up without the apple that you wanted.A market order says—‘give me that apple.’ It guarantees a fill, but doesn't guarantee the price. If prices of apples are rising when you place your order, you may well pay more than you saw on the screen when you pushed the buy button. You may get hit by slippage.Slippage on market orders rises with market volatility. When the market begins to run, slippage goes through the roof
+
+Do you have any idea how much slippage costs you?There is only one way to find out: write down the price at the time you placed a market order, compare it with your fill, and multiply the difference by the number of shares or contracts. Needless to say, you need a good record-keeping system, such as a spreadsheet with columns for each of the above numbers. 
+
+Here's a shocking number, which you can confirm by keeping good records: an average trader spends three times more on slippage than on commissions.Earlier we talked about commissions raising a barrier to success. The barrier from slippage is three times higher. This is why, no matter how tempting a trade, you need to avoid buying “at the market.”
+
+To reduce slippage, trade liquid, high-volume markets and avoid thinly traded stocks, where slippage tends to be higher. Go long or short when the market is quiet, and use limit orders to buy or sell at specified prices. Keep a record of prices at the time you placed your order. Demand your broker fight the floor for a better fill when necessary
+
+A bid is what people are offering to pay for that security at that moment; an ask is what sellers are demanding in order to sell it. A bid is always lower, an ask higher, and the spread between them keeps changing
+
+Bid-ask spreads are higher in thinly traded vehicles, as the pros who dominate such markets demand high fees from those who want to join their party. The bid-ask spreads are likely to be razor-thin, perhaps only one tick on a quiet day in an actively traded stock, future or option. They grow wider as prices accelerate on the way up or down and may become huge—dozens of ticks—after a severe drop or a very sharp rally
+
+A market order buys at the ask (high) and sells at the bid (low). Little wonder that many professional traders make a good living from filling market orders. Don't feed the wolves—use limit orders whenever possible!
+
+Look for a broker with the cheapest commissions and watch him like a hawk. Design a trading system that gives signals relatively infrequently and allows you to enter markets during quiet times. Use limit orders almost exclusively—except when placing stops. Be careful on what tools you spend money: there are no magic solutions. Success cannot be bought, only earned
+
+Good traders tend to be hardworking and shrewd people, open to new ideas. The goal of a good trader, paradoxically, is not to make money. His goal is to trade well. If he trades right, money follows almost as an afterthought. Successful traders keep honing their skills as they try to reach their personal best
+
+The trouble with self-fulfillment is that many people have self-destructive streaks. Accident-prone drivers keep destroying their cars, and self-destructive traders keep destroying their accounts. Markets offer vast opportunities for self-sabotage, as well as for self-fulfillment. Acting out your internal conflicts in the marketplace is a very expensive proposition.Traders who are not at peace with themselves often try to fulfill their contradictory wishes in the markets. If you don't know where you are going, you'll wind up somewhere you never wanted to be.
+
+A loser's true problem is not account size but overtrading and sloppy money management. He takes risks that are too big for his account size, however small or big. No matter how good his system may be, a streak of bad trades is sure to put him out of business.Amateurs neither expect to lose nor are prepared to manage losing trades. Calling themselves undercapitalized is a cop-out that helps them avoid two painful truths: their lack of a realistic money management plan and lack of discipline.A trader who wants to survive and prosper must control losses. You do that by risking only a tiny fraction of your equity on any single trade
+
+Airlines pay high salaries to pilots despite having autopilots. They do it because humans can handle unforeseen events. When a roof blows off an airliner over the Pacific or when a passenger jet loses both engines to a flock of geese over Manhattan, only a human can handle such crises. These emergencies have been reported in the press, and in each of them, experienced pilots managed to land their airliners by improvising solutions. No autopilot can do that. Betting your money on an automatic system is like betting your life on an autopilot. The first unexpected event will make your account crash and burn.There are good trading systems out there, but they have to be monitored and adjusted using individual judgment. You have to stay on the ball—you cannot abdicate responsibility for your success to a mechanical system.
+
+There are three types of gurus in the financial markets: market cycle gurus, magic method gurus, and dead gurus. Cycle gurus call important market turns. Method gurus promote new highways to riches. Still others have escaped criticism and invited cult following through the simple mechanism of departing this world
+
+For many decades, the U.S. stock market has generally followed a four-year cycle. The broad stock market has normally spent 2.5 or 3 years going up and 1 or 1.5 years going down. A new market cycle guru emerges in almost every major stock cycle, once every 4 years. A guru's fame tends to last for 2 to 3 years. The reigning period of each guru coincides with a major bull market in the United States.
+
+A guru remains famous for as long as the market behaves according to his the–ory—usually for less than the duration of one 4-year market cycle. At some point, the market changes and starts marching to a different tune. A guru continues to use old methods that worked so well in the past and loses his following. When the guru's forecasts stop working, public admiration turns to hatred. It's impossible for a discredited market cycle guru to return to stardom.
+
+When a guru becomes accepted by the mass media, it's a good sign that he has reached his crest. The mainstream media is wary of outsiders. When several mass magazines devote space to a hot market guru, you know that his end is near. Mass psychology being what it is, new gurus will continue to emerge
+
+The public wants gurus, and new gurus will come. As an intelligent trader, you must realize that in the long run, no guru is going to make you rich. You have to work on that yourself
+
+To win in the markets, we need to master three essential components of trading: sound psychology, a logical trading system, and an effective risk management plan. These are like three legs of a stool—remove one and the stool will fall. It is a typical beginner mistake to focus exclusively on indicators and trading systems.You have to analyze your feelings as you trade to make sure that your decisions are sound. Your trades must be based on clearly defined rules. You have to structure your money management so that no string of losses can kick you out of the game
+
+Freud believed that gambling was universally attractive because it was a substitute for masturbation. The repetitive and exciting activity of the hands, the irresistible urge, the resolutions to stop, the intoxicating quality of pleasure, and the feelings of guilt link gambling and masturbation
+
+The key sign of gambling is the inability to resist the urge to bet. If you feel that you are trading too much and the results are poor, stop trading for a month. This will give you a chance to re-evaluate your trading. If the urge to trade is so strong that you cannot stay away from the action for a month, then it is time to visit your local chapter of Gamblers Anonymous or start using the principles of Alcoholics Anonymous, outlined later in this chapter.
+
+After practicing psychiatry for decades, I became convinced that most failures in life are due to self-sabotage. We fail in our professional, personal, and business affairs not because of bad luck or incompetence, but to fulfill an unconscious wish to fail
+
+The mental baggage from childhood can prevent you from succeeding in the markets. You have to identify your weaknesses and work to change. Keep a trading diary—write down your reasons for entering and exiting every trade. Look for repetitive patterns of success and failure.
+
+Almost all professions provide safety nets for their members. Your bosses, colleagues, and clients will warn you when you behave badly or self-destructively. There is no such safety net in trading, which makes it more dangerous than most human endeavors. The markets offer endless opportunities to self-destruct.
+
+Most people go through life making the same mistakes decade after decade. Some structure their lives to succeed in one area, while acting out their internal conflicts in another.
+
+The absolute maximum a trader may risk on any trade is two percent of his account equity. For example, if you have $30,000 in your account, you may not risk more than $600 per trade, and if you have $10,000, you may not risk more than $200. If your account is small, limit yourself to trading fewer shares, less expensive futures, or mini-contracts. If you see an attractive trade, but a logical stop would have to be placed where more than 2 percent of equity would be at risk—pass on that trade. You may risk less, but you may never risk more. You must avoid risking more than 2 percent on a trade the way a recovering alcoholic avoids bars
+
+Your trading records must show the date and price of every entry and exit, slippage, commissions, stops, all adjustments of stops, reasons for entering, objectives for exiting, maximum paper profit, maximum paper loss after a stop was hit, and any other data necessary to review and fully understand your trade later in the future.
+
+An ocean can be useful—you can fish in it and use its surface to get to other islands. An ocean can be dangerous—you can drown in it. The more rational your approach, the more likely you are to get what you want. On the other hand, when you act out your emotions, you cannot focus on the reality of the ocean.A trader has to study trends and reversals in the market the way a sailor studies the ocean. He must trade on a small scale while learning to handle his account. You can never control the market, but you can learn to control yourself.After a string of profitable trades, a beginner may feel he can walk on water. He starts taking wild risks and blows up his account. On the other hand, an amateur who takes several losses in a row often feels so demoralized that he cannot place an order even when his system gives him a signal to buy or sell. If trading makes you feel elated or frightened, you cannot fully use your intellect. When joy sweeps you off your feet, you will make irrational trades and lose. When fear grips you, you'll miss profitable trades.
+
+A sailor whose boat is being battered by ocean winds battens his sails—reduces sail area. The first remedy for a trader battered by the market is to reduce the size of his trades. Trade small while you're learning or when feeling stressed.A professional trader uses his head and stays calm. Only amateurs become excited or depressed. Emotional trading is a luxury that nobody can afford.
+
+Your first goal must be long-term survival; your second goal, a steady growth of capital; and your third goal, making high profits. Most traders put the third goal first and are unaware that goals 1 and 2 exist
+
+Four animals are mentioned especially often on Wall Street: bulls and bears, hogs and sheep. Traders say: “Bulls make money, bears make money, but hogs get slaughtered
+
+Hogs are greedy. Some of them buy or sell positions that are too large for their accounts and get slaughtered by a small adverse move. Other hogs overstay their positions—they keep waiting for profits even after the trend reverses. Sheep are passive and fearful followers of trends, tips, and gurus. They sometimes put on a bull's horns or a bearskin and try to swagger. You can recognize them by their pitiful bleating when the market becomes volatile.Whenever the market is open, bulls are buying, bears are selling, hogs and sheep get trampled underfoot, and the undecided traders wait on the sidelines. Quote screens around the world show a steady stream of the latest prices for any trading vehicle
+
+
+
+Traders can be divided into three groups: buyers, sellers, and undecided. Buyers want to pay as little as possible, and sellers want to charge as much as possible. Their permanent conflict is reflected in bid-ask spreads, discussed in the Introduction. “Ask” is what a seller asks for his merchandise. “Bid” is what a buyer offers for that merchandise.A buyer has a choice: to wait until prices come down or pay what the sellers demand. A seller has a similar choice: wait until prices rise or accept a lower offer for his merchandise.A trade occurs when there is a momentary meeting of two minds: an eager bull agrees to a seller's terms and pays up, or an eager bear agrees to a buyer's terms and sells a little cheaper.
+
+Each tick on your quote screen represents a deal between a buyer and a seller.Buyers are buying because they expect prices to rise. Sellers are selling because they expect prices to fall. Buyers and sellers are surrounded by crowds of undecided traders who put pressure on them because they may become buyers or sellers themselves.Buying by bulls pushes markets up, selling by bears pushes them down, and undecided traders make everything happen faster by creating a sense of urgency among buyers and sellers
+
+ An astute trader aims to enter the market during quiet times and take profits during wild times. That, of course, is the total opposite of how amateurs act: they jump in or out when prices begin to run, but grow bored and not interested when prices are sleepy
+
+If bulls are much stronger, you should buy and hold. If bears are much stronger, you should sell and sell short. If both camps are about equal in strength, a wise trader stands aside. He lets bulls and bears fight with each other, and enters a trade only when he is reasonably sure which side is likely to win.Prices and volume, along with the indicators that track them, reflect crowd behavior. Technical analysis is similar to poll taking. Both combine science and art: They are partly scientific because we use statistical methods and computers; they are partly artistic because we use personal judgment and experience to interpret our findings.
+
+Not only is the market harsh, you have to pay whenever you enter and exit. You have to jump over the barriers of commissions and slippage before you can collect a dime. The moment you place an order, you owe your broker a commission—you're behind the game the moment you enter. Market makers try to hit you with slippage when your order arrives for execution. They try to take another bite out of your account when you exit. In trading, you compete against some of the brightest minds in the world, while fending off the piranhas of commissions and slippage
+
+Crowds are powerful enough to create trends. The crowd may not be too bright, but it is stronger than any of us. Never buck a trend. If a trend is up, you should only buy or stand aside. Never sell short just because “the prices are too high”—never argue with the crowd. You do not have to run with the crowd—but you shouldn't run against it
+
+The only reason there is money in the markets is that other traders put it there. The money you want to make belongs to other people who have no intention of giving it to you.Trading means trying to take money from other people, while they are trying to take yours—that's why it is such a hard business. Winning is especially difficult because brokers and floor traders take money from winners and losers alike.
+
+Trying to reduce insider trading is like trying to get rid of rats on a farm. Pesticides keep them under control, but do not root them out. A retired chief executive of a publicly traded firm explained to me that a smart man does not trade on inside information but gives it to his golfing buddies at a country club. Later they give him inside information on their companies, and both profit without being detected. The insider network is safe as long as its members follow the same code of conduct and don't get too greedy. Insider trading is legal in the futures markets, and until recently it was legal for congressmen, senators, and their staff.
+
+Charts reflect all trades by all market participants—including insiders. They leave their footprints on the charts just like everyone else—and it is our job as technical analysts to follow them to the bank. Technical analysis can help you detect insider buying and selling
+
+Private traders usually come to the market after a successful career in business or in the professions. An average private futures trader in the United States is a 50-year-old, married, college-educated man. The two largest occupational groups among futures traders are farmers and engineers.
+
+Learning to trade takes time, money, and work. Few individuals rise to the level of professionals who can support themselves by trading. Professionals are extremely serious about what they do. They satisfy their irrational goals outside the markets, while amateurs act them out in the marketplace.
+
+Some large firms have intelligence networks that enable them to act before the public. One day, when oil futures rallied in response to a fire on a platform in the North Sea, I called a friend at an oil firm. The market was frantic, but he was happy, having bought oil futures half an hour before they exploded. He got a telex from an agent in the area of the fire before the reports appeared on the newswire. Timely information is priceless, but only a large company can afford an intelligence network.An acquaintance who traded successfully for a Wall Street investment bank felt lost when he quit to trade for himself. He discovered that a real-time quote system in his Park Avenue apartment didn't give him news as fast as the squawk box on the trading floor of his old firm. Brokers from around the country used to call him with the latest ideas because they wanted his orders. “When you trade from your house, you are never the first to hear the news,” he says.
+
+Most private traders fritter away this fantastic advantage by overtrading. An individual who wants to succeed against the giants must develop patience and eliminate greed. Remember, your goal is to trade well, not to trade often
+
+Most traders who leave institutions get caught up in the emotions of fear, greed, elation, and panic when they start risking their own money. They seldom do well trading for their own accounts—another sign that psychology is at the root of trading success or failure. Few institutional traders realize to what a large extent they owe their success to their trading managers, who control their risk levels. Going out on your own means becoming your own manager
+
+There are three types of trading software: toolboxes, black boxes, and gray boxes. A toolbox allows you to display data, draw charts, plot indicators, change their parameters, and test your trading systems. Toolboxes for options traders include option valuation models. Adapting a good toolbox to your needs can be as easy as adjusting the seat of your car.
+
+What goes on inside a black box is secret. You feed it data, and it tells you what and when to buy and sell. It is like magic—a way to make money without thinking. Black boxes are usually sold with excellent historical track records. This is only natural because they were created to fit old data. Markets keep changing, and black boxes keep blowing up, but new generations of losers keep buying them. If you're in the market for a black box, remember that there is a guy in Brooklyn who has a bridge for sale
+
+Gray boxes straddle the fence between toolboxes and black boxes. These packages are usually put out by prominent market personalities. They disclose the general logic of their system and allow you to adjust some of their parameters
+
+Some newsletters provide useful ideas and point readers in the direction of trading opportunities. A few offer educational value. Most sell an illusion of being an insider. Newsletters are good entertainment. Your subscription rents you a pen pal who sends often amusing and interesting letters and never asks you to write back, except for a check at renewal time. Freedom of the press in the United States allows even a convicted felon to go online and start sending out a financial advisory letter. Quite a few of them do
+
+The “track records” of various newsletters are largely an exercise in futility because hardly anybody takes every trade suggested by a newsletter. Services that rate newsletters are for-profit affairs run by small businessmen whose well-being depends on the well-being of the advisory industry. Rating services may occasionally tut-tut an advisor, but they dedicate most of their energy to loud cheerleading.I used to write an advisory newsletter decades ago: worked hard, delivered straight talk, and received good ratings. I saw from the inside a tremendous potential for fudging results. This is a well-kept secret of the advisory industry
+
+The first principle of letter writing is: “If you have to make forecasts, make a lot of them.” Whenever a forecast turns out right, double the volume of promotional mail.
+
+Group members may catch a few trends, but they get killed when trends reverse. Successful traders are independent thinkers.
+
+Many traders are puzzled why markets reverse immediately after they dump their losing position. This happens because crowd members are gripped by the same fear—and everybody dumps at the same time. Once the selling fit has ended, the market has nowhere to go but up. Optimism returns to the marketplace, and the crowd forgets fear, grows greedy, and goes on a new buying binge.The crowd is bigger and stronger than you. No matter how smart you are, you cannot argue with the crowd. You have only one choice—to join the crowd or to act independently
+
+Crowds are primitive, and your trading strategies should be simple. You don't have to be a rocket scientist to design a winning trading method. If the trade goes against you—cut your losses and run. Never argue with the crowd—simply use your judgment to decide when to join and when to leave.Your human nature leads you to give up your independence under stress. When you put on a trade, you feel the desire to imitate others, overlooking objective signals. This is why you need to write down and follow your trading system and money management rules. They represent your rational individual decisions, made before you entered a trade
+
+ as Tony Plummer brilliantly pointed out in his book, Forecasting Financial Markets, the main leader of the market is price.Price is the leader of the market crowd. Traders all over the world follow the upticks and downticks. Price seems to say to traders, “Follow me, and I'll show you the way to riches.” Most traders consider themselves independent. Few of us realize how strongly we focus on the behavior of our group leader.A trend that flows in your favor symbolizes a strong and generous parent calling you to share a meal. A trend that goes against you feels like dealing with an angry and punishing parent. Being gripped by such feelings, it's easy to overlook objective signals that tell you to stay or to exit a trade. You may feel happy or frightened, bargain or beg forgiveness—while avoiding the rational act of accepting reality and getting out of a losing trade.
+
+You can succeed as a trader only when you think and act as an individual. The weakest part of any trading system is the trader himself. Traders fail when they trade without a plan or deviate from their plans. Plans are created by reasoning individuals. Impulsive trades are made by sweaty group members.You have to observe yourself and notice changes in your mental state as you trade. Write down your reasons for entering a trade and the rules for getting out of it, including money management rules. You may not change your plan while you have an open position.
+
+Technical analysis is for-profit social psychology
+
+Ask a trader why prices went up, and you'll probably get a stock answer—more buyers than sellers. This isn't true. The number of shares or futures contracts bought and sold in any market is always equal.If you want to buy 100 shares of Google, someone has to sell them to you. If you want to sell 200 shares of Amazon, someone has to buy them from you. This is why the number of shares bought and sold is equal in the stock market. Furthermore, the number of long and short positions in the futures markets is always equal. Prices move up or down not because of different numbers but because of changes in the intensity of greed and fear among buyers and sellers
+
+When the trend is up, bulls feel optimistic and don't mind paying up. They buy high because they expect prices to rise even higher. Bears feel afraid in an uptrend, and they agree to sell only at a higher price. When greedy and optimistic bulls meet fearful and defensive bears, the market rallies. The stronger their feelings, the sharper the rally. The rally ends only when bulls start losing their enthusiasm.When prices slide, bears feel optimistic and don't quibble about selling short at lower prices. Bulls are fearful and agree to buy only at a discount. While bears feel like winners, they continue to sell at lower prices, and the downtrend continues. It ends when bears start feeling cautious and refuse to sell at lower prices
+
+Short sellers feel trapped by rising markets, as their profits melt and turn into losses. When short sellers rush to cover, a rally can become parabolic. Fear is a much stronger emotion than greed.2 Rallies driven by short covering are especially sharp, although they do not last very long.
+
+Markets fall because of fear among bulls and greed among bears. Normally bears prefer to sell short on rallies, but if they expect to make a lot of money on a decline, they don't mind shorting on the way down. Fearful buyers agree to buy only below the market. As long as short sellers are willing to meet those demands and sell at a bid, the decline will continue.As bulls' profits melt and turn into losses, they panic and sell at almost any price. They are so eager to get out that they hit the bids under the market. Markets can drop fast when hit by panic selling.
+
+Loyalty to the leader is the glue that holds groups together. Group members expect leaders to inspire and reward them when they are good but punish them when they are bad. Some leaders are very authoritarian, others quite democratic and informal, but every group has a leader—a leaderless group can't exist. Price functions as the leader of the market crowd.
+
+Eventually a price shock occurs—a major sale hits the market, and there aren't enough buyers to absorb it. The uptrend takes a dive. Bulls feel mistreated, like children whose father slapped them during a meal, but bears feel encouraged
+
+A price shock plants the seeds of an uptrend's reversal. Even if the market recovers and reaches a new high, bulls feel more skittish and bears become bolder. This lack of cohesion in the dominant group and growing optimism among its opponents makes the uptrend ready to reverse. Several technical indicators identify tops by tracing a pattern called bearish divergence (see Section 4). It occurs when prices reach a new high but the indicator reaches a lower high than it did on the previous rally. Bearish divergences mark the ends of uptrends and some of the best shorting opportunities
+
+After a while, bears grow confident and bulls feel demoralized. Suddenly, a price shock occurs. A cluster of buy orders soaks up all available sell orders and lifts the market. Now bears feel like children whose father has lashed out at them in the midst of a happy meal.A price shock plants the seeds of a downtrend's eventual reversal because bears become more fearful and bulls grow bolder
+
+Even if bears recover and prices fall to a new low, several technical indicators will help identify their weakness by tracing a pattern called a bullish divergence. It occurs when prices fall to a new low but an indicator traces a shallower bottom than during the previous decline. Bullish divergences identify some of the best buying opportunities.
+
+
+
+The longer a rally continues, the more analysts get caught up in mass bullishness, ignore danger signs, and miss the eventual reversal. The longer a decline goes on, the more analysts get caught up in bearish gloom and ignore bullish signs. This is why it helps to have a written plan for analyzing markets. We have to decide in advance what indicators we will watch, how we will interpret them, and how we'll act.
+
+There are two alternatives to “gut feel”: One is fundamental analysis; the other is technical analysis.
+
+Fundamental analysts study the actions of the Federal Reserve, follow earnings reports, examine crop reports, and so on. Major bull and bear markets reflect fundamental changes in supply and demand. Still, even if you know those factors, you can lose money trading if you are out of touch with intermediate- and short-term trends, which depend on the crowd's emotions
+
+Technical analysts believe that prices reflect everything known about the market, including fundamental factors. Each price represents the consensus of value of all market participants—large commercial interests and small speculators, fundamental researchers and technicians, insiders and gamblers.Technical analysis is a study of mass psychology. It is partly a science and partly an art. Technicians use many scientific methods, including mathematical concepts of game theory, probabilities, and so on. They use computers to track indicators
+
+ Poll-taking is a combination of science and art. If a poll-taker says he is a scientist, ask him why every major political poll-taker in the United States is affiliated with either the Democratic or Republican party. True science knows no party.
+
+A market technician must rise above party affiliation. Be neither a bull nor a bear, but only seek the truth. A biased bull looks at a chart and says, “Where can I buy?” A biased bear looks at the same chart and tries to find where he can go short. A top-flight analyst is free of bullish or bearish biases.
+
+There is a trick to help you detect your bias. If you want to buy, turn your chart upside down and see whether it looks like a sell. If it still looks like a buy after you flip it, then you have to work on getting a bullish bias out of your system. If both charts look like a sell, then you have to work on purging a bearish bias.
+
+To make money trading, you don't need to forecast the future. You have to extract information from the market and find out whether bulls or bears are in control. You need to measure the strength of the dominant market group and decide how likely the current trend is to continue. You need to practice conservative money management aimed at long-term survival and profit accumulation. You must observe how your mind works and avoid slipping into greed or fear. A trader who does all of this will succeed ahead of any forecaster
+
+Whenever I hear a dramatic forecast, my first thought is “a marketing gimmick.” Advisors issue them to attract attention in order to raise money or sell services. Good calls attract paying customers, while bad calls are quickly forgotten. My phone rang while I was writing the first draft of this chapter. A famous guru, down on his luck, told me that he had identified a “once-in-a-lifetime buying opportunity” in corn. He asked me to raise money for him and promised to multiply it a hundredfold in six months! I do not know how many fools he hooked, but dramatic forecasts have always been good for fleecing the public
+
+Use common sense in analyzing markets. When some new development puzzles you, compare it to life outside the markets. For example, indicators may give you buy signals in two markets. Should you buy the one that declined a lot before the buy signal or the one that declined a little? Compare this to what happens to a man after a fall. If he falls down a few steps, he may dust himself off and run up again. But if he falls out of a second-story window, he's not going to run anytime soon; he needs time to recover
+
+Successful trading stands on three pillars. You need to analyze the balance of power between bulls and bears. You need to practice good money management. You need personal discipline to follow your trading plan and avoid getting high or depressed in the markets
+
+ Most chartists work with bar or candlestick graphs that show open, high, low, and closing prices and volume. Futures traders also watch open interest. Point-and-figure chartists track only price changes and ignore time, volume, and open interest.
+
+The opening price of a daily bar tends to reflect the amateurs' opinion of value. They read morning papers, find out what happened the day before, perhaps ask for a wife's approval to buy or sell, and place their orders before driving to work. Amateurs are especially active early in the day and early in the week
+
+Traders who researched the relationship between opening and closing prices found that opening prices most often occur near the high or the low of the daily bar. Buying or selling by amateurs early in the day creates an emotional extreme from which prices tend to recoil later in the day.In bull markets, prices often make their low for the week on Monday or Tuesday, when amateurs take profits from the previous week, then rally to a new high on Thursday or Friday. In bear markets, the high for the week is often set on Monday or Tuesday, with a new low toward the end of the week.
+
+Professionals as a group usually trade against the amateurs. They tend to buy lower openings, sell short higher openings, and unwind their positions as the day goes on. Traders need to pay attention to the relationship between opening and closing prices. If prices closed higher than they opened, then market professionals were probably more bullish than amateurs. If prices closed lower than they opened, then market professionals were probably more bearish than amateurs. It pays to trade with the professionals and against the amateurs. Candlestick charting is based, to a large extent, on the relationship between the opening and closing prices of each bar. If the close is higher, the candle is white, but if it is lower, the candle is black.
+
+Closing prices on the daily charts of futures are especially important because your account equity is “marked to market” each night.
+
+The distance between the high and the low of any bar reflects the intensity of conflict between bulls and bears. An average bar marks a relatively cool market. A bar that's only half as tall as average reveals a sleepy, disinterested market. A bar that's two times taller than average shows a boiling market where bulls and bears battle all over the field.
+
+Slippage (see the Introduction) tends to be less in quiet markets. It pays to enter trades during short or normal bars. Tall bars are good for taking profits. Trying to enter a position when the market is running is like jumping onto a moving train. It would be safer to wait for the next one
+
+The main advantage of a candlestick chart is its focus on the struggle between amateurs who control openings and professionals who control closings. Unfortunately, many candlestick chartists neglect Western tools, such as volume and technical indicators.
+
+Chaos Theory has achieved prominence in the recent decades. Markets are largely chaotic, and the only time you can have an edge is during orderly periods.In my view, markets are chaotic much of the time, but out of that chaos, islands of order and structure keep emerging and disappearing. The essence of market analysis is recognizing the emergence of orderly patterns and having enough courage and conviction to trade them.If you trade during chaotic periods, the only ones to benefit will be your broker, who'll collect his commission, and a professional day-trader, who'll scalp you. The key point to keep in mind is that once in a while a pattern emerges from chaos. Your system should recognize this transition, and that's when you should put on a trade! Earlier we spoke about the one great advantage of a private trader over professionals—he may wait for a good trade instead of having to be active each day. The chaos theory confirms that message.
+
+The chaos theory also teaches us that orderly structures that emerge from chaos are fractal. The sea coast appears equally jagged whether you look down on it from space or an airplane, from a standing position or on your knees through a magnifying glass. Market patterns are fractal as well. If I show you a set of charts of the same market, having removed time markings, you will not be able to tell whether it is monthly, weekly, daily, or a 5-minute chart. Later in this book (Chapter 39), we'll return to this theme, and you'll see why it is so important to analyze markets in more than one timeframe. We'll have to make sure that buy or sell messages in both timeframes confirm each other, because if they don't it means that the market is too chaotic and we should stand aside.
+
+Mystics, Random Walk academics, and Efficient Market theorists have one trait in common. They are equally divorced from the reality of the markets.
+
+Support is a price level where buying is strong enough to interrupt or reverse a downtrend. When a downtrend hits support, it bounces like a diver who hits the bottom and pushes away from it. Support is represented on a chart by a horizontal line connecting two or more bottoms
+
+Beware of false breakouts from support and resistance. They are marked by letter “F” on this chart. Amateurs tend to follow breakouts, while professionals tend to fade (trade against) them
+
+Note how after a decisive upside breakout in area 1 prices hit resistance, but when they broke above that level it turned into a zone of support (marked 2). The strength of these barriers increases each time prices touch them and bounce away
+
+Resistance is a price level where selling is strong enough to interrupt or reverse an uptrend. When an uptrend hits resistance, it acts like a man who hits his head on a branch while climbing a tree—he stops and may even tumble down. Resistance is represented on a chart by a horizontal line connecting two or more tops
+
+It is better to draw support and resistance lines across the edges of congestion areas where the bulk of the bars stopped rather than across extreme prices. Those congestion zones show where masses of traders have changed their minds, while the extreme points reflect only panic among the weakest traders
+
+Minor support or resistance causes trends to pause, while major support or resistance causes them to reverse. Traders buy at support and sell at resistance, making their effectiveness a self-fulfilling prophecy
+
+How do we identify trends? Not by trendlines. My favorite tools are exponential moving averages that we'll review in the next section
+
+Support and resistance exist because people have memories.If traders remember that prices have recently stopped falling and turned up from a certain level, they are likely to buy when prices approach that level again. If traders remember that an uptrend has recently reversed after rising to a certain peak, they tend to sell and go short when prices approach that level again
+
+Notice how gold hit its overhead resistance at the $1,000/oz. level five times. Usually, reversals occur on the first, second or third hit. When a market hits the same level for the fourth time, it shows that it really wants to go that way. Gold broke above $1,000/oz. on its fifth attempt.Afterwards, gold made two attempts to pull down to its old resistance level, in areas marked 6 and 7. Its inability to decline to that level showed that bears were weak, marking the start of a major bull market in gold.
+
+When the market stays flat for a while, traders get used to buying near the lower edge of its range and selling or even shorting near the upper edge. When an uptrend begins, bears who sold short feel a great deal of pain. At the same time bulls feel an intense regret that they didn't buy more. Both are determined to buy if the market declines to the breakout point and gives them a second chance to cover shorts or to get long. The pain of bears and regret of bulls makes them eager to buy, creating support during reactions in an uptrend.
+
+The longer prices stay in a congestion zone, the stronger the emotional commitment of bulls and bears to that area. A congestion area hit by several trends is like a battlefield with craters from explosions: its defenders have plenty of cover and are likely to slow down any attacking force.
+
+The strength of those zones depends on three factors: their length, height, and the volume of trading that has taken place in them. You can visualize these factors as the length, the width, and the depth of a congestion zone
+
+The longer a support or resistance area—its length of time or the number of hits it took—the stronger it is. Support and resistance, like good wine, become better with age. A 2-week trading range provides only minimal support or resistance, a 2-month range gives people time to become used to it and creates intermediate support or resistance, while a 2-year range becomes accepted as a standard of value and offers major support or resistance.As support and resistance levels grow very old, they gradually become weaker. Losers keep washing out of the markets, replaced by newcomers who don't have the same emotional commitment to very old price levels
+
+The taller the support and resistance zone, the stronger it is. A tall congestion zone is like a tall fence around a property. If a congestion zone's height equals one percent of current market value, it provides only minor support or resistance. If it's three percent tall, it provides intermediate support or resistance, and a congestion zone that's seven percent tall or higher can grind down a major trend.
+
+The greater the volume of trading in a support and resistance zone, the stronger it is. High volume shows active involvement by traders—a sign of strong emotional commitment. Low volume shows that traders have little interest in transacting at that level—a sign of weak support or resistance.
+
+You can measure the strength of support and resistance in dollars if you multiply the number of days a stock spent in its congestion zone by its average daily volume and price
+
+Whenever the trend you're riding approaches support or resistance, tighten your protective stop. A protective stop is an order to sell below the market when you are long or to cover shorts above the market when you are short. A stop protects you from getting badly hurt by a reversal. A trend reveals its health by how it acts when it hits support or resistance. If it's strong enough to penetrate that zone, your tight stop will not be triggered. If a trend bounces away from support or resistance, it reveals its weakness. In that case, your tight stop will salvage a good chunk of profits.
+
+A good trader monitors his market using several timeframes, but assigns more weight to the longer ones. Weekly charts are more important than dailies. If the weekly trend is strong, it is less alarming that the daily trend is hitting resistance. When a weekly trend approaches major support or resistance, you should be more inclined to exit
+
+One of the best patterns in technical analysis is a false breakout. If prices dip below support and then rally back into the support zone, they show that bears have lost their chance. A price bar closing within a congestion zone after a false downside breakout marks a buying opportunity; set a protective stop in the vicinity of the bottom of the recent false downside breakout
+
+On Placing Stops Experienced traders tend to avoid placing them at round numbers. If I buy a stock near $52 and want to protect my position in the area of 51, I'll put a stop a few cents below $51. If I go long at 33.70 in a day-trade and want to protect my position in the area of $33.50, I'll put that stop a few cents below $33.50. Because of a natural human tendency to use round numbers, clusters of stops accumulate there. I prefer to place my stops at the far ends of such clusters.
+
+Professionals expect prices to fluctuate most of the time, without going anywhere far. They wait until an upside breakout stops reaching new highs or a downside breakout stops making new lows. Then they pounce—fade the breakout (trade against it) and place a protective stop near the latest extreme point. It's a tight stop, and their monetary risk is low, with a big profit potential from prices returning towards the middle of the congestion zone. The risk/reward ratio is so good that professionals can afford to be wrong half the time and still come out ahead of the game.
+
+
+
+The best time to buy an upside breakout on a daily chart is when your analysis of the weekly chart suggests that a new uptrend is developing. True breakouts are confirmed by heavy volume, while false breakouts tend to have light volume. True breakouts are confirmed when technical indicators reach new extremes in the direction of the new trend, while false breakouts are often marked by divergences between prices and indicators, which we'll discuss later in the book.
+
+Trends and trading ranges call for different tactics. When you go long in an uptrend or sell short in a downtrend, you have to give that trend the benefit of the doubt and use a wider stop, so as not to be shaken out easily. In a trading range, on the other hand, you have to use tight stops, be nimble and close out positions at the slightest sign of a reversal
+
+Another difference in trading tactics between trends and ranges is the handling of strength and weakness. You have to follow strength during trends—buy in uptrends and short in downtrends. When prices are in a trading range, you aim to do the opposite—buy weakness and sell strength.
+
+The 22-day exponential moving average (EMA), represented by a red line superimposed on prices, confirms the uptrend by its steady rise. Notice excellent buying opportunities, signaled by quick price dips to their moving average 
+
+
+
+Having identified an uptrend, you need to decide whether to buy immediately or wait for a dip. If you buy fast, you'll get in gear with the trend, but on the minus side, your stops are likely to be farther away, increasing your risk.If you wait for a dip, your risk will be smaller, but you'll have four groups of competitors: longs who want to add to their positions, shorts who want to get out even, traders who never bought (such as yourself), and traders who sold too early but are eager to buy again
+
+If the market is in a trading range and you're waiting for a breakout, you'll have to decide whether to buy in anticipation of a breakout, during a breakout, or on a pullback after a valid breakout. If you aren't sure, consider entering in several steps: buy a third of the planned position in anticipation, a third on a breakout, and a third on a pullback
+
+Whatever method you use, remember to apply the key risk management rule: the distance from your entry to the protective stop, multiplied by position size can never be more than 2 percent of your account equity (see Chapter 50). No matter how attractive a trade, pass it up if it would require putting more than 2% of your account at risk
+
+Most traders ignore the fact that markets move in different directions at the same time in different timeframes. They pick one timeframe, such as daily or hourly, and look for trades there. That's when trends from other timeframes sneak up on them and wreak havoc with their plans.Those conflicts between signals in different timeframes of the same market are one of the great puzzles in market analysis. What looks like a trend on a daily chart may show up as a blip on a flat weekly chart. What looks like a flat trading range on a daily chart shows rich uptrends and downtrends on an hourly chart, and so on.
+
+ before examining a trend on your favorite chart, step back to explore the charts in a timeframe one order of magnitude greater than your favorite. This search for a greater perspective is one of the key principles of the Triple Screen trading system, which we'll discuss in a later chapter
+
+Just when you think a runaway trend will keep on going—pop!—a three-bar pattern forms a kangaroo tail that flags a reversal. A kangaroo tail2 consists of a single, very tall bar, flanked by two regular bars, that protrudes from a tight weave of prices. Upward-pointing kangaroo tails flash sell signals at market tops, while downward-pointing kangaroo tails occur at market bottoms
+
+While daily charts are shown in the illustration, you can find kangaroo tails on the charts of all timeframes. The longer the timeframe, the more meaningful its signal: a kangaroo tail on a weekly chart is likely to lead to a more significant move than a tail on a 5-minute chart.Kangaroo tails, also called “fingers,” are on my short list of reliable chart formations. They leap at you from the charts and are easy to recognize. If you doubt whether a kangaroo tail is present, assume it is not. Real kangaroo tails are unmistakable
+
+Kangaroo tails reflect failed bull or bear raids.A kangaroo tail pointing up reflects a failed attempt by the bulls to lift the market. They're like a group of soldiers that take a hill from the enemy, only to discover that the main force has failed to follow. Now they escape and run downhill for their lives. Having failed to hold the hill, the army is likely to move away from it.A kangaroo tail that points down reflects a failed bear raid. Bears aggressively sold the market, pushing it lower—but low prices did not attract volume and bears retreated back into the range. What do you think the market is likely to do next, after it failed to continue moving down? Since it found no orders below, it's likely to turn up and rally.
+
+. As soon as you recognize a tail, trade against it
+
+An experienced trader can recognize a kangaroo tail during its third bar, before it closes. For example, you may see a range that held for several days on a daily chart, but then on Monday the stock explodes in a very tall bar. If on Tuesday it opens near the base of the Monday's bar base and refuses to rally, consider selling short before the market closes on Tuesday. If the market has been in a trading range for a week and then traces a tall bar down on Wednesday, get ready on Thursday: if prices trade in a narrow range near the top of the Wednesday bar, go long before the market closes on Thursday
+
+Evaluate kangaroo tails against the background of the current market. For example, when running a long-term bullish campaign in a stock, be alert to kangaroo tails. A tail pointing up may well suggest profit taking on existing positions, while a tail pointing down identifies a good spot to add to long positions.
+
+Using stops is essential for survival and success in the markets. Putting a stop at the end of a tail would make your stop too wide, risking too much capital. When trading against the tail, place your protective stop about halfway through the tail. If the market starts “chewing its tail,” it is time to get out.
+
+A good toolbox allows you to compare any two markets and analyze their spreads. If you trade options, your toolbox must include an options valuation model. Advanced packages allow you to backtest trading systems
+
+Another feature of a good toolbox is its ability to scan stocks. For example, you may want to find all stocks among the Nasdaq 100 whose exponential moving averages are rising, but whose prices are no more than 1% above their EMAs. Can your software scan for that? Can it add fundamental parameters to your search, such as rising earnings? Think what you want to find and then ask software vendors whether their products can do it for you
+
+A growing number of brokerage firms offer free analytic software to their clients; the price is right, but they tend to have two serious limitations. First, for legal reasons, they make their software very hard to modify and second, it only works online. Traders often ask how to add my indicators to their brokerage software, and the usual answer is—you can'
+
+Most brokerage house programs enable you to place and change your orders using the same analytic software. This can be quite handy and useful for day traders, but less important for longer-term traders. Be sure to disable a common feature that shows your equity gains or losses in real time. Watching dollars jump up or down at every tick is stressful and distracting. As the song goes, “…never count your money while you're sitting at the table—there'll be time enough for counting when the dealing's done.” Focus on prices and indicators instead of watching dollars and thinking what you can buy with them.
+
+Swing and position traders enter and exit trades within days or weeks, while day traders enter and exit within a few hours if not minutes. End-of-day data is sufficient for position traders, but day traders need real-time data.When you download the daily data for research, it pays to cover two bull-and-bear-market cycles, or about 10 years. Whenever I approach a stock, I like to look back at 12 years of trading history to see whether it is cheap or expensive relative to its 12-year range.
+
+Whenever you approach a trade, you must know your edge—what will help you make money. The ability to recognize patterns is a part of my edge, but if a stock's history is too short, there are no reliable patterns to identify. That's why I avoid trading very young stocks, those with less than a year's history
+
+Begin by following the key market indexes, such as the Dow, the NASDAQ, and the S&P. Many professional traders focus on a relatively small number of stocks. They get to know them well and become familiar with their behavior patterns.You could start out by focusing on a dozen stocks. Many professionals limit themselves to fewer than 100 stocks, which they review every weekend and mark their opinions in a fresh column of their spreadsheet. They may select fewer than 10 stocks from that pool that look promising for the week ahead and focus on them.
+
+the U.S. markets are easy to trade from Europe where they open at 3:30 p.m. local time and close at 10 p.m
+
+Beginning traders should steer clear of day-trading. It demands instant decision making, and if you stop to think, you're dead. Learn to trade in a slower environment. Become a competent position or swing trader before you consider day-trading. If you compare swing trading and day-trading, it is like playing the same video game at level one or level nine
+
+A great challenge is that various indicators may contradict one another. Some of them work best in trending markets, others in flat markets. Some are good at catching turning points, while others are better at riding trends. That's why it pays to select a small number of indicators from various groups and learn to combine them
+
+Trend-following indicators work best when markets are moving, but the quality of their signals sharply deteriorates when the markets go flat. Oscillators catch turning points in flat markets but give premature and dangerous signals when the markets begin to trend. Miscellaneous indicators provide insights into mass psychology. Before using any indicator, be sure to understand what it measures and how it works. Only then can you have confidence in its signals
+
+Trend-following indicators include moving averages, MACD Lines (moving average convergence-divergence), the Directional System, On-Balance Volume, Accumulation/Distribution, and others. Trend-following indicators are coincident or lagging indicators—they turn after trends reverse
+
+Oscillators help identify turning points. They include MACD-Histogram, Force Index, Stochastic, Rate of Change, Momentum, the Relative Strength Index, Elder-ray, Williams %R, and others. Oscillators are leading or coincident indicators that often turn ahead of prices.
+
+Miscellaneous indicators provide insights into the intensity of bullish or bearish camps. They include the New High–New Low Index, the Put-Call Ratio, Bullish Consensus, Commitments of Traders, and others. They can be leading or coincident indicators.
+
+It pays to combine several indicators from different groups so that their negative features cancel each other out, while their positive features remain undisturbed. This is the aim of the Triple Screen trading system (see Chapter 39).
+
+ I've learned long ago to enter trades only when indicator signals “grab me by the face.” If I find myself squinting at a chart while trying to understand its signals, I flip the page and move to the next stock.
+
+If you look at a familiar indicator but can't understand its message, it is most likely because the stock you're trying to analyze is in a chaotic stage (see Chapter 17). If indicator signals aren't clear, don't start massaging them or piling on more indicators, but simply leave that stock alone for the time being and look for another one. One of the great luxuries of private traders is that no one pushes us to trade—we can wait for the best and clearest signals
+
+Simple MAs, however, have a fatal flaw—they change twice in response to each price.
+
+ a modern computerized trader is better off using exponential moving averages
+
+ A relatively narrow window makes an EMA more sensitive to price changes. It catches new trends sooner, but leads to more whipsaws. A whipsaw is a rapid reversal of a trading signal. An EMA with a wider time window produces fewer whipsaws but misses turning points by a wider margin
+
+It would be nice to tie EMA length to a price cycle if you can find it. A moving average should be half the length of the dominant market cycle. If you find a 22-day cycle, use an 11-day moving average. If the cycle is 34 days long, then use a 17-day moving average. Trouble is, cycles keep changing and disappearing
+
+Among the numbers I like are 22 because there are approximately 22 trading days in a month and 26—half of the number of trading weeks in a year.
+
+Don't change indicator parameters while looking for trades. Fiddling with parameters to obtain signals you'd like to see robs your indicators of their most valuable feature—their objectivity. It is better to set your parameters and live with them
+
+
+
+The favorite approach of Donchian, one of the originators of trading with moving averages, was to use crossovers of 4-, 9-, and 18-day MAs. Trading signals were given when all three MAs turned in the same direction. His method, like other mechanical trading methods, only worked during strongly trending markets.
+
+A rising MA tends to serve as a floor below prices, and a falling MA serves as a ceiling above them. That's why it pays to buy near a rising MA, and sell short near a falling MA
+
+Moving averages can be applied to indicators as well as prices. For example, some traders use a 5-day moving average of volume. When volume falls below its 5-day MA, it shows reduced public interest in the minor trend and indicates that it is likely to reverse. When volume overshoots its MA, it shows strong public interest and confirms the price trend. We'll be using moving averages of an indicator when we work with Force Index
+
+The proper way to plot a simple moving average is to lag it behind prices by half its length. For example, a 10-day simple MA properly belongs in the middle of a 10-day period and it should be plotted underneath the 5th or 6th day. An exponential moving average is more heavily weighted toward the latest data, and a 10-day EMA should be lagged by two or three days. Most software packages allow you to lag a moving average
+
+Moving averages can be based not only on closing prices but also on the mean between the high and the low, which can be useful for day traders
+
+Whenever I analyze charts, I like to use not one but two exponential moving averages. The longer EMA shows a longer-term consensus of value. The shorter-term EMA shows a shorter-term consensus of value
+
+I keep the ratio between them at approximately two to one. For example, I may use a 26-week and a 13-week EMA on a weekly chart, or a 22-day and an 11-day EMA on a daily chart. Please understand there is no magic set of numbers. You should feel free to play with these values, selecting a set that will be unique to you. Just keep in mind to keep the difference between the two EMAs near 2:1. 
+
+A channel consists of two lines drawn parallel to a moving average
+
+A well-drawn channel should contain approximately 95% of all prices that occurred during the past 100 bars. Longer-term markets have wider channels because prices can cover greater distances in 100 weeks than in 100 days. Volatile markets have wider (or taller) channels than quiet, sleepy markets
+
+When looking to buy a stock, it pays to do it in the value zone, rather than overpay and buy above value. Similarly, when shorting, it pays to wait for a rally into the value zone to establish a short position rather than sell short when prices collapse
+
+
+
+Very important: it's impossible to trade successfully with just a single indicator or even a pair of moving averages. Markets are too complex to extract money from them with a single tool. We need to build a trading system using several indicators as well as analyze markets in more than one timeframe
+
+Moving Average Convergence-Divergence, or MACD for short, consists of not one, but three exponential moving averages. It appears on the charts as two lines whose crossovers give trading signals
+
+The original MACD indicator consists of two lines: a solid line (called the MACD line) and a dashed line (called the Signal line). The MACD line is made up of two exponential moving averages (EMAs). It responds to changes in prices relatively quickly. The Signal line smooths the MACD line with another EMA. It responds to changes in prices more slowly
+
+The MACD indicator is included in most programs for technical analysis. To create MACD by hand: Calculate a 12-day EMA of closing prices.Calculate a 26-day EMA of closing prices.Subtract the 26-day EMA from the 12-day EMA, and plot their difference as a solid line. This is the fast MACD line.Calculate a 9-day EMA of the fast line, and plot the result as a dashed line. This is the slow Signal line.
+
+Crossovers of the MACD and Signal lines identify shifts in the balance of power of bulls and bears. The fast MACD line reflects mass consensus over a shorter time period. The slow Signal line reflects mass consensus over a longer period. When the fast MACD line rises above the slow Signal line, it shows that bulls dominate the market, and it is better to trade from the long side. When the fast line falls below the slow line, it shows that bears dominate the market and it pays to trade from the short side.
+
+Crossovers of the MACD and Signal lines identify changes of market tides
+
+
+
+Sophisticated traders tend to personalize their MACD Lines by using other moving averages than the standard 12-, 26-, and 9-bar EMAs. Beware of optimizing MACD too often. If you fiddle with MACD long enough, you can make it give you any signal you'd like
+
+MACD-Histogram offers a deeper insight into the balance of power between bulls and bears than the original MACD Lines. It shows not only whether bulls or bears are in control but also whether they are growing stronger or weaker. It is one of the best tools available to market technicians
+
+When the slope of MACD-Histogram moves in the same direction as prices, the trend is safe. When the slope of MACD-Histogram moves in a direction opposite to that of prices, the health of the trend is in question.
+
+The slope of MACD-Histogram is more important than its position above or below the centerline. It is best to trade in the direction of the slope of MACD-Histogram because it shows whether bulls or bears dominate the market. The best buy signals occur when MACD-Histogram is below its centerline but its slope turns up, showing that bears have become exhausted. The best sell signals are given when MACD-Histogram is above its centerline but its slope turns down, showing that bulls have become exhausted
+
+
+
+When prices go one way but MACD-Histogram moves the other way, it shows that the dominant crowd is losing its enthusiasm and the trend is weaker than it appears
+
+Buy when MACD-Histogram stops falling and ticks up. Place a protective stop below the latest minor low.Sell short when MACD-Histogram stops rising and ticks down. Place a protective stop above the latest minor high.
+
+MACD-Histogram ticks up and down on the daily charts so often that it's not practical to buy and sell every time it turns. The changes of slope of MACD-Histograms are much more meaningful on the weekly charts, which is why it is included in the Triple Screen trading system
+
+When MACD-Histogram reaches a new high during a rally, the uptrend is healthy and you can expect the next rally to retest or exceed its previous peak. If MACD-Histogram falls to a new low during a downtrend, it shows that bears are strong and prices are likely to retest or exceed their latest low.MACD-Histogram works like headlights on a car—it gives you a glimpse of the road ahead. Not all the way home, mind you, but enough to drive safely at a reasonable speed
+
+MACD-Histogram works in all timeframes: weekly, daily, and intraday. Signals in longer timeframes lead to greater price moves. For example, the signals of weekly MACD-Histogram lead to greater price changes than the daily or intraday MACD. This principle applies to all technical indicators
+
+It makes sense to perform weekly studies each day. I set my software to plot weekly charts in the traditional manner, from Monday through Friday, but with a twist: the latest weekly bar reflects trading for the current week, starting on Monday. After the market closes on Monday, my latest ‘weekly bar’ is identical to Monday's daily bar. The weekly bar on Tuesday reflects two trading days, and so on. Because of this, on Monday I take the new weekly bar at a heavy discount, but by Thursday I start trusting it a great deal more.
+
+Divergences between MACD-Histogram and prices are infrequent, but they give some of the most powerful signals. They often mark major turning points. They don't occur at every important top or bottom, but when you see one, you know that a big reversal is probably at hand
+
+A classical bullish divergence occurs when prices and the oscillator both fall to a new low, rally, with the oscillator rising above its zero line, then both fall again. This time, prices drop to a lower low, but an oscillator traces a higher bottom than during its previous decline. Such bullish divergences often precede sharp rallies
+
+Notice that the breaking of the centerline between two indicator bottoms is an absolute must for a true divergence. MACD-Histogram has to cross above that line before skidding to its second bottom. If there is no crossover, there is no divergence.Another key point: MACD-H gives a buy signal when it ticks up from the second bottom. It does not have to cross above the centerline for the second time. The buy signal occurs when MACD-H, still below zero, simply stops declining and traces out a bar that is less negative than its preceding bar.
+
+
+
+Valid divergences are clearly visible—they seem to jump at you from the charts. If you need a ruler to tell whether there is a divergence, assume there is none (Figure 23.4)
+
+
+
+“Missing right shoulder” divergences in which the second peak fails to cross the zero line are quite rare, but produce very strong trading signals. An experienced trader can look for them, but they are definitely not for beginners
+
+Kerry Lovvorn performed extensive research to find that the most tradable divergences occur when the distance between the two peaks or the two bottoms of MACD-H is between 20 and 40 bars—and the closer to 20, the better. In other words, the two tops or two bottoms cannot be too far apart
+
+Triple Bullish or Bearish Divergences consist of three price bottoms and three oscillator bottoms or three price tops and three oscillator tops. They are even stronger than regular divergences. In order for a triple divergence to occur, a regular bullish or bearish divergence first has to abort. That's another good reason to practice tight money management! If you lose only a little on a whipsaw, you will preserve both the money and psychological strength to re-enter a trade. The third top or bottom has to be more shallow than the first but not necessarily the second
+
+This signal occurs when a reliable chart or indicator pattern doesn't lead to the action you expected and prices move in the opposite direction. A divergence may indicate that an uptrend is over, but if prices continue to rise, they give the Hound of the Baskervilles signal.
+
+When the market refuses to bark in response to a perfectly good signal, it gives you the Hound of the Baskervilles signal. This shows that something is fundamentally changing below the surface. Then it is time to get in gear with the new powerful trend.I am not a fan of  “stop-and-reverse” orders, but make an exception for the Hound of the Baskervilles. On those rare occasions when a bearish divergence aborts, I may go long. In the rare instances when a bullish divergence aborts, I look to go short
+
+The Directional system is a trend-following method developed by J. Welles Wilder, Jr., in the mid-1970s and modified by several analysts. It identifies trends and shows when a trend is moving fast enough to make it worth following. It helps traders to profit by taking chunks out of the middle of important trends
+
+Directional Movement is defined as the portion of today's range that is outside of the previous day's range
+
+Directional Indicators (+DI and −DI). They allow you to compare different markets by expressing their directional movement as a percentage of each market's true range. Each DI is a positive number: +DI equals zero on a day with no directional movement up; −DI equals zero on a day with no directional movement down. 
+
+The relationship between Positive and Negative lines identifies trends. When +DI13 is on top, it shows that the trend is up, and when −DI13 is on top, it shows that the trend is down. The crossovers of +DI13 and −DI13 give buy and sell signals
+
+ Average Directional Indicator (ADX). This unique component of the Directional system shows when a trend is worth following. ADX measures the spread between Directional Lines +DI13 and −DI13
+
+During a persistent trend, the spread between two smoothed Directional lines increases, and ADX rises. ADX declines when a trend reverses or when a market enters a trading range. It pays to use trend-following methods only when ADX is rising
+
+The single best signal of the Directional system comes after ADX falls below both Directional lines. The longer it stays there, the stronger the base for the next move. When ADX rallies from below both Directional lines, it shows that the market is waking up from a lull. When ADX rises by four steps (i.e., from 9 to 13) from its lowest point below both Directional lines, it “rings a bell” on a new trend (Figure 24.2). It shows that a new bull market or bear market is being born, depending on what Directional line is on top.
+
+When ADX rallies above both Directional lines, it identifies an overheated market. When ADX turns down from above both Directional lines, it shows that the major trend has stumbled. It is a good time to take profits on a directional trade. If you trade large positions, you definitely want to take partial profits.
+
+Market indicators give hard signals and soft signals. For example, when a moving average changes direction, it is a hard signal. A downturn of ADX is a soft signal. Once you see ADX turn down, you ought to be very, very careful about adding to positions. You should start taking profits, reducing positions, and looking to get out.
+
+The Directional system gave its buy signal during the bar marked with a vertical green arrow: the green bullish Directional line was above the red bearish line, while the ADX penetrated above the red line.You may find a similar shorting signal in the lettered area, but a discretionary trader doesn't trade every signal he sees: shorting a stock near $3 that has already declined from $45 would mean chasing a very old trend. Near the right edge you see a pullback to value, offering a good opportunity to add to the long position
+
+
+
+Average True Range (ATR) is an indicator that averages True Ranges (described in "How to Construct the Directional System" above) over a selected period of time, such as 13 days. Since volatility is a key factor in trading, you can track it by plotting a set of ATR lines above and below a moving average. They will help you visualize current volatility and you can use that for decision making
+
+Kerry Lovvorn likes to plot three sets of lines around a moving average: at one, two, and three ATRs above and below an EMA. These can be used for setting up entry points and stops, as well as profit targets
+
+
+
+Entries In the chapter on moving averages, we saw that it was a good idea to buy below value—below the EMA. But how far below? Normal pullbacks tend to bottom out near the minus one ATR.Stops You want your stop to be at least one ATR away from your entry. Anything less than that would place your stop within the zone of normal market noise, making it likely to be hit by a random short-term move. Placing your stop further away makes it more likely that only a real reversal can hit your stop.
+
+It is highly unusual for any market to trade outside of three ATRs—three times average true range—for a long time. Those tend to be the extreme moves. Whenever you see a market trade outside of its three ATRs, either up or down, it is reasonable to expect a pullback.
+
+oscillators help catch turning points
+
+Oscillators measure the speed of any surge and show when its momentum is starting to break.Oscillators identify emotional extremes of market crowds. They allow you to find unsustainable levels of optimism and pessimism. Professionals tend to fade those extremes. They bet against deviations and for a return to normalcy. When the market rises and the crowd gets up on its hind legs and roars from greed, professionals get ready to sell short. They get ready to buy when the market falls and the crowd howls in fear. Oscillators help us time those trades.
+
+Oscillators identify
+
+Overbought means a market is too high and ready to turn down. An oscillator becomes overbought when it reaches a high level associated with tops in the past. Oversold means a market is too low and ready to turn up. An oscillator becomes oversold when it reaches a low level associated with bottoms in the past.Be sure to remember that those aren't absolute levels. An oscillator can stay overbought for weeks when a new strong uptrend begins, giving premature sell signals. It can stay oversold for weeks in a steep downtrend, giving premature buy signals. Knowing when to use oscillators and when to rely on trend-following indicators is a hallmark of a mature analyst (see Chapter 39).
+
+Fast Stochastic consists of two lines—%K and %D—plotted on the same chart. It's very sensitive but leads to many whipsaws. Many traders prefer to use Slow Stochastic, adding an extra layer of smoothing. The %D of Fast Stochastic becomes the %K of Slow Stochastic and is smoothed by repeating step 2 to obtain %D of Slow Stochastic. Slow Stochastic does a better job of filtering out market noise and leads to fewer whipsaws
+
+
+
+Stochastic is designed to fluctuate between 0 and 100. Reference lines are usually drawn at 20 percent and 80 percent levels to mark overbought and oversold areas.
+
+Stochastic gives three types of trading signals, listed here in the order of importance: divergences, the level of Stochastic lines, and their direction
+
+A bullish divergence occurs when prices fall to a new low, but Stochastic traces a higher bottom than during its previous decline. It shows that bears are losing strength and prices are falling out of inertia. As soon as Stochastic turns up from its second bottom, it gives a strong buy signal: go long and place a protective stop below the latest low in the market. The best buy signals occur when the first bottom is below the lower reference line and the second above it.
+
+These signals work fine during trading ranges but not when a market develops a trend. In uptrends, Stochastic quickly becomes overbought and keeps giving sell signals while the market rallies. In downtrends, it quickly becomes oversold and keeps giving premature buy signals. It pays to combine Stochastic with a long-term trend-following indicator (see Chapter 39). The Triple Screen trading system allows traders to take buy signals from daily Stochastic only when the weekly trend is up. When the weekly trend is down, it allows traders to take only sell signals from daily Stochastic
+
+Do not buy when Stochastic is overbought, and don't sell short when it is oversold. This rule filters out most bad trades
+
+When you identify an uptrend on a weekly chart, wait for daily Stochastic lines to decline below their lower reference line. Then, without waiting for their crossover or an upturn, place a buy order above the high of the latest price bar. Once you are long, place a protective stop below the low of the trade day or the previous day, whichever is lower. The shape of Stochastic's bottom often indicates whether a rally is likely to be strong or weak. If the bottom is narrow and shallow, it shows that bears are weak and the rally is likely to be strong. If it is deep and wide, it shows that bears are strong and the rally is likely to be weak. It is better to take only strong buy signals.
+
+When both Stochastic lines are headed in the same direction, they confirm the short-term trend. When prices rise and both Stochastic lines rise, the uptrend is likely to continue. When prices slide and both Stochastic lines fall, the short-term downtrend is likely to continue.
+
+Weekly Stochastic usually changes its direction one week prior to weekly MACD-Histogram. If weekly Stochastic turns, it warns you that MACD-Histogram is likely to turn the next week—time to tighten stops on existing positions or start taking profits.
+
+Relative Strength Index (RSI) is an oscillator developed by J. Welles Wilder, Jr. It measures any trading vehicle's strength by monitoring changes in its closing prices. It's a leading or a coincident indicator—never a laggard
+
+
+
+A very powerful sell signal is given by a bearish divergence of RSI, marked here by a diagonal solid arrow and a dashed red arrow. The stock rallied to a new high, while RSI couldn't reach its upper reference line, pointing to that rally's hidden weakness.
+
+Overbought and oversold RSI levels vary from market to market and even from year to year in the same market. There are no magical levels for all tops and bottoms. Oversold and overbought signals are like hot and cold readings on a window thermometer. The same temperature levels mean different things in summer or winter
+
+Horizontal reference lines must cut across the highest peaks and the lowest valleys of RSI. They are often drawn at 30% and 70%. Some traders use 40% and 80% levels in bull markets or 20% and 60% in bear markets. Use the 5 percent rule: draw each line at a level beyond which RSI has spent less than 5 percent of its time in the past 4 to 6 months. Adjust reference lines once every three months.
+
+RSI often breaks through support or resistance a few days ahead of prices, providing hints of likely trend changes. RSI trendlines are usually broken one or two days before price trend changes. When RSI breaks above its downtrend line, place an order to buy above the latest price peak to catch an upside breakout.When RSI breaks below its uptrend line, place an order to sell short below the latest price low to catch a downside breakout
+
+Volume reflects the activity of traders and investors. Each unit of volume represents actions of two individuals: one sells a share or a contract and another buys that share or a contract. Daily volume is the number of shares or contracts traded in one day
+
+
+
+If you compare volumes of two markets, you'll see which is more active or liquid. You are likely to receive better fills and suffer less slippage in liquid markets than in thin, low-volume markets
+
+The actual number of shares or contracts traded
+
+The number of trades that took place
+
+Tick volume is the number of price changes during a selected period of time, such as 10 minutes or an hour
+
+
+
+Who buys from a trader who is selling his losing long position? It may be a short seller who wants to cover and take profits. It may be a bargain hunter who steps in because prices are “too low.” A bottom-picker takes over the position of a loser who washed out—he either catches the bottom or becomes the next loser.Who sells to a trader who buys to cover his losing short position? It may be a savvy investor who takes profits on his long position. It also may be a top-picker who sells short because he thinks that prices are “too high.” He assumes the position of a loser who covered his shorts, and only the future will tell whether he is right or wrong
+
+When volume falls, it shows that the supply of losers is running low and a trend is ready to reverse. It happens after enough losers catch on to how wrong they are. Old losers keep bailing out, but fewer new ones come in. Falling volume is a sign that the trend is about to reverse.A burst of extremely high volume also gives a signal that a trend is nearing its end. It shows that masses of losers are bailing out. You can probably recall holding a losing trade longer than you should have. Once the pain became intolerable and you got out, the trend reversed and the market went the way you expected, only without you. This happens time and again because most humans react to stress similarly and bail out at roughly the same time. Professionals don't hang on while the market beats them up. They quickly close out losing trades and reverse or wait on the sidelines, ready to re-enter
+
+Volume spikes are more likely to signal an imminent reversal of a downtrend than an uptrend. Volume spikes in downtrends reflect explosions of fear. Fear is a powerful but short-term emotion—people run fast, dump shares, and then the trend is likely to reverse. Volume spikes in uptrends are driven by greed, which is a slower-moving, happy emotion. There may be a slight pause in an uptrend after a volume spike, but then the trend is quite likely to resume.
+
+As a rule of thumb, if today's volume is higher than yesterday's, then today's trend is likely to continue
+
+As a rule of thumb, “high volume” for any given market is at least 25 percent above its average for the past two weeks, while “low volume” is at least 25 percent below average.
+
+If volume shrinks while a trend continues, that trend is ripe for a reversal. When a market rises to a new peak on lower volume than its previous peak, look to take profits on a long position and/or for a shorting opportunity. This technique does not work as well in downtrends because a decline can persist on low volume. There is a saying on Wall Street: “It takes buying to put prices up, but they can fall of their own weight.
+
+Watch volume during reactions against the trend. When an uptrend is punctuated by a decline, volume often picks up in a flurry of profit taking. When that dip continues but volume shrinks, it shows that bulls are no longer running or that selling pressure is spent. When volume dries up, it shows that the reaction is nearing its end and the uptrend is ready to resume. This identifies a good buying opportunity. Major downtrends are often punctuated by rallies that begin on heavy volume. Once weak bears have been flushed out, volume shrinks and gives a signal to sell short.
+
+When OBV reaches a new high, it confirms the power of bulls, indicates that prices are likely to continue to rise, and gives a buy signal. When OBV falls below its previous low, it confirms the power of bears, calls for lower prices ahead, and gives a signal to sell short
+
+
+
+Opening prices reflect pressures that have built up while the market was closed. Openings tend to be dominated by amateurs who read their news in the evening and trade in the morning.Professional traders are active throughout the day. They often trade against the amateurs. As the day goes on, waves of buying and selling by amateurs as well as slow-moving institutions gradually subside. Professionals tend to dominate the markets at closing time. Closing prices are especially important because the settlement of trading accounts depends on them.
+
+When the market opens low and closes high, it moves from weakness to strength. That's when A/D rises and signals that market professionals are more bullish than amateurs, and the upmove is likely to continue. When A/D falls, it shows that market professionals are more bearish than amateurs. When the market weakens during the day, it's likely to reach a lower low in the days to come.The best trading signals are given by divergences between A/D and prices.
+
+
+
+Instead of chasing strength and buying high, it's better to buy during short-term pullbacks, when a wave goes against the tide. Those waves are marked by the 2-day Force Index dropping below zero. Once the 2-day Force Index goes negative, it makes sense to start placing buy orders above the latest bar's high. This will ensure you'll be stopped into a long trade as soon as the downwave loses it power
+
+Even a fast and furious uptrend has occasional pullbacks. If you delay buying until the 2-day EMA of Force Index turns negative, you'll buy closer to a short-term bottom. Most people chase rallies and then get hit by drawdowns they find hard to tolerate. Force Index helps find buying opportunities with lower risks
+
+Additionally, a 2-day EMA of Force Index helps decide when to pyramid positions. You can add to longs in uptrends each time Force Index turns negative; you can add to shorts in downtrends whenever Force Index turns positive
+
+A 2-day EMA of Force Index helps decide when to close out a position. It does it by identifying short-term splashes of mass bullishness or bearishness. A short-term trader who bought when this indicator was negative can sell when it turns positive. A short-term trader who went short when this indicator was positive can cover when it turns negative. A longer-term trader should get out of his position only if a trend changes (as identified by the slope of a 13-day EMA of price) or if there is a divergence between the 2-day EMA of Force Index and the trend
+
+
+
+
+
+ In the two years since I wrote the world's first popular e-book on investing in this technology, AM stocks have become investors' favorites
+
+Near the right edge of the screen, we see a record low of Force Index, but then bears begin to weaken, as Force Index starts inching towards zero. Keep your powder dry as you wait for an accumulation pattern to emerge and be confirmed by Force Index crossing above zero.
+
+This method for catching deviations and potential reversals works well with weekly charts, but not with the daily and intraday charts. This is truly a longer-term tool
+
+Open interest is the number of contracts held by buyers or owed by short sellers in any derivative market, such as futures or options
+
+When someone wants to buy a contract, someone else has to sell it to them, i.e., go short. If you want to buy a call option for 100 shares of Google, another trader has to sell you that option; in order for you to be long, someone else has to be short. Open interest equals the total long or the total short positions.
+
+Open interest falls when a bull who is long sells to a bear who is short but wants to cover his short position. As both of them get out, open interest falls by the size of their trade, since one or more contracts disappear from that market.If a new bull buys from an old bull that is getting out of his long position, open interest remains unchanged. Nor does the open interest change when a new bear sells to an old bear who wants to buy to cover his short position. In summary, open interest rises when “fresh blood” enters that market and falls as current bulls and bears start leaving that market, as illustrated in the table below:
+
+Open interest gives important messages when it deviates from its seasonal norm.
+
+Rising OI shows that the conflict between bulls and bears is becoming more intense and confirms the exiting trend. Falling OI, on the other hand, shows that losers are leaving the market, while the winners are cashing in—it signals that the trend is nearing its end.
+
+Whenever open interest flattens out, it flashes a yellow light—a warning that the trend is aging and the best gains are probably behind.
+
+If open interest rises when prices are in a trading range, it's a bearish sign. Commercial hedgers are much more likely to sell short than speculators. A sharp increase in open interest while prices are flat shows that savvy hedgers are probably shorting the market. You want to avoid trading against those who likely have better information than you.
+
+If open interest falls while prices are in a trading range, it identifies short covering by major commercial interests and gives a buy signal. When commercials start covering shorts, they show that they expect the market to rise.
+
+The higher the open interest, the more active the market, and the less slippage you risk when getting in and out of positions. Short-term traders should focus on the contracts with the highest open interest. In the futures markets, the highest open interest tends to be in the front months. As the first notice day approaches and open interest of the front month begins to drop, while open interest in the next month begins to rise, it signals to roll over your position into the next month.
+
+Long-term price cycles are a fact of economic life. For example, the U.S. stock market tends to run in approximately four-year cycles. They exist because the ruling party inflates the economy going into the presidential election every four years. The party that wins the election deflates the economy when voters can't take revenge at the polls. Flooding the economy with liquidity lifts the stock market, while draining liquidity pushes it down3
+
+Price peaks and valleys often seem to flow in an orderly manner. Traders measure distances between neighboring peaks, and project them into the future to forecast the next top. Then they measure distances between bottoms and extend them into the future to forecast the next low. Cycles put bread and butter on the tables of analysts who sell forecasts. Few of them realize that what appears like a cycle on the charts is often a figment of the imagination. If you analyze price data using a mathematically rigorous program, such as John Ehlers's MESA (Maximum Entropy Spectral Analysis), you'll find that approximately 80 percent of what looks like cycles is simply market noise. A human mind looks for order—and even an illusion of order is good enough for many people
+
+Taking a farmer's approach, a trader should look to buy in spring, sell in summer, go short in the fall, and cover in winter.
+
+“Coming events cast their shadows before” is an old proverb with a lot of meaning for technical analysts. Google Inc. (GOOG) was trending lower for months, but the uptrend of the Accumulation/Distribution Index (A/D) showed that big money was buying. The stock has fallen lower at point B than at A, but the A/D Index traced out a much higher bottom. Just as important, it broke out to a new high (marked with a vertical green arrow) before prices gapped up following a surprisingly good earnings announcement. Somebody knew what was coming, and their massive buying was identified by the A/D accumulation pattern and its upside breakout. Technical analysis helps even out the imbalance of knowledge between outsiders and insiders.
+
+The market, composed of huge masses of human beings, moves at a much slower speed. The patterns you recognize on your charts may have predictive value—but the turns they anticipate are likely to occur much later than you expect
+
+The relative slowness of crowds can bedevil even experienced traders. Time and again we find ourselves entering trades too early. Beginners are typically late. By the time they recognize a trend or a reversal, that move had been underway for so long that they miss most, if not all of it. Newbies tend to chase old trends, but the more experienced analysts and traders tend to run into an opposite problem. We recognize approaching reversals and emerging new trends from far away—and jump in too soon. We often buy before the market finishes tracing a bottom or sell short well before it completes a top. By getting in too early we can end up losing money in trends that are too slow to turn
+
+consider not putting on a trade when you notice an early reversal signal. A better signal may well emerge later, especially at market tops, which take longer to form than bottoms
+
+Most traders ignore all timeframes except for their own—until a sudden move from outside of their timeframe hits their account
+
+Keep in mind that neighboring timeframes are linked by the factor of approximately 5. If you start with a monthly chart and proceed to the weekly, you'll notice that there are 4.5 weeks to a month. As you switch from a weekly to a daily chart, you know that there are 5 trading days to a week. Turning to intraday analysis, you may look at an hourly chart—and there are approximately 5–6 hours to a trading day. Day traders can proceed even further and look at 10-minute charts, followed by 2-minute charts. Each is related to its neighboring timeframes by approximately the factor of five
+
+Long-term trading or investing—The expected duration of a position is measured in months, sometimes years. Advantages: requires little day-to-day attention and may lead to spectacular gains.Disadvantage: drawdowns can be intolerably severe.Swing trading—The expected duration of a trade is measured in days, sometimes weeks. Advantages: a wealth of trading opportunities, fairly tight risk control.Disadvantage: will miss major trends.Day-trading—The expected duration of a trade is measured in minutes, rarely hours. Advantages: great many opportunities, no overnight risk.Disadvantages: demands instant reflexes; transaction costs become a factor.
+
+If you decide to operate in more than one timeframe, consider making those trades in different accounts. This will allow you to evaluate your performance in each timeframe rather than lump together apples and oranges.
+
+I especially recommend swing trading for beginning and intermediate traders. The more trades you make, the more you learn, provided you manage risk and keep good records. Swing trading teaches you faster than long-term investing, whose lessons take years to complete. Swing trading gives you time to think, unlike day-trading, which demands instant reactions. Day-trading is too fast for beginners.
+
+Professional traders are just as comfortable selling short as buying. The signals are similar but the action quicker—stocks fall twice as fast as they rise.
+
+Day-trading means entering and exiting trades within a single market session. Rapid buying and selling in front of a flashing screen demands the highest levels of concentration and discipline. Paradoxically, it attracts the most impulsive and gambling-prone people.Day-trading appears deceptively easy. Brokerage firms hide customer statistics from the public, but in 2000, state regulators in Massachusetts subpoenaed brokerage house records, which showed that after six months only 16% of day-traders made money.
+
+general market indicators, which analyze the entire market rather than any specific stock. They are worth following because general market trends are responsible for as much as half the movement in individual stocks
+
+While I plot NH-NL underneath the S&P 500, keep in mind that it has a much broader reach than the S&P—NH-NL includes data from the NYSE, AMEX, and NASDAQ, excluding only ETFs, unit investment trusts, closed-end funds, warrant stocks, and preferred securities. 
+
+
+
+You can visualize all stocks on the New York Stock Exchange, the NASDAQ, or any other exchange as soldiers in a regiment. The new highs and new lows are their officers. The new highs are the officers who lead an attack uphill. The new lows are the officers who are deserting and running downhill
+
+Where the officers lead, soldiers follow. The broad indexes, such as the S&P 500, tend to follow the trend of NH-NL (Figure 34.1).
+
+If NH-NL stays negative for several months but then rallies above its centerline, it signals that a bull move is likely to begin. It is time to look for buying opportunities, using oscillators for precise timing. If NH-NL stays positive for several months but then falls below its centerline, it shows that a bear move is likely to begin. It is time to look for shorting opportunities using oscillators for precise timing
+
+A rise in NH-NL shows that it's safe to hold long positions and add to them. If NH-NL declines while the broad market stays flat or rallies, it is time to take profits on long trades. When NH-NL falls below zero, it shows that bearish leadership is strong and it's safe to hold short positions and even add to them. If the market continues to fall but NH-NL rises, it shows that the downtrend is not well led—it's time to cover shorts.
+
+If NH-NL rises on a flat day, it flashes a bullish message and gives a buy signal
+
+If NH-NL traces a lower peak while the market rallies to a new high, it creates a bearish divergence. It shows that bullish leadership is weakening even though the broad market is higher. Bearish divergences often mark the ends of uptrends, but pay attention to the height of the second peak. If it is only slightly above zero, in the low hundreds, then a big reversal is probably at hand and it's time to go short. If, on other hand, the latest peak is in the high hundreds, it shows that the upside leadership is strong enough to prevent the market from collapsing
+
+ Keep in mind that bullish divergences at stock market bottoms tend to develop faster than bearish divergences at market tops: buy fast and sell slowly
+
+A drop below −4,000 reflects an unsustainable market panic. To fall that low, the market has to deliver an average of 800 more daily New Lows than New Highs for five days in a row. Such massive panic is not going to last. When the weekly NH-NL rises above −4,000, it flashes a buy signal I call a Spike
+
+When the “stocks above their 50-day MA” indicator reaches an extreme—above 75% or below 25% and then moves away from that level, it shows that the intermediate-term trend has reached a likely turning point. A reversal of this indicator flashes a signal for the entire market: buy when it turns up and sell when it turns down.
+
+These signals don't mark every reversal—no indicator does—but when it flashes its signal, we had better pay attention
+
+This indicator tracks all stocks traded on the New York Stock Exchange, American Exchange, and NASDAQ and calculates how many of them trade above their moving averages. It plots that percentage as a line that fluctuates between 0% and 100%
+
+The indicator for tracking the number of stocks above their 50-day MAs is included in many software packages. I like to view it on a weekly chart, where it helps catch intermediate reversals—market turns that augur in trends that last anywhere from several weeks to several months. You don't need to look at this indicator daily
+
+In theory, the highest possible reading of this indicator would be 100%, if all stocks rallied above their MAs. Its lowest possible reading of 0% would occur if all stocks were to fall below their MAs. In practice, only exceptional market moves swing it near the 90% or 10% extremes. Normally, this indicator tends to top out near 75% and bottom out near 25%. I draw two reference lines on its chart at 75% and 25% and start looking for the market turn as this indicator approaches those levels.
+
+Advance/Decline
+
+While the Dow Jones Industrials track the behavior of the generals and the New High–New Low Index focuses on the officers, the A/D line shows whether soldiers are following their leaders.
+
+The Most Active Stocks indicator (MAS) is an Advance/Decline line of the 15 most active stocks on the New York Stock Exchange
+
+Financial journalists and letter writers tend to overstay trends and miss turning points. When these groups become intensely bullish or bearish, it pays to trade against them.
+
+When financial journalists and letter writers reach a high degree of bullish or bearish consensus, it's a sign that the trend has been going on for so long that a reversal is near.
+
+Government agencies and exchanges collect data on buying and selling by various groups of traders and publish summary reports of their positions. It pays to trade with the groups that have a track record of success and against those with track records of persistent failure.
+
+As a group, commercials have the best track record in the futures markets. They have inside information and are well-capitalized. It pays to follow them because they are successful in the long run.
+
+Officers and investors who hold more than 5 percent of the shares in a publicly traded company must report their buying and selling to the Securities and Exchange Commission. The SEC tabulates insider purchases and sales, and releases this data to the public
+
+Analysts who researched legal insider trading found that insider buying or selling was meaningful only if more than three executives or large stockholders bought or sold within a month. These actions reveal that something very positive or negative is about to happen. A stock is likely to rise if three insiders buy in one month and to fall if three insiders sell within a month
+
+Clusters of insider buying tend to have a better predictive value than clusters of selling. That's because insiders are willing to sell a stock for many reasons (diversification, buying a second home, sending a kid to college) but they are willing to buy for one main reason—they expect their company's stock to go up.
+
+While the numbers of futures and options contracts held long and short is equal by definition, in the stock market there is always a huge disparity between the two camps. Most people, including professional fund managers, buy stocks, but very few sell them short.
+
+Short Interest and Days to CoverCompare short interest data for two popular stocks on the day I'm editing this chapter. “Short Percent of Float” is 1.86% for Apple, Inc. (AAPL), but nearly 26% for Green Mountain Coffee Roasters, Inc. (GMCR). “Days to Cover” are 0.9 for AAPL but over 15 for GMCR. These numbers reflect much more aggressive shorting of GMCR. Not to forget, each and every one of those shorts at some point will need to buy in order to cover his short position.Perhaps savvy shorts know something very bad about GMCR, but what if its stock rallies even a little? Many bears will run for cover, and as they scramble to cover shorts, the stock may soar. Whatever its long-term prospects, it could be sent flying in the near term.
+
+It makes sense for swing traders to include the data on shorting when selecting which of several stocks to buy or sell short. I always review these numbers when working up a potential trade.
+
+Some people use strictly defined systems that leave very little room for personal judgment—we call them mechanical traders. Others use systems that leave plenty of room for personal decisions—we call them discretionary traders. 
+
+Whatever approach you take, the key advantage of any system is that you design it when the markets are closed and you feel calm. A system becomes your anchor of rational behavior amidst the turbulence of the market.
+
+A mechanical trader develops a set of rules, back-tests them on historical data, and then puts his system on autopilot. Going forward, his software starts flashing orders for entries, target, and stops, and a mechanical trader is supposed to place them exactly as shown. Whether he'll stick to his plan or attempt to tweak or override those signals is another story, but that's how the system is supposed to work
+
+A professional trader with a mechanical system continues to monitor its performance like a hawk. He knows the difference between a normal drawdown and a period when a system goes out of gear and has to be shelved. A professional trader can afford to use a mechanical system precisely because he is capable of discretionary trading! A mechanical system is an action plan, but some degree of judgment is always required, even with the best and most reliable plans.
+
+In my experience, mechanical traders tend to deliver more steady results, but the most successful traders use discretionary methods. Your choice is likely to depend on your temperament. That's how we make some of our most important decisions in life—where to live, what career to pursue, whom to marry. Our key choices stem from the innermost core of our personalities rather than rational thought. In trading, cooler and more obsessional people tend to gravitate toward mechanical trading, while the more swashbuckling types turn to discretionary trading.
+
+Serious traders begin with backtesting, and if its results look good, switch to forward-testing; if that works well, they gradually increase position size.
+
+There is a cottage industry of programmers who back-test systems for a fee. Some traders, too suspicious to disclose their “sure-fire methods,” spend months learning to use testing software. In the end, only one kind of backtesting prepares you to trade—manual testing. It is slow, time-consuming, and cannot be automated, but it's the only method that comes close to modeling real decision making. It consists of going through historical data one day at a time, scrupulously writing down your trading signals for the day ahead, and then clicking one bar forward and recording new signals and trades for the next day
+
+Begin by downloading daily price and volume data for your trading vehicle for a minimum of two years (for futures you may use continuous contracts). Open a chart and, without looking, swing immediately to its very beginning. Open your spreadsheet, write down your system's rules at the top of the page
+
+As you click forward, one day at a time, trends and trading ranges will slowly unfold and challenge you. At that point, you'll be doing much more than testing a set of rules. Moving ahead one day at a time will test and improve your decision-making skills. This one-bar-at-a-time testing is vastly superior to what you can get from backtesting software
+
+Speaking of trade setups, it's essential to write down all relevant numbers before you enter a trade. You're more objective before you put any money at risk; once in a trade, you'll be tempted to give it “more room to run.” That's how losers turn small drawdowns into disasters. I once consulted a man who refused to take a $200 loss until it ran into a $98,000 wipeout
+
+I have three strategies that I trade. My favorite is a false breakout with a divergence. My second choice is a pullback to value during a powerful trend—that's the strategy of the trade shown on the screen (Figure 38.1). Last, I occasionally “fade an extreme”—bet on a reversal of an overstretched trend. Each of these strategies has its rules, but the key point is this—I'll only take a trade that fits one of them. 
+
+
+
+Trade setup—write down the three key numbers for every trade: your entry, target, and stop. Before entering the market you need to decide how much you'll pay, how much you'll risk, and how much you expect to gain. The ratio of potential reward to risk should normally be better than two to one. The only time to deviate from this rule is when technical signals are especially strong. Of course, don't fudge your target to turn a borderline trade into an acceptable one. Your target needs to be realistic
+
+Risk management—decide in advance how many dollars you're prepared to risk on this trade. Divide that amount by your risk per share—the distance from your entry to your stop. This will give you the number of shares you may trade
+
+The Triple Screen combines trend-following indicators on long-term charts with counter-trend oscillators on the intermediate charts. It uses special entry techniques for buying or selling short as well as tight money management rules. The Triple Screen is more than a trading system: it is a method, a style of trading
+
+Different indicators give contradictory signals in the same market. Trend-following indicators rise during uptrends and give buy signals, while oscillators become overbought and give sell signals. Trend-following indicators turn down in downtrends and give signals to sell short but oscillators become oversold and give buy signals.Trend-following indicators are profitable when markets are moving but lead to whipsaws in trading ranges. Oscillators are profitable in trading ranges, but give premature and dangerous signals when the markets begin to trend. Traders say: “The trend is your friend,” and “Let your profits run.” They also say: “Buy low, sell high.” But why sell if the trend is up? And how high is high?
+
+Just as Republicans and Democrats in the United States keep redrawing electoral districts to create “safe” seats, traders keep selecting indicators that deliver the votes they want to see. If you use more trend-following tools, the vote will go one way, and if you use more oscillators, it'll go the other way. A trader can always find a group of indicators telling him what he wants to hear.
+
+Charles Dow, the author of the venerable Dow Theory, stated at the turn of the twentieth century that the stock market had three trends. The long-term trend lasted several years, the intermediate several months, and anything shorter than that was a minor trend. Robert Rhea, the great market technician of the 1930s, compared these three trends to a tide, a wave, and a ripple. He recommended trading in the direction of the tide, taking advantage of the waves, and ignoring the ripples.
+
+Begin by asking yourself, what's your favorite timeframe. Do you prefer working with the daily, 10-minute, or any other charts? Whatever timeframe is your favorite, the Triple Screen calls that the intermediate timeframe. The long-term timeframe is one order of magnitude longer. The short-term timeframe is one order of magnitude shorter. Once you select your intermediate timeframe, you may not look at it until you examine the longer-term timeframe and make your strategic decision there
+
+For example, if you want to carry a trade for several days or weeks, then your intermediate timeframe is likely to be defined by the daily charts. Weekly charts are one order of magnitude longer, and they'll determine the long-term timeframe for you. Hourly charts are one order of magnitude shorter, and they'll determine the short-term timeframe
+
+Day traders who hold their positions for less than an hour can use the same principle. For them, a 5-minute chart may define the intermediate timeframe, a 25-minute chart the long-term timeframe, and a 2-minute chart the short-term timeframe
+
+Triple Screen demands that you examine the long-term chart first. It allows you to trade only in the direction of the tide—the trend on the long-term chart. It uses the waves that go against the tide for entering positions. For example, when the weekly trend is up, daily declines create buying opportunities
+
+Begin by selecting your favorite timeframe and call it Intermediate. Do not even glance at your intermediate chart because it'll prejudice you. Go immediately to the timeframe one order of magnitude longer—your long-term chart. That's where you'll make your strategic decision to be a bull or a bear. After that, return to the intermediate timeframe and start making tactical decisions, such as where to enter and where to place a stop
+
+The original version of Triple Screen used the slope of weekly MACD-Histogram as its weekly trend-following indicator (Figure 39.1). It was very sensitive and gave many buy and sell signals. Later I switched to using the slope of a weekly exponential moving average as my main trend-following tool on long-term charts. After I invented the Impulse system (described in the following chapter), I began to use it for the first screen of Triple Screen. The Impulse system combines the best features of the previous two methods. It is not quite as jumpy as MACD-Histogram but is faster to react than the slope of an EMA
+
+As you'll read in the next chapter, the Impulse system colors every bar green when it's bullish, red when bearish, and blue when neutral. The Impulse system doesn't tell you what to do. It's a censorship system that signals what you're prohibited from doing. When the Impulse system is red, it prohibits you from buying. When it is green, it prohibits you from shorting. Glancing at a weekly chart when you want to buy, you have to wait until it stops being red. Glancing at a weekly chart when you want to sell short, you have to make sure it isn't green. The blue Impulse permits you to trade either way.
+
+A trader has three choices: buy, sell, or stand aside. The first screen of the Triple Screen trading system takes away one of those options. It acts as a censor who permits you only to buy or stand aside during major uptrends. It allows you only to sell short or stand aside during major downtrends. You have to swim with the tide or stay out of the water
+
+The second screen applies oscillators, described in a previous section, to the daily charts in order to identify deviations from the weekly trend. Oscillators give buy signals when markets decline and sell signals when they rise. The second screen of the Triple Screen allows you to take only those signals on the daily charts that put you in gear with the weekly trend.
+
+Screen Two: Apply an oscillator to a daily chart. Use daily declines during weekly uptrends to find buying opportunities and daily rallies during weekly downtrends to find shorting opportunities. I like using Force Index, described in chapter 30, for the second screen, but other oscillators, such as RSI, Elder-ray, or Stochastic also perform well
+
+At the right edge of the screen, Gold is flying, along with most gold stocks. I'm actively buying them—but not Gold ETFs. A Traders' Camp graduate from Australia wrote the other day: “I bought XAU ETF but it is being left far behind by NCM, our biggest Gold Miner. Is that the normal scenario for ETFs?” Yes, Sir!
+
+The Third Screen is your entry technique, and here you have quite a bit of latitude. You can go to an even shorter time-frame, especially if you have live data, or you can use the same intermediate timeframe
+
+With the wide availability of intraday data, I like to switch to 25-minute and 5-minute charts and use day-trading techniques for entering my swing trades. If you don't have access to live data and need to place an order in the morning, before leaving for the day, I recommend an alternative approach which I call “an average EMA penetration.”
+
+
+
+
+
+When the weekly trend is down, wait for a rally in a daily oscillator and place an order to sell short above the fast EMA on the daily chart, at a level of an average upside penetration. Alternatively, place an order to sell short one tick below the latest bar's low. As soon as the market turns down, you will be stopped in on the short side. If the rally continues, keep raising your sell order daily. The aim of a trailing sell-stop technique is to catch an intraday downside breakout from a daily uptrend in the direction of a weekly downtrend
+
+
+
+A neat combination of timeframes for day-trading stocks is a set of 39- and 8-minute charts. The U.S. stock market is open from 9:30 a.m. to 4 p.m.—six and a half hours or 390 minutes. Using a 39-minute chart as your long-term screen neatly divides each day into 10 bars. Make your strategic decision there, and then drop down to a chart that's 5 times faster—an 8-minute chart—for tactical decisions on entries and exits
+
+Proper money management is essential for successful trading. A disciplined trader takes his profits at targets, cuts losses short, and outperforms those who keep hoping and hanging on to bad trades. Before you enter a trade, write down three numbers: the entry, the target, and the stop. Placing a trade without defining these three numbers is gambling
+
+If you use weekly and daily charts, set profit targets on the weeklies but stops on the dailies. When buying a dip on a daily chart, the value zone on a weekly chart presents a good target. When day-trading and using a 25-minute and a 5-minute pair, set the profit target on a 25-minute chart and the stop on a 5-minute chart. This helps you aim at the greater results, while holding down the risk.The Triple Screen trading system calls for placing fairly tight stops. Since it has you trading in the direction of the market tide, it doesn't give much room to losing trades. Get on with the tide—or get out. We'll return to this topic in Chapter 54, “How to Set Stops.”
+
+It is relatively simple to program most software packages to color price bars or candles using the Impulse system. If both indicators are rising, the bar is green—bullish. If both are falling, the bar is red—bearish. When the two indicators move against one another, that bar is blue—neutral
+
+I set the Impulse system aside, but kept thinking about it. A few years later it dawned on me: this wasn't an automatic trading system—it was a censorship system! It didn't tell me what to do—it told me what not to do. If either weekly or daily bar was red—no buying allowed. If either weekly or daily bar was green—no shorting permitted
+
+ In addition, the Impulse system helps me recognize when a trend starts weakening and suggests an exit
+
+The Impulse system also suggests good areas for profit taking. Slanted red arrows point to blue bars that occur after a series of green bars far away from value. They indicate that bulls are choking up—a good time to cash out and wait for the next buying opportunity
+
+If you're a short-term momentum trader, you can buy as soon as both timeframes turn green and take profits as soon as one of them fades to blue.When trying to catch market turns, the best trading signals are given not by green or red but by the loss of green or red colors
+
+If a stock is falling, but your analysis indicates that a bottom is near, monitor the Impulse system on weekly and daily charts. If even one of them shows red, the downtrend is still in force and buying is not permitted. When both timeframes stop being red, they allow you to buy.If you think that a stock is forming a top and is about to turn down, examine the Impulse system on both weekly and daily charts. If even one of them is green, it's a sign that the uptrend is still alive, and no shorting is permitted. When the green disappears from both timeframes, you may start shorting.
+
+If my studies show that the market is bottoming and getting ready to turn up, I wait until the daily chart stops being red and turns blue or even green; then I start watching the weekly chart, which is still red. As soon as it turns from red to blue, it allows me to buy. This technique saves me from buying too soon, while the market is still declining.
+
+If you know how to program, you can add more features to the Impulse system. You can test different EMA lengths or MACD settings, looking for those that work best in your market. A day trader can program sound alarms to monitor color changes in several markets without being glued to the screen.
+
+The Impulse system encourages you to enter cautiously but exit fast. This is the professional approach to trading. Beginners tend to do the opposite; jump into trades and then take forever to exit, hoping for the market to turn their way.
+
+A swing trader may stay in a trade, even if one of the timeframes turns blue. What he should never do is stay in a trade against the color. If you're long, and one of the timeframes turns red, it is time to sell and go back to the sidelines. If you're short, and the Impulse system turns green, it signals to cover your short position.
+
+
+
+Market prices tend to flow in channels, like rivers in their valleys. When a river touches the right edge of its valley, it turns left. When it touches the left rim of its valley, it turns right. When prices rally, they often seem to stop at an invisible ceiling. Their declines seem to stop at invisible floors. Channels help us anticipate where those support and resistance levels are likely to be encountered.
+
+A symmetrical channel, centered around a moving average, is useful for trading stocks and futures. A standard deviation channel (sometimes called Bollinger bands) is good for those who trade options
+
+Earlier we've discussed using a set of two moving averages for trading (see Chapter 22). With such a pair, use the slower one as the backbone of your channel. For example, if you use 13-day and 26-day EMAs, draw your channel lines parallel to the 26-day EMA
+
+When setting a channel for any market, start with 3% or 5% of the EMA and keep adjusting those values until a channel contains approximately 95 percent of all price data for the past 100 bars, about five months on a daily chart. This is similar to trying on a shirt: you look for the one that fits not too loose or too tight, with only your wrists and neck sticking out. Only the extreme prices will protrude outside of a well-drawn channel.Volatile markets require wider channels, while quiet markets require more narrow channels. Cheaper stocks tend to have higher coefficients than expensive ones. Long-term charts require wider channels
+
+I used to plot channels by hand until my programmer wrote an add-on for several software packages called an Autoenvelope. It automatically plots correct channels for any trading vehicle in any timeframe (Figure 41.1).
+
+Futures are much more transparent and true than the murky forex deals. Whenever I trade currencies, I use currency futures.
+
+Buffett observes that the trouble with most people is that they become infected by the mood of Mr. Market—they want to buy when he is manic and sell when he's depressed. Plotting a channel helps you diagnose the market's mania and depression and avoid becoming infected by either. One of my strict rules is never to buy above the upper channel line or sell short below the lower channel line. I may miss a runaway trend because of this restriction, but my safety is greatly increased
+
+If a rally shoots out of a channel and prices close above it, it shows that the uptrend is exceptionally strong. When a rally fails to reach the upper channel line, it is a bearish sign, as it shows that bulls are becoming weaker. The reverse applies to downtrends
+
+Area A—Warning. Prices stab outside +3 ATRs—the uptrend has reached an extreme.Area B—Sell. Prices couldn't hold above +2 ATRs—take profits on long positions.Area C—Alert. Decline stopped at −2 ATRs—a sign of bottoming.Area D—Alert confirmed. Prices holding above −2 ATRs—bottom is being built.Area E—Buy. False downside breakout reaches −3 ATRs and rejects that low.Area F—Warning. Prices stab outside of +3 ATRs—watch whether +2 ATRs will hold.Area G—Warning. Prices stab outside of +3 ATRs—watch whether +2 ATRs will hold.Area H—Another warning. Prices stab outside of +3 ATRs—watch whether +2 ATRs will hold.
+
+Amateurs like to bet on long shots—they tend to buy upside breakouts and short (if they ever sell short) downside breakouts. When an amateur sees a breakout, he expects riches from a major new trend.Professionals, on the other hand, tend to trade against deviations and for a return to normalcy. The pros know that most breakouts are exhaustion moves that are soon aborted. That's why they like to fade breakouts—trade against them, selling short as soon as an upside breakout stalls and buying when a downside breakout starts returning into the range.
+
+ A method for combining channels and divergences was described to me by the late Manning Stoller. A sell signal is given when prices reach the upper channel line while an indicator, such as MACD-Histogram, traces a bearish divergence. It shows that bulls are becoming weak when prices are overextended.A buy signal is given when prices reach the lower channel line while an indicator traces a bullish divergence. It shows that bears are becoming weak when prices are already low. We must analyze markets in multiple timeframes. Look for buys on the daily charts when prices are rising on the weeklies. Look for shorting opportunities on the dailies when prices are sinking on the weekly charts.Go long near the moving average when the channel is rising, and take profits at the upper channel line. Go short near the MA when the channel is falling, and take profits at the lower channel line. When a channel rises, it pays to trade only from the long side, buying in the value zone which lies between the fast and slow moving averages, and then selling at the upper channel line. When a channel declines, it pays to short in the value zone and cover at the lower channel line.
+
+Area A—while prices have reached the lower channel line, a new record low of MACD-Histogram suggests that this low will be retested or exceeded.Area B—channel line rejected, rally is likely ahead.Area C—prices reached their upper channel line and recoiled—reversal is likely.Area D—buy. Prices have reached the lower channel line, while MACD-Histogram has traced out a bullish divergence between bottoms A and D, with a break at C.Area E—while prices have reached their upper channel line, a new record high of MACD-Histogram suggests that this high is likely to be retested or exceeded.Area F—pullback to value completed; MACD-Histogram breaks below zero, creating a setup for a possible bearish divergence. Still may buy to ride back to the prior high.Area G—sell and sell short. Prices have reached the upper channel line, while MACD-Histogram has traced out a bearish divergence between tops E and G, with a break at F.  
+
+
+
+Whichever group you select, make sure your trading vehicle meets two essential criteria: liquidity and volatility
+
+Liquidity refers to the average daily volume, compared with other vehicles in its group. The higher it is, the easier it'll be for you to get in and out of your trades
+
+I learned this lesson decades ago, after building a 6,000-share position in a fairly inactive stock. When it began to sag, I decided to sell, and that's when I discovered that its average daily volume was only 9,000 shares. There were so few people trading it that my own sales began to depress its price. Taking several days to trade out of my 6,000-share lot felt like taking a fat cow through a very narrow gate and leaving large strips of its hide on gate posts. Now I focus on U.S. stocks that trade over a million shares a day. That's where I can slip in and out of my trades unnoticed and unmolested
+
+There are several ways to measure volatility, but a good practical tool is “beta.” It compares any vehicle's volatility to its benchmark, such as a broad index. If a stock's beta is 1, it means that its volatility is equal to that of the S&P 500. A beta of 2 means that if the S&P rises 5%, the stock is likely to rally 10%, but it is also likely to drop 10% if the S&P falls by 5%. A beta of 0.5 means that the stock is likely to rise or fall by half of the percentage of the S&P. It would be better for a beginner to focus on low beta vehicles. You can find betas for most stocks on all key financial websites, starting with Yahoo Finance. Betas are like trail markers on ski slopes: green for beginners, blue for intermediate skiers, and black diamonds for experts.
+
+Stocks of new sexy industries can levitate on expectations of future earnings rather than any real profits. Stocks of solidly profitable, well-run companies may drift sideways or down if the crowd isn't excited about their outlook.
+
+What stocks will you trade? There are more than 20,000 of them in the United States, and even more abroad. Beginners tend to spread themselves too thin. Afraid to miss an opportunity, they buy scanning software. A person who doesn't have a clear idea of how to trade a single stock will not be helped by tracking thousands. He'll be much better off focusing on a handful of stocks and following them every day.
+
+I have two “pools” in which I fish for trading ideas. On weekends, I run the 500 component stocks of the S&P 500 through my divergence scanner and zoom in on stocks flagged by that scan, selecting a handful that I'll consider trading during the coming week. Second, I review Spike picks on weekends, figuring that among a dozen top traders submitting their favorite picks, there is bound to be at least one that I'll want to piggyback. The number of stocks I closely monitor during the week is always in single digits. This is just my style; I have friends who monitor several dozen stocks at any given time. Only you can tell what number is right for you, but you should track only as many as you can focus on
+
+With so many choices, what's there not to like about ETFs? Actually, quite a lot.The industry keeps quiet about the fact that there are two ETF markets. The primary market is reserved for “authorized participants”—large broker-dealers who have agreements with the ETF distributors to buy or sell large blocks, consisting of tens of thousands of ETF shares. These middlemen buy at wholesale and then sell to you at retail. You, as a private trader, always sit in the back of the bus—in the secondary market
+
+These steps, outlined by Bollinger, have been included in many software packages. A band becomes wider when volatility increases but it narrows down when volatility decreases. A narrow band identifies a sleepy, quiet market. Major market moves tend to erupt from flat bases. Bollinger bands help identify transitions from quiet to active markets.These bands are useful for options traders because option prices are largely driven by swings in volatility. Narrow Bollinger bands help you buy when volatility is low and options are relatively cheap. Wide bands help you decide to write options when volatility is high and options are expensive.
+
+Some ETFs lose value so fast that their issuers repeatedly perform reverse splits in order to raise prices back into double digits. With the passage of time, those ETFs sink back into single digits, and then their issuers perform another reverse split to make their ETFs appeal to new suckers
+
+Can you believe that these two charts, covering the same period of time, are supposed to track the same thing?Volatility is a hugely important factor in market movements. Just as prices oscillate between uptrends and downtrends, they oscillate between periods of low and high volatility. This is why many analysts and traders pay close attention to $VIX—the volatility index. The chart on the left shows that during the past two years $VIX oscillated between the low teens and mid-twenties (it briefly rallied above $80 during the 2008 bear market). Traders have a saying: “when VIX is high, it's safe to buy; when VIX is low, go slow.”Since $VIX fluctuations appear fairly orderly, some traders attempt to trade it using several ETFs, such as VXX, shown on the right. During the same time, VXX has steadily declined, losing 90% of its value. How's that for tracking volatility?
+
+Many ETFs “track” their underlying indexes in a shabby manner. After giving commodity ETFs a try, I wouldn't touch them with a ten-foot pole, having experienced several days during which the underlying commodity went up, while my commodity ETFs went down. I stopped trading country ETFs after running into several situations in which a country index would rise to a new high, while my ETF would stay well below the breakout level
+
+The only ETFs that trade more or less decently are broadly based ones, such as SPY and QQQ. Overall, ETFs attract many unsophisticated retail clients, but the pervasive haircuts and poor tracking of the underlying securities slant the field against them. Remember an important principle: TANSTAFL—”there ain't no such thing as a free lunch.” When it comes to ETFs: buyer beware.
+
+The key point to keep in mind is that option buyers as a group lose money over time, despite occasional lucky trades. At the other end of the table, options writers as a group make steady money despite occasional losses
+
+An option is at-the-money when the current price of the underlying security equals the exercise price.A call is out-of-the-money when the current price of the underlying security is below the exercise price. A put is out-of-the-money when the current price of the underlying is above the exercise price. The farther out-of-the-money, the cheaper the option.A call is in-the-money when the current price of the underlying security is above the exercise price. A put is in-the-money when the current price of the underlying is below the exercise price
+
+Covered writers own underlying securities. For example, a fund may hold a large position in IBM stock and sell calls against it. If the stock doesn't rise to the exercise price during the life of those calls, the options will expire worthless. The covered writer will add his premium to the fund and write a new call with a new expiration date. If IBM does rise to the exercise price and “gets called,” they'll deliver their stock at its strike price, collect the money, and use the freed-up capital to buy another stock and write calls against it
+
+Naked writers sell options without owning their underlying securities; they back up their writes with cash in their accounts. A naked writer collects his premium when he opens a trade, but his risk is unlimited if that position goes against him. If you own a stock, sell a covered call, and that stock rises to its exercise price and gets called, you have something to deliver. If you sell a naked call and the stock rises to or above its exercise price, you'll have to pay. Imagine selling calls on a stock that becomes a takeover play and opens $50 higher the next morning—you still have to deliver.This combination of limited rewards with unlimited risks scares most traders away from naked writing—but as usual, there's a gap between perception and reality. A far-out-of-the-money option with a short time to the expiration is very likely to expire worthless, meaning the writer will profit. The risk/reward ratio in naked writing is better than it looks, and there are techniques for reducing the impact of a rare adverse move.
+
+Becoming a naked writer requires iron discipline. The size of your writes and the number of positions must be strictly determined by your money management rules. If you sell a naked call and the stock rallies above its exercise price, it exposes you to the risk of ruin. You must decide in advance at what level you will cut and run, taking a relatively small loss. A naked seller cannot afford to sit and hope when a stock moves against him.
+
+Delta is a tool that shows the probability of the underlying security reaching your option's exercise price by its expiration date
+
+A cautious option writer should aim to sell calls or puts whose Delta isn't much above 0.10, meaning there is only a 10% chance of the exercise price getting hit before the expiration date. Remember, as an option writer you don't want the underlying security to reach that price: you want to sell empty hopes. If 10% risk seems high, keep in mind that Delta is derived without any reference to market analysis. If your decision is based on good technical analysis, your risk will be lower than what Delta indicates.
+
+Option writers can get hurt in one of three ways. Some overtrade, creating positions that are too large for their accounts. Assuming too much risk makes them nervous and unable to hold positions through any wiggles. Option writers also get hurt when they fail to run fast enough when an option moves against them. Finally, option writers can get blown out if they don't have a reserve against a major adverse move. The longer you trade, the greater the risk of a catastrophic event.
+
+Professionals may buy puts on a rare occasion when they expect a severe drop. When a long-term uptrend begins to turn, it can create massive turbulence near the top, similar to an ocean liner changing its course. When volatility goes through the roof, even well-heeled traders have trouble setting stops on shorts. Buying puts allows you to sidestep this problem.
+
+Estimate how low you expect a stock to collapse. A put is worth buying only if you expect a crash.Avoid puts with more than two months of life. Buying puts makes sense only when you expect a waterfall decline. If you anticipate a drawn-out downtrend, better sell short the underlying security.Look for cheap puts whose price reflects no hope. Move your finger down the column: the lower the strike, the cheaper the put. At first, each time you drop to the next strike price, a put is 25% or even 35% cheaper than at the previous level. Eventually you come to the strike level at which you would save only a tiny fraction of a put's price. This shows that all hope has been squeezed out of that put, and it is priced like a cheap lottery ticket. That's the one you want!
+
+The only time to buy a put is when you're shooting for an exceptional gain from a major reversal. In an ordinary downtrend it's better to short stocks. With cheap far-out-of-the-money puts you aim for a tenfold gain or better. Returns like these allow you to be wrong on a string of such trades, yet come out ahead in the end. Catching one major reversal will make up for several losses and leave you very profitable.Why don't more people use this tactic? First, it requires a great deal of patience, as opportunities are very infrequent. The entertainment value is very low. Most people can't stomach the idea of being wrong three, four, or five times in a row, even if they are likely to make money in the end. That's why so few traders play this game.
+
+A contract for difference (CFD) is a bet on the future value of a currency, an index, or a stock. If you buy a CFD and the price of the underlying vehicle rises, you'll collect the difference from the company that sold you the contract, but if it falls, you'll pay the difference. CFDs are derivatives that allow speculators to bet on rallies or declines. They are similar to spread betting, which is legal in the United Kingdom and Ireland, but not in the United States.
+
+CFDs are heavily marketed to new and inexperienced traders, extolling their potential gains, while glossing over risks. The Australian financial regulator ASIC considers trading CFDs riskier than gambling on horses or in casinos.
+
+A future is a contract for delivery of a specific quantity of a commodity by a certain date at an agreed-upon price. Futures contracts differ from options by being binding on both the buyer and the seller. In options, the buyer has the right but not an obligation to take delivery. If you buy a call or a put, you can walk away if you like, but in futures, you have no such luxury. If the market goes against you, you have to get out of your trade at a loss or add to your margin.
+
+Inexperienced traders keep buying too many contracts and keep getting kicked out by the first wiggle of their market. Their analysis may be correct—gold may rise to its target price—but the beginner is doomed because he commits too much of his equity and has very thin reserves. Futures don't kill traders—poor money management kills futures traders.
+
+Most beginners open accounts at forex shops where they immediately run into a fatal flaw—your broker is your enemy. When you trade stocks, futures, or options, your broker is your agent: he executes your trades for a fee, and that's the end of it. Not so in most forex (as well as CFD) houses, where your broker is likely to take the opposite side of every trade. You and the forex house are now against each other: if you lose, your broker will profit, and if you win, he'll lose. Since the house holds most of the cards, it has many ways to achieve the desired result
+
+Forex shops help ensure their clients' demise by offering homicidal leverage. I've seen them offer leverage of 100:1 and even 400:1. A newcomer who scrapes together a $1,000 stake can suddenly control a position worth a hundred thousand dollars. This means that the slightest price wiggle against him is guaranteed to wipe out his equity. That's why those shops confidently keep clients' money in-house, never transmitting their trades to the real market—why share the loot with anyone else? They are so certain of their clients' demise that many compensate employees with a percentage of the client deposits that they bring in—funds deposited with a forex house are as good as theirs.“The market has long been plagued by swindlers preying on the gullible,” according to The New York Times. “The average individual foreign-exchange-trading victim loses about $15,000, according to CFTC records,” writes The Wall Street Journal. Currency trading “has become the fraud du jour,” according to Michael Dunn of the U.S. Commodity Futures Trading Commission.
+
+The real forex market is a zero sum game, in which well-capitalized professional traders, many of whom work for banks, devote full-time attention to trading. An inexperienced retail trader has a significant information disadvantage. The retail trader always pays the bid-ask spread, which lowers his odds of winning. Retail forex traders are almost always undercapitalized and subject to the problem of “gambler's ruin.” Even in a fair game between two players, the one with the lower amount of capital has a higher probability of going bust in the long run.
+
+I enjoy trading currencies, but wouldn't go near a forex house. Instead, I trade electronic currency futures. That's what I recommend to anyone interested in trading foreign exchange. Futures brokers work for you, not against you; futures spreads are more narrow, commissions more reasonable, and no interest is charged for the privilege of holding a position. There are contracts for most major currency pairs and even mini-contracts for euro/dollar and yen/dollar
+
+A good trading system delivers greater profits than losses over a period of time, but even the most carefully designed system doesn't guarantee success in every trade. No system can assure you of never having a losing trade or even a series of losing trades.A system is a plan, but as Helmuth von Moltke, a nineteenth-century German field marshal, wrote: “No plan survives contact with the enemy.” The U.S. boxer Mike Tyson, quoted by The Economist, put it more bluntly: “Everyone has a plan 'til they get punched in the mouth.” This is why risk control must be an essential part of every trading system
+
+Another emotional mistake is counting money in open trades. Newbies dream about what they can buy with open profits or freeze from the shock of comparing open losses to their paychecks. Thinking about money interferes with decision making. Professionals focus on managing trades; they count money only after those trades are closed.
+
+Professional traders don't count money in open trades. They do it at the end of an accounting period, such as a month.If you were to ask me about an open trade, I could answer that it's a bit ahead, a lot ahead, or a bit behind (a lot behind is unlikely because of my stops). If you were to press me for a number, I might tell you how many ticks I'm ahead or behind, but I'll never translate those ticks into dollars. It took me years to train myself to break the destructive habit of counting money in open trades. I can count ticks, but my mind stops before converting them into dollars. It's like being on a diet—there is plenty of food around, but you don't touch it.Focus on managing your trade, and the money will follow almost as an afterthought.
+
+The intellectual demands of trading are modest, but its emotional demands are immense. Many years ago, a highly educated but very emotional trader showed me how to trade divergences near channel walls. I fine-tuned his method, added risk management rules, and continue to make money with it to this day. The man who taught me had busted out because of his lack of discipline and ended up going door to door, selling aluminum siding. Emotional trading and impulsivity are not good for success.
+
+Paulos describes being told by a seemingly intelligent person at a cocktail party: “If the chance of rain is 50 percent on Saturday and 50 percent on Sunday, then it is 100 percent certain it will be a rainy weekend.” Someone who understands so little about probability is sure to lose money trading. You owe it to yourself to develop a grasp of the basic mathematical and logical concepts involved in trading
+
+The best trading systems are simple and robust. They have very few elements. The more complex the systems, the higher the risk that some of its components will break.Traders love to optimize systems, making them fit past data. The trouble is, your broker won't let you trade in the past. Markets change, and indicator parameters that would have nailed the trends last month are unlikely to nail them a month from now. Instead of optimizing your system, try to de-optimize it. A robust system holds up well to market changes and beats a heavily optimized system in real trading.Finally, once you develop a good system, stop messing with it. If you like to tinker, design another system. As Robert Prechter put it: “Most traders take a good system and destroy it by trying to make it into a perfect system.”
+
+We analyze markets in order to identify trends. Be careful not to become overconfident when anticipating future prices. The future is fundamentally unknowable. When we buy, expecting a rally, it is entirely possible that an unforeseen event may flip the market and send it down. Your actions in response to surprises will define you as a trader.
+
+If you follow the risk management rules described below, you'll accept only a normal businessman's risk. Violating a well-defined red line will expose you to dangerous losses
+
+The only thing better than a safety net is two safety nets: if one doesn't catch us as we fall, the other will.
+
+ What you can control is risk. You do it by managing the size of your trades and the placement of stops. This is how you keep the inevitable losses small, not allowing them to cripple your account, so that you can win in the long run.
+
+The two pillars of money management are the 2% and 6% Rules. The 2% Rule will save your account from shark bites and the 6% Rule from piranhas.
+
+We want to place our stops neither too far nor too close. At this point, just keep in mind that you must use stops. You have to know your maximum level of risk—it's as simple as that. If you don't know your maximum level of risk, you're flying blind.The other fatal error is overtrading—putting on trades whose size is too large for your account. This is like putting a huge sail on a small boat—a strong gust of wind will flip the boat over instead of making it go faster.
+
+For example, if you have $50,000 in your account, the 2% Rule limits your maximum risk on any trade to $1,000. This is not the size of your trade—it's the amount you put at risk, based on the distance from your entry to your stop.Let's say you decide to buy a stock for $40 and put a stop at $38, just below support. This means you'll be risking $2 per share. Dividing your total permitted risk of $1,000 by your $2 risk per share tells you that you may trade no more than 500 shares. You are perfectly welcome to trade fewer shares—you don't have to go the max every time. If you feel very bullish about that stock and want to trade the maximum permitted size, that number of shares will be limited to 500
+
+I've noticed a curious difference in how people react when they first hear about the 2% Rule. Newbies with small accounts often object that this number is too low. Someone asked me whether the 2% Rule could be increased when he was feeling especially confident about a trade, and I answered that it would be like adding extra length to the cord for bungee jumping because you like the view from the bridge
+
+Construct the Iron Triangle in three steps: Your maximum dollar risk for the trade you're planning (never more than 2% of your account).The distance, in dollars, from your planned entry to your stop—your maximum risk per share.Divide “A” by “B” to find the maximum number of shares you may trade. You aren't obligated to trade this many shares, but you may not trade more than this number
+
+The 6% Rule sets a limit on the maximum monthly drawdown in any account. If you reach it, you stop trading for the rest of the month. The 6% Rule forces you to get out of the water before piranhas get you.The 6% Rule prohibits you from opening any new trades for the rest of the month when the sum of your losses for the current month and the risks in open trades reach 6% of your account equity
+
+If you are near the 6% limit but see a very attractive trade you wouldn't want to miss, you have two options. You can take profits on one of your open trades to free up available risk. Alternatively, you may tighten some of your protective stops, reducing your open risk. Just be sure that in your eagerness to trade you do not make your stops too tight (see Chapter 54).
+
+The 2% Rule and the 6% Rule provide guidelines for pyramiding—adding to winning positions. If you buy a stock and it climbs high enough to raise your stop above breakeven, then you may buy more of the same stock, as long as the risk on the new position is no more than 2% of your account equity and your total account risk is less than 6%. Handle each addition as a separate trade.Many traders go through emotional swings, feeling elated at the highs and gloomy at the lows. Those mood swings will not help you trade, just the opposite. It is better to invest your energy in risk control. The 2% and the 6% Rules will convert your good intentions into the reality of safer trading.
+
+Most beginners are in a hurry to make a killing, but guess who gets killed. Unscrupulous brokers promote overtrading (putting on trades that are too big for your account) to generate commissions. Some stockbrokers outside the United States offer a “shoulder” of 10:1, allowing you to buy $10,000 worth of stock for every $1,000 you deposit with the firm. Some forex houses offer a deadly “shoulder” of 100:1 and even 400:1.
+
+“Fallen angels” is the name of a scan I use to look for possible investment candidates. It marks stocks that have fallen over 90% from their peaks, stopped declining, bottomed out, and slowly began to rise. A stock that had lost 90% of its value has every right to die, but if it chooses to live, it's likely to rally.The best time to look for “fallen angels” is when a bear market starts showing signs of bottoming. That's when you find many candidates that survived bear attacks and are starting to get up from the floor. This example shows an old bull market darling IGOI that got badly mauled but stopped declining and began to rise
+
+Put a stop too close and it'll get whacked by some meaningless intraday swing. Put it too far, and you'll have very skimpy protection.To borrow an engineering concept, all market moves have two components: signal and noise. The signal is the trend of your stock. When the trend is up, we can define noise as that part of each day's range that protrudes below the previous day's low. When the trend is down, we can define noise as that part of each day's range that protrudes above the previous day's high.
+
+In brief, use the slope of a 22-day EMA to define the trend. If the trend is up, mark all downside penetrations of the EMA during the look-back period (10 to 20 days), add their depths, and divide the sum by the number of penetrations. This gives you the Average Downside Penetration for the selected look-back period. It reflects the average level of noise in the current uptrend. You want to place your stops farther away from the market than the average level of noise. That's why you need to multiply an average downside penetration by a factor of two or greater. Placing your stop any closer would be self-defeating.When the trend, as defined by the EMA slope, is down, we calculate SafeZone on the basis of upside penetrations of the previous bars' highs. We count each upside penetrations during a selected time window and average that data to find the Average Upside Penetration. We multiply it by a coefficient, starting with 3, and add that to the high of each bar. Shorting near the highs requires wider stops than buying near quiet, sold-out bottoms.Like all systems and indicators in this book, SafeZone is not a mechanical gadget to replace independent thought. You have to establish the look-back period, the window of time during which SafeZone is calculated. You also need to fine-tune the coefficient by which you multiply the average penetration, so that your stop goes outside the normal noise level.
+
+One method I like is Nic's stop, named after my Australian friend Nic Grove. He invented this method of placing a stop not near the lowest low, but at the second lowest (more shallow) low. The logic is simple—if the market is sliding to its second lowest low, it is almost certain to continue falling and hit the key low, where the bulk of stops cluster. Using Nic's stop, I get out with a smaller loss and lower slippage than would occur when the markets drop to more visible lows.The same logic works when shorting—place your Nic's stop not “a tick above the highest high” but at the level of the second highest high. Let's review some recent examples of both longs and shorts in Figure 54.1.
+
+Another method, popularized by Kerry Lovvorn, is to use Average True Range (ATR) stops (see Chapter 24 for the explanation of the ATR). When you enter during a price bar, place your stop at least one ATR away from the extreme of that bar. A two ATR stop is even safer. You can use it as a trailing stop, moving it at every bar. The principle is the same—place your stop outside the zone of market noise. (Figure 54.2)
+
+One of the advantages of using trailing stops is that they gradually reduce the amount of money at risk. Earlier we discussed the concept of “available risk” (Chapter 51). As a trade followed by a trailing stop moves in your favor, it gradually frees up available risk, allowing you to make new trades.
+
+Your buy grade is based on the location of your entry, relative to the high and low of the daily bar during which you bought.
+
+ I calculate my buy grade for every trade and consider anything above 50% a very good result, meaning I bought in the lower half of the daily bar.
+
+ I find my trade grade by comparing points gained or lost in a trade to the height of the daily chart's channel measured on the day of the entry.
+
+
+
+Running my MACD divergence semiautomatic scan over the weekly and daily charts of all 500 components of the S&P 500 takes only a minute, but the real work begins when I review the lists of bullish and bearish candidates delivered by this scan. First, I compare the sizes of bullish and bearish lists. For example, for several weeks prior to writing this chapter, my scan for bullish divergences among the components of the S&P 500 produced four to five candidates, while the scan for potential bearish divergences returned between 70 and 80 stocks. This great imbalance indicated that the market was perched at the edge of a cliff and I needed to find some shorts for the coming downturn. I prune my weekly list of trading candidates down to five or six picks that show the most attractive patterns and the best reward to risk ratios. These are the stocks that I'll aim to trade during the week
+
+If you're going to scan a large number of stocks, it pays to add some negative rules. For example, you may want to omit stocks whose average daily volume is below half a million or even a million shares. Their charts tend to be more ragged and their slippage worse than in more actively traded stocks. You may want to exclude expensive stocks from your scans for buying candidates and cheap stocks from your scans for shorting candidates. Choosing at what levels to place your price filters is a matter of personal choice. This is why scanning is best left for experienced traders. Learn to fish with just a few lines in the water before casting a broad net.
+
+Writing down your trade plans will ensure that you don't miss any essential market factors. Good record-keeping will save you from stumbling into impulsive trades. Trading discipline is similar to weight control, which is very hard for most people. If you don't know what you weigh today and whether the curve of your weight is rising or falling, how can you control it? Losing weight begins with standing naked on a scale in the morning and writing down your weight for that day.
+
+
+
+A plan for any trade must specify what strategy you'll use. It must prompt you to check the dates of earnings and dividends or contract rollovers, in order to save you from being blindsided by predictable news. It must spell out your planned entry, target, and stop as well as your trade size.Writing down a trade plan makes it real. Once you enter a trade and your equity starts fluctuating, you may feel stressed and forget to perform certain tasks. The plan you write prior to entering a trade becomes your island of sanity and stability in the middle of a storm; it helps ensure that you don't overlook anything essential
+
+A really good plan will include a scale for measuring its quality. This objective rating, which we'll discuss below, takes less than a minute, but it encourages you to implement only those plans that have a higher likelihood of success. It prompts you to drop marginal plans and not chase borderline trade ideas.
+
+Rate your answers to five questions on a scale from zero to two: Weekly Impulse (described in this book)—zero for Red, one for Green, two for Blue on the weekly chart. Red Impulse prohibits buying, Green is OK but could be too late, while Blue (after red) shows that bears are losing power, which is a good time to buy.Daily Impulse—same questions and ratings on the daily chart.Daily price—zero if the latest price is above value, one if it's in the value zone, two if below value on the daily chart. Prices above value may be too late to buy, in the value zone OK, below value could be a bargain.False breakout—zero if none, one if it already happened, two if on the verge of happening.Perfection—zero if neither timeframe, one if only one, two points if both look perfect
+
+It takes less than a minute to generate a Trade Apgar for any stock. I want to trade only healthy ideas whose score is 7 or higher, and not a single line rated zero. If the score is 7 or higher, I go on to complete my trade plan. I establish my entry, target, and stop, decide what size to trade, etc.
+
+next earnings date. You can look it up at several free websites, such as www.Briefing.com, www.earnings.com, or www.Finviz.com. Most traders avoid holding stocks whose earnings are about to be reported. A nasty earnings surprise can do serious damage to your position. Writing down that date forces you to focus on avoiding trouble
+
+dividend date, if any. I usually look it up at http://finance.yahoo.com. Dividends create tax consequences for longs, while shorts have to pay dividends, so they definitely want to avoid holding on that day
+
+Part 1: Trade identification. 
+
+Part 2: Trade Apgar
+
+After you sum up the numbers for the Trade Apgar, answer this key question in writing: Is this an A-trade? If the total score is below 7, drop this stock and look for another trade
+
+Part 3: Market, entry, target, stop, and risk control
+
+
+
+
+
+
+
+Lesson: continue to monitor closed-out trades for a week or so and be prepared to re-enter or to reverse
+
