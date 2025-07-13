@@ -579,8 +579,22 @@ app.layout = dbc.Container([
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
                                                 ),
                                                 
-                                                # Add frequency dropdown below timeframe dropdown
-                                                dbc.Label("Frequency:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                # Add frequency dropdown below timeframe dropdown with Triple Screen tooltip
+                                                html.Div([
+                                                    dbc.Label("Frequency:", style={'color': '#fff', 'fontWeight': 'bold', 'marginBottom': '10px'}),
+                                                    html.Span(
+                                                        "ⓘ",
+                                                        id="frequency-tooltip-target",
+                                                        style={'marginLeft': '8px', 'color': '#00d4aa', 'cursor': 'pointer', 'fontSize': '14px'}
+                                                    )
+                                                ], style={'display': 'flex', 'alignItems': 'center'}),
+                                                
+                                                # Tooltip for Triple Screen explanation
+                                                dbc.Tooltip(
+                                                    "Triple Screen: Different timeframes for different analysis levels. Intraday (1m-10m), Medium-term (1d-5d), Long-term (1d-1M)",
+                                                    target="frequency-tooltip-target",
+                                                    placement="top"
+                                                ),
                                                 dbc.Select(
                                                     id='frequency-dropdown',
                                                     options=[
@@ -591,6 +605,29 @@ app.layout = dbc.Container([
                                                     value='1m',
                                                     className="mb-3",
                                                     style={'backgroundColor': '#000000', 'color': '#fff'}
+                                                ),
+                                                
+                                                # Loading indicator for data fetching
+                                                html.Div(
+                                                    id="data-loading-indicator",
+                                                    className="d-none",
+                                                    children=[
+                                                        dbc.Spinner(size="sm", color="success"),
+                                                        html.Span(" Loading data...", style={'marginLeft': '8px', 'color': '#00d4aa', 'fontSize': '12px'})
+                                                    ],
+                                                    style={'textAlign': 'center', 'marginTop': '10px'}
+                                                ),
+                                                
+                                                # Frequency status indicator
+                                                html.Div(
+                                                    id="frequency-status-indicator",
+                                                    children=[
+                                                        html.Small(
+                                                            "Current: 1m",
+                                                            style={'color': '#00d4aa', 'fontSize': '10px', 'fontStyle': 'italic'}
+                                                        )
+                                                    ],
+                                                    style={'textAlign': 'center', 'marginTop': '5px'}
                                                 ),
                                                 
                                                 # Chart Type Section
@@ -1045,16 +1082,30 @@ app.layout = dbc.Container([
                             'width': '100%',
                             'zIndex': 1
                         }
+                    ),
+                    # Warning for gaps in 5d/1mo frequency
+                    html.Div(
+                        id="frequency-gap-warning",
+                        className="alert alert-warning fade show d-none",
+                        style={'position': 'absolute', 'bottom': '10px', 'left': '10px', 'zIndex': 10, 'maxWidth': '600px'},
+                        children=[]
+                    ),
+                    # Error message for empty data
+                    html.Div(
+                        id="empty-data-warning",
+                        className="alert alert-danger fade show d-none",
+                        style={'position': 'absolute', 'top': '10px', 'right': '10px', 'zIndex': 10, 'maxWidth': '600px'},
+                        children=[]
                     )
                 ]
             )
         ], width=9, id="chart-col")
     ]), # Added missing closing bracket for dbc.Row
     
-    # Auto-refresh component - Optimized interval
+    # Auto-refresh component - Optimized interval for Triple Screen approach
     dcc.Interval(
         id='interval-component',
-        interval=30*1000,  # Update every 30 seconds - balanced for performance
+        interval=15*1000,  # Update every 15 seconds - faster for Triple Screen
         n_intervals=0
     ),
     
@@ -1229,44 +1280,88 @@ def update_rsi_store_callback(period):
     """Call update_rsi_store function from functions module"""
     return update_rsi_store(period)
 
-# Add a callback to update frequency options based on timeframe
+# Add a callback to update frequency options based on timeframe (yfinance-supported intervals)
 @callback(
-    [Output('frequency-dropdown', 'options'), Output('frequency-dropdown', 'value')],
-    [Input('timeframe-dropdown', 'value')]
+    [Output('frequency-dropdown', 'options'), 
+     Output('frequency-dropdown', 'value'),
+     Output('frequency-status-indicator', 'children', allow_duplicate=True)],
+    [Input('timeframe-dropdown', 'value')],
+    [State('frequency-dropdown', 'value')],
+    prevent_initial_call=True
 )
-def update_frequency_options(timeframe):
-    if timeframe in ['1d', 'yesterday']:
-        options = [
-            {'label': '1m', 'value': '1m'},
-            {'label': '2m', 'value': '2m'},
-            {'label': '5m', 'value': '5m'},
-            {'label': '15m', 'value': '15m'}
-        ]
-        value = '1m'
-    elif timeframe in ['1mo', '6mo']:
-        options = [
-            {'label': '1d', 'value': '1d'},
-            {'label': '1h', 'value': '1h'},
-            {'label': '4h', 'value': '4h'}
-        ]
-        value = '1d'
-    elif timeframe in ['1y', '5y', 'max']:
-        options = [
-            {'label': '1d', 'value': '1d'},
-            {'label': '1wk', 'value': '1wk'},
-            {'label': '1mo', 'value': '1mo'}
-        ]
-        value = '1d'
+def update_frequency_options(timeframe, current_frequency):
+    # yfinance-supported intervals for each period
+    period_to_freqs = {
+        '1d':    [('1m', '1m'), ('2m', '2m'), ('5m', '5m'), ('15m', '15m'), ('30m', '30m'), ('60m', '60m'), ('90m', '90m')],
+        'yesterday': [('1m', '1m'), ('2m', '2m'), ('5m', '5m'), ('15m', '15m'), ('30m', '30m'), ('60m', '60m'), ('90m', '90m')],
+        '1mo':  [('1d', '1d')],
+        '6mo':  [('1d', '1d'), ('5d', '5d')],
+        'ytd':  [('1d', '1d'), ('5d', '5d')],
+        '1y':   [('1d', '1d'), ('5d', '5d')],
+        '5y':   [('1d', '1d'), ('5d', '5d'), ('1mo', '1mo')],
+        'max':  [('1d', '1d'), ('5d', '5d'), ('1mo', '1mo')],
+    }
+    # Fallback if not found
+    options = [{'label': '1d', 'value': '1d'}]
+    value = '1d'
+    if timeframe in period_to_freqs:
+        options = [{'label': l, 'value': v} for l, v in period_to_freqs[timeframe]]
+        # Try to preserve user's selection if it's valid for this timeframe
+        valid_freqs = [v for l, v in period_to_freqs[timeframe]]
+        if current_frequency in valid_freqs:
+            value = current_frequency
+        else:
+            # Use the first as default
+            value = valid_freqs[0]
+    # Update frequency status indicator
+    status_text = f"Current: {value}"
+    status_element = html.Small(
+        status_text,
+        style={'color': '#00d4aa', 'fontSize': '10px', 'fontStyle': 'italic'}
+    )
+    return options, value, status_element
+
+# Callback to initialize frequency status indicator
+@callback(
+    Output('frequency-status-indicator', 'children'),
+    [Input('frequency-dropdown', 'value')],
+    prevent_initial_call=False
+)
+def initialize_frequency_status(frequency):
+    """Initialize the frequency status indicator"""
+    if frequency:
+        status_text = f"Current: {frequency}"
     else:
-        options = [{'label': '1d', 'value': '1d'}]
-        value = '1d'
-    return options, value
+        status_text = "Current: 1m"  # Default
+    return html.Small(
+        status_text,
+        style={'color': '#00d4aa', 'fontSize': '10px', 'fontStyle': 'italic'}
+    )
+
+# Callback to handle manual frequency changes and update status indicator
+@callback(
+    Output('frequency-status-indicator', 'children', allow_duplicate=True),
+    [Input('frequency-dropdown', 'value')],
+    prevent_initial_call=True
+)
+def handle_frequency_change(frequency):
+    """Handle manual frequency changes and update status indicator"""
+    if frequency:
+        status_text = f"Current: {frequency}"
+    else:
+        status_text = "Current: 1m"  # Default
+    
+    return html.Small(
+        status_text,
+        style={'color': '#00d4aa', 'fontSize': '10px', 'fontStyle': 'italic'}
+    )
 
 # Callback to update data with custom indicator parameters
 @callback(
     [Output('stock-data-store', 'data'),
      Output('chart-error-message', 'children'),
-     Output('chart-error-message', 'className')],
+     Output('chart-error-message', 'className'),
+     Output('data-loading-indicator', 'className')],
     [Input('interval-component', 'n_intervals'),
      Input('current-symbol-store', 'data'),
      Input('timeframe-dropdown', 'value'),
@@ -1278,13 +1373,23 @@ def update_frequency_options(timeframe):
      Input('force-smoothing-store', 'data'),
      Input('adx-period-store', 'data'),
      Input('stochastic-period-store', 'data'),
-     Input('rsi-period-store', 'data')]
+     Input('rsi-period-store', 'data')],
+    running=[(Output("data-loading-indicator", "className"), "d-block", "d-none")]
 )
 def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period):
-    """Call update_data function from functions module"""
-    return update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency)
+    """Call update_data function from functions module with loading indicator"""
+    # Ensure frequency is valid for the current timeframe
+    if timeframe in ['1d', 'yesterday'] and frequency not in ['10m', '2m', '1m']:
+        frequency = '1m'
+    elif timeframe in ['1mo', '6mo'] and frequency not in ['5d', '1d']:
+        frequency = '1d'
+    elif timeframe in ['1y', '5y', 'max'] and frequency not in ['1mo', '5d', '1d']:
+        frequency = '5d'
+    
+    data, error_msg, error_class = update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency)
+    return data, error_msg, error_class, "d-none"  # Hide loading indicator when done
 
-# Callback for combined chart
+# Callback for combined chart with performance optimization
 @callback(
     [Output('combined-chart', 'figure'),
      Output('combined-chart', 'style'),
@@ -1305,7 +1410,8 @@ def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast
      Input('bollinger-bands-store', 'data'),
      Input('autoenvelope-store', 'data')],
     [State('combined-chart', 'relayoutData')],
-    prevent_initial_call=False
+    prevent_initial_call=False,
+    running=[(Output("combined-chart", "style"), {"backgroundColor": "#000000", "height": "90vh", "opacity": "0.7"}, {"backgroundColor": "#000000", "height": "90vh"})]
 )
 def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, frequency, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
     """Call update_combined_chart function from functions module"""
@@ -2110,4 +2216,42 @@ if __name__ == '__main__':
     print("Starting Stock Dashboard Server...")
     print("Open http://127.0.0.1:8050/ in your web browser to view the dashboard")
     app.run(debug=True, port=8050)
+
+# Callback to show warnings for frequency gaps and empty data
+@callback(
+    [Output('frequency-gap-warning', 'children'),
+     Output('frequency-gap-warning', 'className'),
+     Output('empty-data-warning', 'children'),
+     Output('empty-data-warning', 'className')],
+    [Input('stock-data-store', 'data'),
+     Input('frequency-dropdown', 'value'),
+     Input('timeframe-dropdown', 'value')]
+)
+def show_frequency_gap_and_empty_data_warnings(data, frequency, timeframe):
+    import pandas as pd
+    gap_warning = []
+    gap_class = 'alert alert-warning fade show d-none'
+    empty_warning = []
+    empty_class = 'alert alert-danger fade show d-none'
+    if not data or len(data) == 0:
+        empty_warning = [
+            'No data available for the selected period and frequency. ',
+            'This may be due to market holidays, weekends, or unsupported frequency for this period.'
+        ]
+        empty_class = 'alert alert-danger fade show'
+        return gap_warning, gap_class, empty_warning, empty_class
+    if frequency in ['5d', '1mo']:
+        df = pd.DataFrame(data)
+        if 'Date' in df.columns:
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+            df = df.sort_values('Date')
+            interval_days = 5 if frequency == '5d' else 30
+            date_diffs = df['Date'].diff().dt.days.dropna()
+            if any(date_diffs > int(interval_days * 1.5)):
+                gap_warning = [
+                    '⚠️ Gaps detected in the chart: ',
+                    f'The {frequency} frequency only includes business days. Gaps may appear if the interval ends on a weekend or holiday.'
+                ]
+                gap_class = 'alert alert-warning fade show'
+    return gap_warning, gap_class, empty_warning, empty_class
 

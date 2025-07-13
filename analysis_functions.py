@@ -16,9 +16,9 @@ _ticker_cache = {}
 _cache_expiry = {}
 CACHE_DURATION_SECONDS = 60  # Cache data for 1 minute
 
-def _is_cache_valid(symbol, timeframe):
+def _is_cache_valid(symbol, timeframe, frequency=None):
     """Check if cached data is still valid"""
-    cache_key = f"{symbol}_{timeframe}"
+    cache_key = f"{symbol}_{timeframe}_{frequency or 'default'}"
     if cache_key not in _ticker_cache or cache_key not in _cache_expiry:
         return False
     
@@ -26,16 +26,16 @@ def _is_cache_valid(symbol, timeframe):
     from datetime import datetime
     return datetime.now().timestamp() < _cache_expiry[cache_key]
 
-def _get_cached_data(symbol, timeframe):
+def _get_cached_data(symbol, timeframe, frequency=None):
     """Get cached data if available and valid"""
-    cache_key = f"{symbol}_{timeframe}"
-    if _is_cache_valid(symbol, timeframe):
+    cache_key = f"{symbol}_{timeframe}_{frequency or 'default'}"
+    if _is_cache_valid(symbol, timeframe, frequency):
         return _ticker_cache[cache_key]
     return None
 
-def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data):
+def _cache_data(symbol, timeframe, data, start_date, end_date, is_minute_data, frequency=None):
     """Cache data for fast retrieval"""
-    cache_key = f"{symbol}_{timeframe}"
+    cache_key = f"{symbol}_{timeframe}_{frequency or 'default'}"
     from datetime import datetime
     _ticker_cache[cache_key] = (data.copy(), start_date, end_date, is_minute_data)
     _cache_expiry[cache_key] = datetime.now().timestamp() + CACHE_DURATION_SECONDS
@@ -46,7 +46,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
     try:
         # Check cache first for non-intraday data (intraday needs real-time updates)
         if period != "1d":
-            cached_result = _get_cached_data(symbol, period)
+            cached_result = _get_cached_data(symbol, period, frequency)
             if cached_result is not None:
                 return cached_result
         
@@ -82,7 +82,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
             current_date = now_cest.date()
             
             # Go back one day and find the previous business day
-            prev_day = current_date - pd.Timedelta(days=1)
+            prev_day = pd.Timestamp(current_date) - pd.Timedelta(days=1)
             while prev_day.weekday() > 4:  # 5=Saturday, 6=Sunday
                 prev_day = prev_day - pd.Timedelta(days=1)
                 
@@ -119,7 +119,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 
                 if data.empty:
                     # Return empty dataset if no data for yesterday
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                     start_date = pd.Timestamp(prev_day)
                     end_date = pd.Timestamp(prev_day)
                     is_minute_data = True
@@ -132,7 +132,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 ]
                 
                 if data.empty:
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                     start_date = pd.Timestamp(prev_day)
                     end_date = pd.Timestamp(prev_day)
                     is_minute_data = True
@@ -147,7 +147,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 
             except Exception as e:
                 # Return empty dataset on error
-                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                 start_date = pd.Timestamp(prev_day)
                 end_date = pd.Timestamp(prev_day)
                 is_minute_data = True
@@ -164,7 +164,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 
                 if is_weekend:
                     # Return empty dataset when it's weekend
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -172,7 +172,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 elif is_pre_market or is_after_market:
                     # During trading days but outside market hours, return empty dataset
                     # This ensures we only show data during active market hours
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -212,7 +212,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 
                 # If today's data is empty, return empty dataset
                 if display_data.empty:
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -222,7 +222,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 data = display_data
                 
                 if data.empty:
-                    empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                     start_date = now_cest
                     end_date = now_cest
                     is_minute_data = True
@@ -237,33 +237,61 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
                 
             except Exception as e:
                 # Return empty dataset on error
-                empty_df = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                empty_df = pd.DataFrame({col: [] for col in ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']})
                 start_date = now_cest
                 end_date = now_cest
                 is_minute_data = True
                 return empty_df, start_date, end_date, is_minute_data
         else:
-            # Calculate optimized period for faster loading while maintaining indicator accuracy
-            # Reduced extended periods for faster ticker switching
+            # Optimized data fetching for faster loading with Triple Screen approach
+            # Use more conservative periods to reduce data size and improve speed
             extended_period = period
             if period == "1mo":
-                extended_period = "3mo"  # Reduced from 6mo for faster loading
+                extended_period = "1mo"  # Use valid yfinance period
             elif period == "6mo":
-                extended_period = "1y"   # Keep as is (reasonable)
+                extended_period = "6mo"  # Use valid yfinance period
             elif period == "ytd":
-                extended_period = "1y"   # Reduced from 2y for faster loading
+                extended_period = "ytd"   # Use valid yfinance period
             elif period == "1y":
-                extended_period = "2y"   # Reduced from 3y for faster loading
+                extended_period = "1y"   # Use valid yfinance period
             elif period == "5y":
-                extended_period = "7y"   # Reduced from 10y for faster loading
+                extended_period = "5y"   # Use valid yfinance period
+            # Do not use fractional years
+            # ... existing code ...
             
-            # Try to fetch real stock data with reduced timeout for faster response
+            # Try to fetch real stock data with aggressive timeout for faster response
             ticker = yf.Ticker(symbol)
             interval_arg = frequency if frequency else None
-            if interval_arg:
-                data = ticker.history(period=extended_period, interval=interval_arg, timeout=3)  # Reduced timeout for faster switching
-            else:
-                data = ticker.history(period=extended_period, timeout=3)  # Reduced timeout for faster switching
+            
+            # Use shorter timeout and more aggressive data fetching
+            try:
+                if interval_arg:
+                    data = ticker.history(period=extended_period, interval=interval_arg, timeout=2)  # Very short timeout
+                else:
+                    data = ticker.history(period=extended_period, timeout=2)  # Very short timeout
+            except Exception as e:
+                # If timeout fails, try with even shorter period
+                shorter_period = period
+                if period == "1mo":
+                    shorter_period = "1mo"
+                elif period == "6mo":
+                    shorter_period = "6mo"
+                elif period == "1y":
+                    shorter_period = "1y"
+                elif period == "5y":
+                    shorter_period = "5y"
+                
+                try:
+                    if interval_arg:
+                        data = ticker.history(period=shorter_period, interval=interval_arg, timeout=1)
+                    else:
+                        data = ticker.history(period=shorter_period, timeout=1)
+                except Exception:
+                    # Final fallback - use minimal data
+                    if interval_arg:
+                        data = ticker.history(period="1mo", interval=interval_arg, timeout=1)
+                    else:
+                        data = ticker.history(period="1mo", timeout=1)
         
         if data.empty or len(data) < 5:  # Consider requiring minimum number of data points
             # Fallback to SPY if current symbol fails
@@ -355,7 +383,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
         
         # Cache non-intraday data for faster ticker switching (don't cache intraday as it needs real-time updates)
         if period not in ["1d", "yesterday"]:
-            _cache_data(symbol, period, full_data, start_date, end_date, is_minute_data)
+            _cache_data(symbol, period, full_data, start_date, end_date, is_minute_data, frequency)
         
         # After indicator calculation, we'll trim to the requested period
         return full_data, start_date, end_date, is_minute_data
@@ -387,6 +415,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None):
 
 # Function to calculate technical indicators with custom parameters
 def calculate_indicators(df, ema_periods=[13, 26], macd_fast=12, macd_slow=26, macd_signal=9, force_smoothing=2, adx_period=13, stoch_period=5, rsi_period=13, fast_mode=False):
+    """Calculate technical indicators with optimized performance for Triple Screen approach"""
     """Calculate technical indicators for the stock data with custom parameters
     fast_mode: If True, calculates only essential indicators for faster ticker switching"""
     try:
@@ -749,12 +778,12 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
         # Get extended data for proper indicator calculation
         try:
             # Check cache first
-            cached_result = _get_cached_data(symbol, timeframe)
+            cached_result = _get_cached_data(symbol, timeframe, frequency)
             if cached_result is not None:
                 full_data, start_date, end_date, is_minute_data = cached_result
             else:
                 full_data, start_date, end_date, is_minute_data = get_stock_data(symbol, timeframe, frequency)
-                _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data)  # Cache the result
+                _cache_data(symbol, timeframe, full_data, start_date, end_date, is_minute_data, frequency)  # Cache the result
         except Exception as data_error:
             full_data, start_date, end_date, is_minute_data = get_stock_data("SPY", timeframe, frequency)  # Fall back to SPY
             error_msg = [
@@ -770,7 +799,8 @@ def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_si
             return [], [], "alert alert-warning fade show d-none"  # Hidden error class
         
         # Calculate indicators on full dataset (use fast mode for quicker ticker switching)
-        fast_mode = len(full_data) > 1000  # Use fast mode for large datasets to speed up calculations
+        # Optimize for Triple Screen approach - use fast mode more aggressively
+        fast_mode = len(full_data) > 500  # Reduced threshold for faster processing  # Use fast mode for large datasets to speed up calculations
         
         # For intraday data (1d and yesterday), we need to separate display data from indicator calculation data
         # This ensures all indicators have sufficient historical data to calculate properly from market open
@@ -875,8 +905,18 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                 if first_day == last_day:
                     is_intraday = True
         
-        # Create figure with dark theme
+        # Create figure with dark theme and performance optimization
         fig = go.Figure()
+        
+        # Performance optimization: Reduce data points for large datasets to improve rendering speed
+        # This is especially important for Triple Screen approach with different frequencies
+        if len(df) > 1000:
+            # For large datasets, sample every nth point to reduce rendering load
+            # Keep more recent data points for better detail
+            sample_rate = max(1, len(df) // 1000)  # Aim for ~1000 points max
+            df_display = df.iloc[::sample_rate].copy()
+        else:
+            df_display = df.copy()
         
         # Add different chart types based on selection
         if chart_type == 'candlestick':
@@ -918,11 +958,11 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
                 # Standard candlestick without impulse system
                 fig.add_trace(
                     go.Candlestick(
-                        x=df['Date'],
-                        open=df['Open'],
-                        high=df['High'],
-                        low=df['Low'],
-                        close=df['Close'],
+                        x=df_display['Date'],
+                        open=df_display['Open'],
+                        high=df_display['High'],
+                        low=df_display['Low'],
+                        close=df_display['Close'],
                         name=symbol,
                         increasing_line_color='#00ff88',  # Green for up candles
                         decreasing_line_color='#ff4444',  # Red for down candles
@@ -1481,6 +1521,7 @@ def update_consolidated_chart(data, symbol, chart_type, adx_components, volume_c
     return fig
 
 def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, volume_comparison=None, relayout_data=None, timeframe=None, use_impulse_system=False, bollinger_bands=None, autoenvelope=None):
+    """Update combined chart with performance optimization for Triple Screen approach"""
     """Update a combined chart with main price chart on top and indicator chart below"""
     try:
         if not data:
