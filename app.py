@@ -1967,8 +1967,7 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
 @callback(
     [Output('scan-status', 'children'),
      Output('scanner-results-area', 'children'),
-     Output('scanner-results-area', 'className'),
-     Output('combined-chart', 'style', allow_duplicate=True)],
+     Output('scanner-results-area', 'className')],
     [Input('start-scan-button', 'n_clicks')],
     [State('elder-filters', 'value'),
      State('rsi-preset', 'value'),
@@ -2100,17 +2099,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             return (
                 dbc.Alert("❌ No stocks found matching your criteria. Try adjusting your filters.", color="warning"),
                 [],
-                'd-none',  # Hide scanner results area
-                {
-                    'backgroundColor': '#000000', 
-                    'height': '90vh',
-                    'position': 'absolute',
-                    'top': '0',
-                    'left': '0',
-                    'width': '100%',
-                    'zIndex': 1,
-                    'display': 'block'
-                }  # Show normal chart
+                'd-none'  # Hide scanner results area
             )
         
         # Create results table
@@ -2331,32 +2320,14 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             ], style={'marginBottom': '0', 'fontSize': '12px', 'fontStyle': 'italic'})
         ], color="info", className="mb-2")
         
-        return success_msg, [instructions, table], 'd-block', {
-            'backgroundColor': '#000000', 
-            'height': '90vh',
-            'position': 'absolute',
-            'top': '0',
-            'left': '0',
-            'width': '100%',
-            'zIndex': 1,
-            'display': 'none'
-        }
+        return success_msg, [instructions, table], 'd-block'
         
     except Exception as e:
         error_msg = dbc.Alert([
             html.H6("❌ Scan Failed", style={'marginBottom': '10px'}),
             html.P(f"Error: {str(e)}", style={'marginBottom': '0', 'fontSize': '14px'})
         ], color="danger")
-        return error_msg, [], 'd-none', {
-            'backgroundColor': '#000000', 
-            'height': '90vh',
-            'position': 'absolute',
-            'top': '0',
-            'left': '0',
-            'width': '100%',
-            'zIndex': 1,
-            'display': 'block'
-        }
+        return error_msg, [], 'd-none'
 
 # Callback to load clicked symbol into main chart and switch back to chart view
 # Callback to load clicked symbol into main chart and switch back to chart view
@@ -2364,8 +2335,6 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
     [Output('stock-symbol-input', 'value', allow_duplicate=True),
      Output('current-symbol-store', 'data', allow_duplicate=True),
      Output('timeframe-dropdown', 'value', allow_duplicate=True),
-     Output('scanner-results-area', 'className', allow_duplicate=True),
-     Output('combined-chart', 'style', allow_duplicate=True),
      Output('sidebar-tabs', 'active_tab', allow_duplicate=True)],
     [Input('scan-results-table', 'active_cell')],
     [State('scan-results-table', 'data')],
@@ -2383,17 +2352,6 @@ def load_symbol_from_scanner(active_cell, table_data):
                 clean_symbol,                                        # Update symbol input
                 clean_symbol,                                        # Update symbol store
                 '6mo',                                               # Set timeframe to 6 months
-                'd-none',                                            # Hide scanner results
-                {
-                    'backgroundColor': '#000000', 
-                    'height': '90vh',
-                    'position': 'absolute',
-                    'top': '0',
-                    'left': '0',
-                    'width': '100%',
-                    'zIndex': 1,
-                    'display': 'block'
-                },   # Show chart
                 'stock-search-tab'                                   # Switch to stock search tab
             )
     raise PreventUpdate
@@ -2402,8 +2360,6 @@ def load_symbol_from_scanner(active_cell, table_data):
     [Output('stock-symbol-input', 'value', allow_duplicate=True),
      Output('current-symbol-store', 'data', allow_duplicate=True),
      Output('timeframe-dropdown', 'value', allow_duplicate=True),
-     Output('scanner-results-area', 'className', allow_duplicate=True),
-     Output('combined-chart', 'style', allow_duplicate=True),
      Output('sidebar-tabs', 'active_tab', allow_duplicate=True)],
     [Input('watchlist-results-table', 'active_cell')],
     [State('watchlist-results-table', 'data')],
@@ -2423,17 +2379,6 @@ def load_symbol_from_watchlist(active_cell, table_data):
             clean_symbol,                                        # Update symbol input
             clean_symbol,                                        # Update symbol store
             '6mo',                                               # Set timeframe to 6 months
-            'd-none',                                            # Hide scanner results
-            {
-                'backgroundColor': '#000000', 
-                'height': '90vh',
-                'position': 'absolute',
-                'top': '0',
-                'left': '0',
-                'width': '100%',
-                'zIndex': 1,
-                'display': 'block'
-            },   # Show chart
             'stock-search-tab'                                   # Switch to stock search tab
         )
     raise PreventUpdate
@@ -2599,8 +2544,7 @@ def preload_open_positions_on_startup(n_intervals):
 @callback(
     [Output('scan-status', 'children', allow_duplicate=True),
      Output('scanner-results-area', 'children', allow_duplicate=True),
-     Output('scanner-results-area', 'className', allow_duplicate=True),
-     Output('combined-chart', 'style', allow_duplicate=True)],
+     Output('scanner-results-area', 'className', allow_duplicate=True)],
     [Input('load-watchlist-button', 'n_clicks')],
     [State('watchlist-store', 'data')],
     prevent_initial_call=True,
@@ -2687,17 +2631,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
             return (
                 dbc.Alert("❌ No data found for watchlist symbols. Check if symbols are valid.", color="warning"),
                 [],
-                'd-none',
-                {
-                    'backgroundColor': '#000000', 
-                    'height': '90vh',
-                    'position': 'absolute',
-                    'top': '0',
-                    'left': '0',
-                    'width': '100%',
-                    'zIndex': 1,
-                    'display': 'block'
-                }
+                'd-none'
             )
         
         # Create results table (same logic as regular scanner)
@@ -2864,37 +2798,17 @@ def load_watchlist_scan(n_clicks, watchlist_data):
         return (
             success_msg,
             [table],
-            'd-block',
-            {
-                'backgroundColor': '#000000', 
-                'height': '90vh',
-                'position': 'absolute',
-                'top': '0',
-                'left': '0',
-                'width': '100%',
-                'zIndex': 1000,
-                'display': 'none'
-            }
+            'd-block'
         )
         
     except Exception as e:
         return (
             dbc.Alert(f"❌ Error loading watchlist: {str(e)}", color="danger"),
             [],
-            'd-none',
-            {
-                'backgroundColor': '#000000', 
-                'height': '90vh',
-                'position': 'absolute',
-                'top': '0',
-                'left': '0',
-                'width': '100%',
-                'zIndex': 1,
-                'display': 'block'
-            }
+            'd-none'
         )
 
-# Callback to switch back to chart view when changing tabs
+# Callback to switch between scanner results and chart view based on active tab
 @callback(
     [Output('scanner-results-area', 'className', allow_duplicate=True),
      Output('combined-chart', 'style', allow_duplicate=True)],
@@ -2902,8 +2816,21 @@ def load_watchlist_scan(n_clicks, watchlist_data):
     prevent_initial_call=True
 )
 def switch_view_on_tab_change(active_tab):
-    """Switch back to chart view when changing away from scanner tab"""
-    if active_tab != 'scanner-tab':
+    """Switch between scanner results and chart view based on active tab"""
+    if active_tab == 'scanner-tab':
+        # Show scanner results area and hide chart when on scanner tab
+        return 'd-block', {
+            'backgroundColor': '#000000', 
+            'height': '90vh',
+            'position': 'absolute',
+            'top': '0',
+            'left': '0',
+            'width': '100%',
+            'zIndex': 1,
+            'display': 'none'
+        }
+    else:
+        # Show chart and hide scanner results for all other tabs
         return 'd-none', {
             'backgroundColor': '#000000', 
             'height': '90vh',
@@ -2914,7 +2841,6 @@ def switch_view_on_tab_change(active_tab):
             'zIndex': 1,
             'display': 'block'
         }
-    raise PreventUpdate
 
 # === IRL TRADE CALLBACKS (CSV version) ===
 
