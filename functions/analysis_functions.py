@@ -935,29 +935,26 @@ def update_main_chart(data, symbol, chart_type, show_ema, ema_periods, atr_bands
         ema_periods = ema_periods or [13, 26]
         atr_bands = atr_bands or []
         
+        # Detect if data contains intraday (minute) timepoints
+        is_intraday = timeframe in ['1d', 'yesterday'] 
+        if not is_intraday and len(df) > 1:
+            time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
+            is_intraday = time_diff < 24*60*60
+            if len(df) > 30:
+                first_day = df['Date'].iloc[0].date()
+                last_day = df['Date'].iloc[-1].date()
+                if first_day == last_day:
+                    is_intraday = True
+        # Mask unreliable indicators for intraday
+        if is_intraday:
+            df = mask_unreliable_indicators(df, ema_periods)
+        
         # Process Impulse System if enabled (for candlestick charts only)
         impulse_df = None
         if use_impulse_system and chart_type == 'candlestick' and len(df) > 1:
             # Import here to avoid circular imports
             from .impulse_functions import calculate_impulse_system
             impulse_df = calculate_impulse_system(df, ema_period=ema_periods[0] if ema_periods else 13)
-        
-        # Detect if data contains intraday (minute) timepoints
-        # First check if timeframe is explicitly intraday
-        is_intraday = timeframe in ['1d', 'yesterday'] 
-        
-        # If timeframe parameter isn't available, fall back to data frequency detection
-        if not is_intraday and len(df) > 1:
-            # Check if time difference between points is less than a day
-            time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
-            is_intraday = time_diff < 24*60*60
-            
-            # Additional check: if data has more than 30 points in a single day, it's likely intraday
-            if len(df) > 30:
-                first_day = df['Date'].iloc[0].date()
-                last_day = df['Date'].iloc[-1].date()
-                if first_day == last_day:
-                    is_intraday = True
         
         # Create figure with dark theme
         fig = go.Figure()
@@ -1586,6 +1583,27 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
         bollinger_bands = bollinger_bands or {'show': False, 'period': 26, 'stddev': 2}
         autoenvelope = autoenvelope or {'show': False, 'period': 26, 'percent': 6}
         
+        # Detect if data contains intraday (minute) timepoints
+        is_intraday_timeframe = timeframe in ['1d', 'yesterday']
+        is_intraday_data = False
+        if len(df) > 2:
+            time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
+            is_intraday_data = time_diff < 3600  # Less than 1 hour between points
+        is_intraday = is_intraday_timeframe or is_intraday_data
+        # Mask unreliable indicators for intraday
+        if is_intraday:
+            # Try to get periods from arguments or use defaults
+            macd_slow = 26
+            rsi_period = 13
+            stoch_period = 5
+            adx_period = 13
+            # Try to get from bollinger_bands/autoenvelope if present
+            if 'period' in bollinger_bands:
+                rsi_period = bollinger_bands.get('period', rsi_period)
+            if 'period' in autoenvelope:
+                stoch_period = autoenvelope.get('period', stoch_period)
+            df = mask_unreliable_indicators(df, ema_periods, macd_slow=macd_slow, rsi_period=rsi_period, stoch_period=stoch_period, adx_period=adx_period)
+        
         # Handle empty data (e.g., when market is closed for 1D view)
         if df.empty:
             fig = go.Figure()
@@ -1618,19 +1636,6 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
             )
             
             return fig, {'display': 'none'}, 'd-block'
-        
-        # Check if we are using 1D timeframe (based on data frequency)
-        # Determine if this is intraday data using both timeframe parameter and data frequency
-        is_intraday_timeframe = timeframe in ['1d', 'yesterday']
-        
-        # Also check data frequency as a backup method
-        is_intraday_data = False
-        if len(df) > 2:
-            time_diff = (df['Date'].iloc[1] - df['Date'].iloc[0]).total_seconds()
-            is_intraday_data = time_diff < 3600  # Less than 1 hour between points
-            
-        # Use either method to determine if it's intraday
-        is_intraday = is_intraday_timeframe or is_intraday_data
         
         # Create subplots with shared x-axis
         fig = make_subplots(
@@ -3001,3 +3006,30 @@ def calculate_appropriate_period(base_period, timeframe, frequency=None):
     max_bars = min(100, int((14 * 6.5 * 60) / minutes))  # 2 weeks max
     bars_needed = max(5, min(bars_needed, max_bars))
     return bars_needed
+
+def mask_unreliable_indicators(df, ema_periods, macd_slow=26, rsi_period=13, stoch_period=5, adx_period=13):
+    """
+    For intraday charts, mask the first N bars of each indicator (set to np.nan) where N is the lookback period.
+    """
+    import numpy as np
+    # EMA
+    for period in ema_periods:
+        col = f'EMA_{period}'
+        if col in df.columns:
+            df.loc[:period-1, col] = np.nan
+    # MACD (slow period is the main lookback)
+    for col in ['MACD', 'MACD_signal', 'MACD_hist']:
+        if col in df.columns:
+            df.loc[:macd_slow-1, col] = np.nan
+    # RSI
+    if 'RSI' in df.columns:
+        df.loc[:rsi_period-1, 'RSI'] = np.nan
+    # Stochastic
+    for col in ['Stoch_K', 'Stoch_D']:
+        if col in df.columns:
+            df.loc[:stoch_period-1, col] = np.nan
+    # ADX, DI+, DI-
+    for col in ['ADX', 'DI_plus', 'DI_minus']:
+        if col in df.columns:
+            df.loc[:adx_period-1, col] = np.nan
+    return df
