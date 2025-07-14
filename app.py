@@ -1209,19 +1209,7 @@ app.layout = dbc.Container([
                             'border': '1px solid #333',
                             'zIndex': 1002
                         },
-                        children=[
-                            html.H2("The market for this stock is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
-                            html.H5("Try again during market hours, or view 5-year weekly data.", 
-                                   style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
-                            html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
-                                dbc.Button(
-                                    "📅 View 5Y/1WK",
-                                    id="view-5y-btn",
-                                    color="info",
-                                    outline=True
-                                )
-                            ])
-                        ]
+                        children=[]  # Will be set dynamically in callback
                     ),
                     # Scanner Results Area (hidden by default, positioned absolutely)
                     html.Div(
@@ -1502,6 +1490,7 @@ def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast
     [Output('combined-chart', 'figure'),
      Output('combined-chart', 'style'),
      Output('market-closed-message', 'className'),
+     Output('market-closed-message', 'children'),
      Output('intraday-warning-message', 'children'),
      Output('intraday-warning-message', 'className')],
     [Input('stock-data-store', 'data'),
@@ -1550,14 +1539,29 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
     # Always show the Today view, even if empty
     if timeframe == '1d' and (not data or len(data) == 0):
         empty_fig = go.Figure()
-        return empty_fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-block', unreliable_warning, unreliable_class
+        # Dynamic closed market message with symbol
+        closed_msg_children = [
+            html.H2(f"The market for {symbol or 'this stock'} is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
+            html.H5("Try again during market hours, or view 5-year weekly data.", 
+                   style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
+            html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
+                dbc.Button(
+                    "📅 View 5Y/1WK",
+                    id="view-5y-btn",
+                    color="info",
+                    outline=True
+                )
+            ])
+        ]
+        return empty_fig, {'backgroundColor': '#000000', 'height': '90vh'}, 'd-block', closed_msg_children, unreliable_warning, unreliable_class
     else:
         fig, style, market_closed = update_combined_chart(
             data, symbol, chart_type, show_ema, ema_periods, atr_bands, 
             lower_chart_type, adx_components, volume_comparison, relayout_data, 
             timeframe, frequency, use_impulse_system, bollinger_bands, autoenvelope
         )
-        return fig, style, market_closed, unreliable_warning, unreliable_class
+        # When not closed, hide the message
+        return fig, style, market_closed, [], unreliable_warning, unreliable_class
 
 # Callback to hide EMA options for 1D timeframe
 @callback(
