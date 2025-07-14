@@ -67,8 +67,8 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
         if not symbol or not all(c.isalnum() or c in ['-', '.', '/', '^', '='] for c in symbol):
             return pd.DataFrame(), pd.Timestamp.now(), pd.Timestamp.now(), False  # Return empty DataFrame instead of falling back to SPY
         
-        # Check if intraday (1d or yesterday) data is requested
-        is_intraday = period in ["1d", "yesterday"]
+        # Check if intraday (1d) data is requested
+        is_intraday = period == "1d"
         
         # Improved US stock detection: only restrict for true US stocks (all uppercase/numbers, no special chars, or ends with .US)
         def _is_us_stock(symbol):
@@ -227,135 +227,10 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
         
         # Handle intraday data differently - get minute data for 1-day period
         if is_intraday:
-            # Special handling for "yesterday" period - always fetch previous trading day data
-            if period == "yesterday":
-                # Skip to the "yesterday" handling logic later in the function
-                pass
-            else:
-                # For 1D view: Show empty chart when market is closed, real-time data when open
-                if is_us_stock:
-                    if is_weekend:
-                        # Return empty dataset when it's weekend
-                        empty_df = pd.DataFrame({
-                            'Date': [],
-                            'Open': [],
-                            'High': [],
-                            'Low': [],
-                            'Close': [],
-                            'Volume': []
-                        })
-                        start_date = now_cest
-                        end_date = now_cest
-                        is_minute_data = True
-                        return empty_df, start_date, end_date, is_minute_data
-                    elif is_pre_market or is_after_market:
-                        # During trading days but outside market hours, return empty dataset
-                        # This ensures we only show data during active market hours
-                        empty_df = pd.DataFrame({
-                            'Date': [],
-                            'Open': [],
-                            'High': [],
-                            'Low': [],
-                            'Close': [],
-                            'Volume': []
-                        })
-                        start_date = now_cest
-                        end_date = now_cest
-                        is_minute_data = True
-                        return empty_df, start_date, end_date, is_minute_data
-                # For non-US stocks, do NOT restrict by US market hours; just fetch whatever yfinance returns
-                # Market is open - fetch real-time minute data for today only
-                
-                # Fetch minute data using yfinance - Include PREVIOUS DAYS' data for proper indicator calculation
-                ticker = yf.Ticker(symbol)
-                try:
-                    # Check if we need custom resampling (8m, 39m, etc.)
-                    custom_intervals = ['8m', '25m', '39m']
-                    needs_resampling = frequency in custom_intervals
-                    
-                    # Always fetch 1m data for custom intervals, then resample
-                    if needs_resampling:
-                        interval_arg = "1m"
-                    else:
-                        interval_arg = frequency if frequency else "1m"
-                    
-                    # For intraday, fetch 5 days of minute data to include previous market periods
-                    # This ensures indicators have enough historical data to calculate properly from market open
-                    data = ticker.history(period="5d", interval=interval_arg, timeout=3)  # Reduced timeout for faster loading
-                    
-                    # Convert timestamps to CEST timezone for display
-                    data.reset_index(inplace=True)
-                    
-                    # Handle the Date/Datetime column and convert to CEST
-                    if 'Datetime' in data.columns:
-                        data = data.rename(columns={'Datetime': 'Date'})
-                    
-                    # Convert from ET to CEST
-                    # yfinance intraday data comes in ET timezone
-                    # EDT is UTC-4, so to convert to CEST (UTC+2): add 6 hours
-                    # EST is UTC-5, so to convert to CEST (UTC+1): add 6 hours (winter)
-                    # For July 2025, we're in summer time, so EDT to CEST = +6 hours
-                    data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
-                    data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
-                    
-                    # Apply custom resampling if needed
-                    if needs_resampling:
-                        data = resample_to_custom_interval(data, frequency)
-                    
-                    # Store the full dataset for indicator calculation
-                    full_data_for_indicators = data.copy()
-                    
-                    # Filter to only show data from today in CEST for display
-                    today_cest = now_cest.date()
-                    if (
-                        isinstance(data, pd.DataFrame)
-                        and 'Date' in data.columns
-                        and pd.api.types.is_datetime64_any_dtype(data['Date'])
-                    ):
-                        display_data = data[data['Date'].dt.date == today_cest]
-                    else:
-                        display_data = data
-                    
-                    if display_data.empty:
-                        empty_df = pd.DataFrame({
-                            'Date': [],
-                            'Open': [],
-                            'High': [],
-                            'Low': [],
-                            'Close': [],
-                            'Volume': []
-                        })
-                        start_date = now_cest
-                        end_date = now_cest
-                        is_minute_data = True
-                        return empty_df, start_date, end_date, is_minute_data
-                        
-                    # Use display_data for UI but keep all data for indicator calculation
-                    data = display_data
-                    
-                    if data.empty:
-                        empty_df = pd.DataFrame({
-                            'Date': [],
-                            'Open': [],
-                            'High': [],
-                            'Low': [],
-                            'Close': [],
-                            'Volume': []
-                        })
-                        start_date = now_cest
-                        end_date = now_cest
-                        is_minute_data = True
-                        return empty_df, start_date, end_date, is_minute_data
-                    
-                    # Set start and end dates for the display
-                    start_date = data['Date'].min()
-                    end_date = data['Date'].max()
-                    is_minute_data = True
-                    
-                    return data, start_date, end_date, is_minute_data
-                    
-                except Exception as e:
-                    # Return empty dataset on error
+            # For 1D view: Show empty chart when market is closed, real-time data when open
+            if is_us_stock:
+                if is_weekend:
+                    # Return empty dataset when it's weekend
                     empty_df = pd.DataFrame({
                         'Date': [],
                         'Open': [],
@@ -368,6 +243,107 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                     end_date = now_cest
                     is_minute_data = True
                     return empty_df, start_date, end_date, is_minute_data
+                elif is_pre_market or is_after_market:
+                    # During trading days but outside market hours, return empty dataset
+                    # This ensures we only show data during active market hours
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+            # For non-US stocks, do NOT restrict by US market hours; just fetch whatever yfinance returns
+            # Market is open - fetch real-time minute data for today only
+            # Fetch minute data using yfinance - Include PREVIOUS DAYS' data for proper indicator calculation
+            ticker = yf.Ticker(symbol)
+            try:
+                # Check if we need custom resampling (8m, 39m, etc.)
+                custom_intervals = ['8m', '25m', '39m']
+                needs_resampling = frequency in custom_intervals
+                # Always fetch 1m data for custom intervals, then resample
+                if needs_resampling:
+                    interval_arg = "1m"
+                else:
+                    interval_arg = frequency if frequency else "1m"
+                # For intraday, fetch 5 days of minute data to include previous market periods
+                # This ensures indicators have enough historical data to calculate properly from market open
+                data = ticker.history(period="5d", interval=interval_arg, timeout=3)  # Reduced timeout for faster loading
+                # Convert timestamps to CEST timezone for display
+                data.reset_index(inplace=True)
+                # Handle the Date/Datetime column and convert to CEST
+                if 'Datetime' in data.columns:
+                    data = data.rename(columns={'Datetime': 'Date'})
+                # Convert from ET to CEST
+                data['Date'] = pd.to_datetime(data['Date']).dt.tz_localize(None)
+                data['Date'] = data['Date'] + timedelta(hours=6)  # Convert EDT to CEST
+                # Apply custom resampling if needed
+                if needs_resampling:
+                    data = resample_to_custom_interval(data, frequency)
+                # Store the full dataset for indicator calculation
+                full_data_for_indicators = data.copy()
+                # Filter to only show data from today in CEST for display
+                today_cest = now_cest.date()
+                if (
+                    isinstance(data, pd.DataFrame)
+                    and 'Date' in data.columns
+                    and pd.api.types.is_datetime64_any_dtype(data['Date'])
+                ):
+                    display_data = data[data['Date'].dt.date == today_cest]
+                else:
+                    display_data = data
+                if display_data.empty:
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                # Use display_data for UI but keep all data for indicator calculation
+                data = display_data
+                if data.empty:
+                    empty_df = pd.DataFrame({
+                        'Date': [],
+                        'Open': [],
+                        'High': [],
+                        'Low': [],
+                        'Close': [],
+                        'Volume': []
+                    })
+                    start_date = now_cest
+                    end_date = now_cest
+                    is_minute_data = True
+                    return empty_df, start_date, end_date, is_minute_data
+                # Set start and end dates for the display
+                start_date = data['Date'].min()
+                end_date = data['Date'].max()
+                is_minute_data = True
+                return data, start_date, end_date, is_minute_data
+            except Exception as e:
+                # Return empty dataset on error
+                empty_df = pd.DataFrame({
+                    'Date': [],
+                    'Open': [],
+                    'High': [],
+                    'Low': [],
+                    'Close': [],
+                    'Volume': []
+                })
+                start_date = now_cest
+                end_date = now_cest
+                is_minute_data = True
+                return empty_df, start_date, end_date, is_minute_data
         else:
             # Calculate optimized period for faster loading while maintaining indicator accuracy
             # Reduced extended periods for faster ticker switching
@@ -476,7 +452,7 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                     is_minute_data = median_diff_seconds < 600  # 10 minutes in seconds
         
         # Cache non-intraday data for faster ticker switching (don't cache intraday as it needs real-time updates)
-        if period not in ["1d", "yesterday"]:
+        if period != "1d":
             _cache_data(symbol, period, full_data, start_date, end_date, is_minute_data)
         
         # After indicator calculation, we'll trim to the requested period
@@ -2843,7 +2819,7 @@ def update_indicator_options(timeframe):
     ema_style = {'display': 'block'}
     
     # Lower chart options - remove Force Index for intraday
-    is_intraday = timeframe in ['1d', 'yesterday']
+    is_intraday = timeframe == '1d'
     if is_intraday:
         lower_options = [
             {'label': '📊 Volume', 'value': 'volume'},
@@ -2992,20 +2968,18 @@ def calculate_appropriate_period(base_period, timeframe, frequency=None):
     
     Args:
         base_period: The base period (e.g., 26 for daily data)
-        timeframe: The timeframe ('1d', 'yesterday', '6mo', '1y', etc.)
+        timeframe: The timeframe ('1d', '6mo', '1y', etc.)
         frequency: The frequency ('1m', '5m', '8m', '15m', '25m', '30m', '39m', etc.)
     
     Returns:
         Adjusted period appropriate for the timeframe
     """
     # For daily and longer timeframes, use the base period as-is
-    if timeframe not in ['1d', 'yesterday']:
+    if timeframe != '1d':
         return base_period
-    
     # For intraday data, we need to scale the period based on frequency
     if not frequency or frequency == '1d':
         return base_period
-    
     # Convert frequency to minutes
     if frequency.endswith('m'):
         try:
@@ -3016,18 +2990,14 @@ def calculate_appropriate_period(base_period, timeframe, frequency=None):
         minutes = 60
     else:
         minutes = 1
-    
     # For intraday, we want to maintain roughly the same time coverage
     # A 26-period daily indicator covers about 26 days = 26 * 6.5 hours = 169 hours
     # For intraday, we want to cover roughly the same time period
     target_hours = base_period * 6.5  # 6.5 hours per trading day
-    
     # Calculate how many bars we need to cover the same time period
     bars_needed = int((target_hours * 60) / minutes)
-    
     # Ensure minimum and maximum reasonable values
     # For intraday, we want to cover roughly 1-2 weeks of trading time
     max_bars = min(100, int((14 * 6.5 * 60) / minutes))  # 2 weeks max
     bars_needed = max(5, min(bars_needed, max_bars))
-    
     return bars_needed

@@ -668,7 +668,6 @@ app.layout = dbc.Container([
                                                     id='timeframe-dropdown',
                                                     options=[
                                                         {'label': '📅 Today', 'value': '1d'},
-                                                        {'label': '📅 Previous Market Period', 'value': 'yesterday'},
                                                         {'label': '📅 6 Months', 'value': '6mo'},
                                                         {'label': '📅 Year to Date', 'value': 'ytd'},
                                                         {'label': '📅 1 Year', 'value': '1y'},
@@ -1212,13 +1211,13 @@ app.layout = dbc.Container([
                         },
                         children=[
                             html.H2("The market for this stock is currently closed or not available.", style={'color': '#ff4444', 'textAlign': 'center', 'marginBottom': '20px'}),
-                            html.H5("Try again during market hours, or view the previous session.", 
+                            html.H5("Try again during market hours, or view 5-year weekly data.", 
                                    style={'color': '#ccc', 'textAlign': 'center', 'fontWeight': 'normal'}),
                             html.Div(style={'marginTop': '30px', 'textAlign': 'center'}, children=[
                                 dbc.Button(
-                                    "⏮️ View Previous Session",
-                                    id="view-yesterday-btn",
-                                    color="danger",
+                                    "📅 View 5Y/1WK",
+                                    id="view-5y-btn",
+                                    color="info",
                                     outline=True
                                 )
                             ])
@@ -1638,14 +1637,15 @@ def toggle_sidebar_and_resize(n_clicks, is_open):
 
 # Callback for "View Previous Session" button in the market closed message
 @callback(
-    Output('timeframe-dropdown', 'value', allow_duplicate=True),
-    [Input('view-yesterday-btn', 'n_clicks')],
+    [Output('timeframe-dropdown', 'value', allow_duplicate=True),
+     Output('frequency-dropdown', 'value', allow_duplicate=True)],
+    [Input('view-5y-btn', 'n_clicks')],
     prevent_initial_call=True
 )
-def view_yesterday_callback(n_clicks):
-    """Switch to yesterday's data when the button is clicked"""
+def view_5y_callback(n_clicks):
+    """Switch to 5-year weekly data when the button is clicked"""
     if n_clicks:
-        return 'yesterday'
+        return '5y', '1wk'
     raise PreventUpdate
 
 # Callback for loading indicator with timestamp - simplified
