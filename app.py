@@ -3337,10 +3337,18 @@ def list_irl_open_positions(data):
         amt = df.at[idx, 'amount_invested']
         stop = df.at[idx, 'stop_price']
         target = df.at[idx, 'target_price']
+        side = df.at[idx, 'side'] if 'side' in df.columns else 'buy'
+        # Color: green for buy, red for sell
+        if str(side).lower() == 'buy':
+            pos_color = '#00ff88'
+        elif str(side).lower() == 'sell':
+            pos_color = '#ff4444'
+        else:
+            pos_color = '#fff'
         items.append(
             dbc.Row([
                 dbc.Col([
-                    html.Div(f"{stock} | Amount: {amt} | Stop: {stop} | Target: {target}"),
+                    html.Div(f"{stock} | Amount: {amt} | Stop: {stop} | Target: {target}", style={'color': pos_color, 'fontWeight': 'bold'}),
                     dbc.Row([
                         dbc.Col([
                             dbc.Input(
