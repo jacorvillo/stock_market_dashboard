@@ -1,5 +1,5 @@
-equity,open_positions,amount_invested,stop_price,value_at_entry,stocks_in_positions,stock_price_at_entry,stock_price_at_close,net_gain_loss_amount,net_gain_loss_percent,target_price,side,stop_hit,stop_hit_price
+equity,open_positions,amount_invested,stop_price,value_at_entry,stocks_in_positions,stock_price_at_entry,stock_price_at_close,net_gain_loss_amount,net_gain_loss_percent,target_price,stop_hit,stop_hit_price,side
 1000.0,,,,,,,,,,,,,
-1020.0,1.0,20.0,1250.59,20.0,NFLX,20.0,,,,1175.0,sell,False,
-1040.0,1.0,20.0,13.35,20.0,BBVA.MC,20.0,,,,12.5,sell,False,
-1020.0,1.0,20.0,82.26,20.0,MRK,20.0,,,,85.0,buy,False,
+980.0,1.0,20.0,82.5,20.0,MRK,20.0,,,,85.0,False,,buy
+1000.0,1.0,20.0,122.0,20.0,MU,20.0,,,,115.0,False,,sell
+1020.0,1.0,20.0,1289.6,20.0,NFLX,20.0,,,,1225.0,False,,sell

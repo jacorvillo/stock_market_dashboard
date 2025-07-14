@@ -10,7 +10,7 @@ FIELDS = [
     'equity',
     'open_positions',
     'amount_invested',
-    'side',  # Field to store buy/sell as string
+    # 'side',  # Remove from FIELDS, handle separately
     'stop_price',
     'value_at_entry',
     'stocks_in_positions',
@@ -366,7 +366,6 @@ def open_position(df, stock, amount, price_at_entry, stop_price, target_price, s
     new_row['equity'] = float(new_equity)
     new_row['open_positions'] = 1.0
     new_row['amount_invested'] = amount
-    new_row['side'] = str(side)  # Ensure side is stored as string
     new_row['stop_price'] = stop_price
     new_row['value_at_entry'] = amount
     new_row['stocks_in_positions'] = stock
@@ -377,7 +376,10 @@ def open_position(df, stock, amount, price_at_entry, stop_price, target_price, s
     new_row['target_price'] = target_price
     new_row['stop_hit'] = False
     new_row['stop_hit_price'] = np.nan
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    # Create DataFrame row and set 'side' as string after
+    new_row_df = pd.DataFrame([new_row])
+    new_row_df['side'] = str(side)
+    df = pd.concat([df, new_row_df], ignore_index=True)
     save_trading_df(df)
     return df
 
@@ -467,10 +469,10 @@ def close_position(df, stock, price_at_close):
     # Calculate value at close and gain/loss
     if side == 'buy':
         value_at_close = shares * actual_close_price
-        gain_loss = value_at_close - amount_invested
+        gain_loss = amount_invested * (actual_close_price / price_at_entry - 1)
     else:  # sell/short
-        value_at_close = shares * (2 * price_at_entry - actual_close_price)
-        gain_loss = amount_invested - value_at_close
+        value_at_close = shares * actual_close_price
+        gain_loss = amount_invested * (1 - actual_close_price / price_at_entry)
     gain_loss_percent = (gain_loss / amount_invested) * 100 if amount_invested != 0 else 0
     # Update the closed position fields
     df.at[idx, 'stock_price_at_close'] = actual_close_price
@@ -479,12 +481,12 @@ def close_position(df, stock, price_at_close):
     df.at[idx, 'open_positions'] = 0.0
     # Update equity
     last_equity = df['equity'].iloc[-1]
-    if side == 'buy':
-        new_equity = last_equity + value_at_close
-    else:
-        new_equity = last_equity - value_at_close
+    # Only add/subtract the gain/loss, not the full value_at_close
+    new_equity = last_equity + gain_loss
     new_row = {f: np.nan for f in FIELDS}
-    new_row['equity'] = float(new_equity)
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    new_row_df = pd.DataFrame([new_row])
+    new_row_df['side'] = str(side)
+    new_row_df['equity'] = float(new_equity)
+    df = pd.concat([df, new_row_df], ignore_index=True)
     save_trading_df(df)
     return df 
