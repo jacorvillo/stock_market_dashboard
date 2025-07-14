@@ -48,6 +48,9 @@ from functions.insights_functions import TechnicalInsights, generate_insights_su
 # Import IRL trading functions
 from functions.irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price, calculate_trade_apgar
 
+# Import watchlist persistence functions
+from functions.watchlist_functions import load_watchlist, add_to_watchlist, remove_from_watchlist
+
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -2627,22 +2630,17 @@ def get_open_positions_from_csv():
      State('watchlist-store', 'data')],
     prevent_initial_call=True
 )
-def add_to_watchlist(n_clicks, symbol, current_watchlist):
-    """Add a stock symbol to the watchlist"""
+def add_to_watchlist_callback(n_clicks, symbol, current_watchlist):
+    """Add a stock symbol to the watchlist and persist to file"""
     if not n_clicks or not symbol:
         raise PreventUpdate
-    
-    # Clean and validate symbol
     clean_symbol = symbol.strip().upper()
     if not clean_symbol:
         return dash.no_update, "Please enter a valid symbol.", ""
-    
-    # Check if symbol is already in watchlist
     if clean_symbol in current_watchlist:
         return dash.no_update, f"❌ {clean_symbol} is already in your watchlist.", ""
-    
-    # Add to watchlist
-    new_watchlist = current_watchlist + [clean_symbol]
+    # Add to persistent watchlist
+    new_watchlist = add_to_watchlist(clean_symbol)
     return new_watchlist, f"✅ {clean_symbol} added to watchlist!", ""
 
 @callback(
@@ -2703,35 +2701,21 @@ def update_watchlist_display(watchlist_data):
     [State('watchlist-store', 'data')],
     prevent_initial_call=True
 )
-def remove_from_watchlist(remove_clicks, current_watchlist):
-    """Remove a stock symbol from the watchlist"""
+def remove_from_watchlist_callback(remove_clicks, current_watchlist):
     if not any(remove_clicks):
         raise PreventUpdate
-    
-    # Find which button was clicked
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
-    
-    # Get the index from the triggered button
     triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
     import json
     button_data = json.loads(triggered_id)
     index = button_data['index']
-    
-    # Check if this is an open position
-    open_positions = get_open_positions_from_csv()
     if current_watchlist and 0 <= index < len(current_watchlist):
         symbol_to_remove = current_watchlist[index]
-        if symbol_to_remove in open_positions:
-            # Don't allow removal of open positions
-            return dash.no_update
-        
-        # Remove the symbol at the specified index
-        new_watchlist = current_watchlist.copy()
-        removed_symbol = new_watchlist.pop(index)
+        # Remove from persistent watchlist
+        new_watchlist = remove_from_watchlist(symbol_to_remove)
         return new_watchlist
-    
     return dash.no_update
 
 
@@ -2743,13 +2727,17 @@ def remove_from_watchlist(remove_clicks, current_watchlist):
     prevent_initial_call='initial_duplicate'
 )
 def preload_open_positions_on_startup(n_intervals):
-    """Preload open positions into watchlist on app startup"""
+    """Preload open positions and watchlist from file on app startup, ensuring open positions are always included"""
     # Only run once on startup (when n_intervals is 0)
     if n_intervals == 0:
+        # Load open positions from CSV
         open_positions = get_open_positions_from_csv()
-        if open_positions:
-            print(f"Preloading open positions into watchlist: {open_positions}")
-            return open_positions
+        # Load from persistent watchlist file
+        watchlist = load_watchlist()
+        # Merge, open positions first, then rest, no duplicates
+        seen = set(open_positions)
+        merged = open_positions + [s for s in watchlist if s not in seen]
+        return merged
     raise PreventUpdate
 
 @callback(
@@ -3073,6 +3061,26 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
+                # Trade Apgar (Sell) coloring (fix logic)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = true',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = false',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Medium/low Apgar coloring (existing)
                 {
                     'if': {
                         'filter_query': '{trade_apgar} >= 5 and {trade_apgar} < 7',
@@ -3085,6 +3093,22 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'if': {
                         'filter_query': '{trade_apgar} < 5',
                         'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 5 and {trade_apgar_sell} < 7',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00'
+                },
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} < 5',
+                        'column_id': 'trade_apgar_sell'
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
