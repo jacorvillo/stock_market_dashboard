@@ -25,7 +25,8 @@ import random
 
 # Import technical analysis functions from existing functions.py
 from .analysis_functions import calculate_indicators
-from functions.irl_trading_functions import calculate_trade_apgar
+from functions.irl_trading_functions import calculate_trade_apgar, calculate_indicators_for_apgar
+from functions.analysis_functions import get_stock_data
 
 class StockScanner:
     def __init__(self, cache_file='scanner_cache.json'):
@@ -152,16 +153,13 @@ class StockScanner:
             print(f"Error checking cache age: {e}")
             return True
     
-    def _calculate_indicators_for_symbol(self, symbol, period='6mo'):
-        """Calculate all technical indicators for a single symbol"""
+    def _calculate_indicators_for_symbol(self, symbol, period='6mo', force_refresh=False):
+        """Calculate all technical indicators for a single symbol. If force_refresh is True, always fetch fresh data and do not use cache."""
         try:
-            # Create a fresh ticker object for thread safety
+            # Always fetch fresh data for force_refresh (watchlist), else normal behavior
             ticker = yf.Ticker(symbol)
-            
-            # Special handling for Spanish stocks - they may have different data availability
             if symbol.endswith('.MC'):
-                # Spanish stocks might need longer period for sufficient data
-                data = ticker.history(period='1y')  # Use 1 year for Spanish stocks
+                data = ticker.history(period='1y')
             else:
                 data = ticker.history(period=period)
             
@@ -239,6 +237,71 @@ class StockScanner:
                     details.get('perfection', {}).get('score', 0) == 0
                 ])
             
+            # Calculate impulse system color for weekly and daily timeframes using the same logic as the chart
+            from functions.impulse_functions import calculate_impulse_system
+            # --- Weekly impulse color ---
+            try:
+                # Use the same pipeline as the chart
+                weekly_data_tuple = get_stock_data(symbol, period='6mo', frequency='1wk')
+                if isinstance(weekly_data_tuple, tuple):
+                    weekly_data = weekly_data_tuple[0]
+                else:
+                    weekly_data = weekly_data_tuple
+                if not isinstance(weekly_data, pd.DataFrame) or weekly_data.empty:
+                    impulse_weekly = 'unknown'
+                else:
+                    weekly_data = calculate_indicators(weekly_data)
+                    impulse_weekly_df = calculate_impulse_system(weekly_data, ema_period=13)
+                    if len(impulse_weekly_df) >= 1:
+                        impulse_weekly = impulse_weekly_df['impulse_color'].iloc[-1]
+                    else:
+                        impulse_weekly = 'unknown'
+            except Exception:
+                impulse_weekly = 'unknown'
+
+            # --- Daily impulse color ---
+            try:
+                # Fetch 6 months of daily data for proper indicator warmup
+                daily_data_tuple = get_stock_data(symbol, period='6mo', frequency='1d')
+                if isinstance(daily_data_tuple, tuple):
+                    daily_data = daily_data_tuple[0]
+                else:
+                    daily_data = daily_data_tuple
+                if not isinstance(daily_data, pd.DataFrame) or daily_data.empty:
+                    impulse_daily = 'unknown'
+                else:
+                    daily_data = calculate_indicators(daily_data)
+                    impulse_daily_df = calculate_impulse_system(daily_data, ema_period=13)
+                    if len(impulse_daily_df) >= 1:
+                        impulse_daily = impulse_daily_df['impulse_color'].iloc[-1]
+                    else:
+                        impulse_daily = 'unknown'
+            except Exception:
+                impulse_daily = 'unknown'
+
+            # --- Weekly MACD/RSI divergence detection ---
+            try:
+                # Fetch 3 years of weekly data for robust divergence detection (Elder: 20-40 bars)
+                weekly_div_data_tuple = get_stock_data(symbol, period='3y', frequency='1wk')
+                if isinstance(weekly_div_data_tuple, tuple):
+                    weekly_div_data = weekly_div_data_tuple[0]
+                else:
+                    weekly_div_data = weekly_div_data_tuple
+                if not isinstance(weekly_div_data, pd.DataFrame) or weekly_div_data.empty:
+                    weekly_macd_divergence = 'none'
+                    weekly_rsi_divergence = 'none'
+                else:
+                    weekly_div_data = calculate_indicators(weekly_div_data)
+                    weekly_close = weekly_div_data['Close']
+                    weekly_rsi = weekly_div_data['RSI'] if 'RSI' in weekly_div_data else None
+                    weekly_macd_hist = weekly_div_data['MACD_hist'] if 'MACD_hist' in weekly_div_data else None
+                    divergences = self._detect_divergences(weekly_close, weekly_rsi, weekly_macd_hist)
+                    weekly_macd_divergence = divergences['macd_divergence']
+                    weekly_rsi_divergence = divergences['rsi_divergence']
+            except Exception as e:
+                weekly_macd_divergence = 'none'
+                weekly_rsi_divergence = 'none'
+
             # Get latest values with explicit scalar conversion
             latest = data.iloc[-1]
             latest_close = float(latest['Close'])
@@ -268,10 +331,7 @@ class StockScanner:
                 avg_volume_20_value = float(latest_volume)
             volume_vs_avg = (float(latest_volume) / avg_volume_20_value) if avg_volume_20_value > 0 else 1.0
             
-            # Detect divergences using MACD histogram for more accurate detection
-            divergences = self._detect_divergences(close_prices, rsi, histogram)
-            
-            # Detect RSI extremes
+            # Detect RSI extremes (still on daily data)
             rsi_extreme = self._detect_rsi_extremes(rsi)
             
             # Build scanner result
@@ -287,14 +347,17 @@ class StockScanner:
                 'rsi': round(latest_rsi, 2) if not pd.isna(latest_rsi) else None,
                 'rsi_extreme': rsi_extreme,
                 'macd_signal': self._get_macd_signal(latest_macd, latest_signal),
-                'macd_divergence': divergences['macd_divergence'],
-                'rsi_divergence': divergences['rsi_divergence'],
+                # Divergences now use weekly data:
+                'macd_divergence': weekly_macd_divergence,
+                'rsi_divergence': weekly_rsi_divergence,
                 'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) else None,
                 'price_change_pct': round(price_change_pct, 2),
                 'trade_apgar': apgar_buy_score, # Store buy score
                 'trade_apgar_has_zeros': apgar_buy_has_zeros,
                 'trade_apgar_sell': apgar_sell_score, # Store sell score
                 'trade_apgar_sell_has_zeros': apgar_sell_has_zeros,
+                'impulse_weekly': impulse_weekly,
+                'impulse_daily': impulse_daily,
                 'last_updated': datetime.now().isoformat()
             }
             
@@ -636,28 +699,24 @@ class StockScanner:
             print(f"Error getting market info for {symbol}: {e}")
             return None
 
-    def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False):
+    def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False, force_refresh=False, symbols=None):
         """
-        Perform stock scan with filters
-        
-        Args:
-            filters: Dictionary of filter criteria
-            universes: List of universes to scan ['sp500', 'nasdaq100', etc.]
-            max_results: Maximum number of results to return
-            sort_by: How to sort results ('volume', 'change', 'rsi', 'random')
-            random_sample: If True or int, return random sample instead of filtered results
+        Perform stock scan with filters. If 'symbols' is provided and non-empty, scan only those symbols (ignore universes).
         """
         
-        if universes is None:
-            universes = ['sp500']
-        
-        # Get symbols to scan
-        symbols_to_scan = self._get_universe_symbols(universes)
+        if symbols is not None and symbols:
+            symbols_to_scan = symbols
+        else:
+            if universes is None:
+                universes = ['sp500']
+            symbols_to_scan = self._get_universe_symbols(universes)
         
         if not symbols_to_scan:
             return pd.DataFrame()
         
         # Special handling for Spanish stocks
+        if universes is None:
+            universes = []
         spanish_stocks_present = any('spanish' in universe for universe in universes)
         if spanish_stocks_present:
             print("Spanish stocks detected - applying enhanced validation and data handling")
@@ -685,7 +744,7 @@ class StockScanner:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all jobs
             future_to_symbol = {
-                executor.submit(self._calculate_indicators_for_symbol, symbol): symbol 
+                executor.submit(self._calculate_indicators_for_symbol, symbol, '6mo', force_refresh): symbol 
                 for symbol in symbols_to_scan
             }
             

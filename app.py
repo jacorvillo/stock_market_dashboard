@@ -48,6 +48,9 @@ from functions.insights_functions import TechnicalInsights, generate_insights_su
 # Import IRL trading functions
 from functions.irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price, calculate_trade_apgar
 
+# Import watchlist persistence functions
+from functions.watchlist_functions import load_watchlist, add_to_watchlist, remove_from_watchlist
+
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -2157,6 +2160,8 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
                 {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
+                {'name': 'Impulse (Weekly)', 'id': 'impulse_weekly', 'type': 'text'},
+                {'name': 'Impulse (Daily)', 'id': 'impulse_daily', 'type': 'text'},
                 {'name': 'Trade Apgar (Buy)', 'id': 'trade_apgar', 'type': 'numeric'},
                 {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'}
             ],
@@ -2395,6 +2400,44 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
                 },
+                # Impulse Weekly coloring
+                {
+                    'if': {'filter_query': '{impulse_weekly} = green', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_weekly} = red', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_weekly} = blue', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
+                },
+                # Impulse Daily coloring
+                {
+                    'if': {'filter_query': '{impulse_daily} = green', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = red', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = blue', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
+                },
             ],
             sort_action="native",
             page_size=20,
@@ -2587,22 +2630,17 @@ def get_open_positions_from_csv():
      State('watchlist-store', 'data')],
     prevent_initial_call=True
 )
-def add_to_watchlist(n_clicks, symbol, current_watchlist):
-    """Add a stock symbol to the watchlist"""
+def add_to_watchlist_callback(n_clicks, symbol, current_watchlist):
+    """Add a stock symbol to the watchlist and persist to file"""
     if not n_clicks or not symbol:
         raise PreventUpdate
-    
-    # Clean and validate symbol
     clean_symbol = symbol.strip().upper()
     if not clean_symbol:
         return dash.no_update, "Please enter a valid symbol.", ""
-    
-    # Check if symbol is already in watchlist
     if clean_symbol in current_watchlist:
         return dash.no_update, f"❌ {clean_symbol} is already in your watchlist.", ""
-    
-    # Add to watchlist
-    new_watchlist = current_watchlist + [clean_symbol]
+    # Add to persistent watchlist
+    new_watchlist = add_to_watchlist(clean_symbol)
     return new_watchlist, f"✅ {clean_symbol} added to watchlist!", ""
 
 @callback(
@@ -2663,35 +2701,21 @@ def update_watchlist_display(watchlist_data):
     [State('watchlist-store', 'data')],
     prevent_initial_call=True
 )
-def remove_from_watchlist(remove_clicks, current_watchlist):
-    """Remove a stock symbol from the watchlist"""
+def remove_from_watchlist_callback(remove_clicks, current_watchlist):
     if not any(remove_clicks):
         raise PreventUpdate
-    
-    # Find which button was clicked
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
-    
-    # Get the index from the triggered button
     triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
     import json
     button_data = json.loads(triggered_id)
     index = button_data['index']
-    
-    # Check if this is an open position
-    open_positions = get_open_positions_from_csv()
     if current_watchlist and 0 <= index < len(current_watchlist):
         symbol_to_remove = current_watchlist[index]
-        if symbol_to_remove in open_positions:
-            # Don't allow removal of open positions
-            return dash.no_update
-        
-        # Remove the symbol at the specified index
-        new_watchlist = current_watchlist.copy()
-        removed_symbol = new_watchlist.pop(index)
+        # Remove from persistent watchlist
+        new_watchlist = remove_from_watchlist(symbol_to_remove)
         return new_watchlist
-    
     return dash.no_update
 
 
@@ -2703,13 +2727,17 @@ def remove_from_watchlist(remove_clicks, current_watchlist):
     prevent_initial_call='initial_duplicate'
 )
 def preload_open_positions_on_startup(n_intervals):
-    """Preload open positions into watchlist on app startup"""
+    """Preload open positions and watchlist from file on app startup, ensuring open positions are always included"""
     # Only run once on startup (when n_intervals is 0)
     if n_intervals == 0:
+        # Load open positions from CSV
         open_positions = get_open_positions_from_csv()
-        if open_positions:
-            print(f"Preloading open positions into watchlist: {open_positions}")
-            return open_positions
+        # Load from persistent watchlist file
+        watchlist = load_watchlist()
+        # Merge, open positions first, then rest, no duplicates
+        seen = set(open_positions)
+        merged = open_positions + [s for s in watchlist if s not in seen]
+        return merged
     raise PreventUpdate
 
 @callback(
@@ -2733,70 +2761,44 @@ def load_watchlist_scan(n_clicks, watchlist_data):
         # Get open positions for reference
         open_positions = get_open_positions_from_csv()
         
-        # Process watchlist symbols directly
-        results = []
-        failed_symbols = []
-        open_position_results = []
+        # Instead of manual loop, use scan_stocks with force_refresh=True for watchlist
+        results_df = scanner.scan_stocks(
+            filters=None,
+            universes=None,
+            max_results=len(watchlist_data),
+            sort_by='volume',
+            random_sample=False,
+            force_refresh=True,
+            symbols=watchlist_data
+        )
+        # But we want only the symbols in watchlist_data, so filter after scan
+        if not results_df.empty:
+            results_df = results_df[results_df['symbol'].isin(watchlist_data)]
         
-        for symbol in watchlist_data:
-            try:
-                result = scanner._calculate_indicators_for_symbol(symbol)
-                if result:
-                    results.append(result)
-                    # Track open position results separately
-                    if symbol in open_positions:
-                        open_position_results.append(result)
-                else:
-                    failed_symbols.append(symbol)
-            except Exception as e:
-                print(f"Error processing {symbol}: {e}")
-                failed_symbols.append(symbol)
-                continue
-        
-        if not results:
+        if results_df.empty:
             # Check if we have any open positions that failed
-            open_position_failures = [s for s in failed_symbols if s in open_positions]
+            open_position_failures = [s for s in results_df['symbol'] if s in open_positions]
             if open_position_failures:
                 return (
                     dbc.Alert([
                         html.H6("⚠️ Watchlist Scan Results", style={'marginBottom': '10px'}),
-                        html.P(f"No data found for {len(failed_symbols)} symbols including open positions: {', '.join(open_position_failures)}", 
+                        html.P(f"No data found for {len(open_position_failures)} symbols including open positions: {', '.join(open_position_failures)}", 
                                style={'marginBottom': '5px'}),
                         html.Small("This may be due to market hours or data availability issues.", 
                                  style={'color': '#ccc', 'fontStyle': 'italic'})
                     ], color="warning"),
                     [],
-                    'd-none',
-                    {
-                        'backgroundColor': '#000000', 
-                        'height': '90vh',
-                        'position': 'absolute',
-                        'top': '0',
-                        'left': '0',
-                        'width': '100%',
-                        'zIndex': 1,
-                        'display': 'block'
-                    }
+                    'd-none'
                 )
             else:
                 return (
                     dbc.Alert("❌ No data found for watchlist symbols. Check if symbols are valid.", color="warning"),
                     [],
-                    'd-none',
-                    {
-                        'backgroundColor': '#000000', 
-                        'height': '90vh',
-                        'position': 'absolute',
-                        'top': '0',
-                        'left': '0',
-                        'width': '100%',
-                        'zIndex': 1,
-                        'display': 'block'
-                    }
+                    'd-none'
                 )
         
         # Convert to DataFrame
-        results_df = pd.DataFrame(results)
+        results_df = pd.DataFrame(results_df)
         
         if results_df.empty:
             return (
@@ -2846,7 +2848,10 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
                 {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
-                {'name': 'Trade Apgar', 'id': 'trade_apgar', 'type': 'numeric'}
+                {'name': 'Impulse (Weekly)', 'id': 'impulse_weekly', 'type': 'text'},
+                {'name': 'Impulse (Daily)', 'id': 'impulse_daily', 'type': 'text'},
+                {'name': 'Trade Apgar (Buy)', 'id': 'trade_apgar', 'type': 'numeric'},
+                {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -3012,7 +3017,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Trade Apgar coloring (fix logic)
+                # Trade Apgar (Buy) coloring (fix logic)
                 {
                     'if': {
                         'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
@@ -3031,6 +3036,26 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
+                # Trade Apgar (Sell) coloring (fix logic)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = true',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = false',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Medium/low Apgar coloring (existing)
                 {
                     'if': {
                         'filter_query': '{trade_apgar} >= 5 and {trade_apgar} < 7',
@@ -3063,18 +3088,52 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
                 },
+                # Impulse Weekly coloring
+                {
+                    'if': {'filter_query': '{impulse_weekly} = green', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_weekly} = red', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_weekly} = blue', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
+                },
+                # Impulse Daily coloring
+                {
+                    'if': {'filter_query': '{impulse_daily} = green', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = red', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = blue', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
+                },
             ],
-            page_size=10,
-            sort_action='native',
-            filter_action='native',
-            style_as_list_view=True,
-            row_selectable=False,
-            selected_rows=[],
-            page_current=0
+            page_size=20,
+            page_action="native",
+            sort_action="native"
         )
         
         # Create success message with open position info
-        open_positions_found = len(open_position_results)
+        open_positions_found = len(results_df)
         total_symbols = len(results_df)
         
         if open_positions_found > 0:
@@ -3086,7 +3145,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 html.P([
                     f"Found data for {total_symbols} symbols ",
                     html.Span(f"({open_positions_found} open positions)", style={'color': '#00ff88', 'fontWeight': 'bold'}),
-                    f". {len(failed_symbols)} symbols had no data."
+                    f". {len(results_df) - open_positions_found} symbols had no data."
                 ], style={'marginBottom': '0', 'fontSize': '14px'})
             ], color="success", className="mb-3")
         else:
@@ -3096,7 +3155,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     f"Watchlist scan completed!"
                 ], style={'marginBottom': '10px', 'color': '#00d4aa'}),
                 html.P([
-                    f"Found data for {total_symbols} symbols. {len(failed_symbols)} symbols had no data."
+                    f"Found data for {total_symbols} symbols. {len(results_df) - open_positions_found} symbols had no data."
                 ], style={'marginBottom': '0', 'fontSize': '14px'})
             ], color="success", className="mb-3")
         
@@ -3561,4 +3620,5 @@ if __name__ == '__main__':
     print("Starting Stock Dashboard Server...")
     print("Open http://127.0.0.1:8050/ in your web browser to view the dashboard")
     app.run(debug=True, port=8050)
+
 

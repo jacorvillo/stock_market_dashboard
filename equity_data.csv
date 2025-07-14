@@ -2,3 +2,4 @@ equity,open_positions,amount_invested,stop_price,value_at_entry,stocks_in_positi
 1000.0,,,,,,,,,,,,,
 1020.0,1.0,20.0,1250.59,20.0,NFLX,20.0,,,,1175.0,sell,False,
 1040.0,1.0,20.0,13.35,20.0,BBVA.MC,20.0,,,,12.5,sell,False,
+1020.0,1.0,20.0,82.26,20.0,MRK,20.0,,,,85.0,buy,False,

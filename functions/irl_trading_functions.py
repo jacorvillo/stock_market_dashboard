@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import ta
+import numbers
 
 CSV_FILE = 'equity_data.csv'
 
@@ -27,6 +28,18 @@ def load_trading_df():
 
 def save_trading_df(df):
     df.to_csv(CSV_FILE, index=False)
+
+def to_native(obj):
+    if isinstance(obj, dict):
+        return {k: to_native(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [to_native(v) for v in obj]
+    elif isinstance(obj, numbers.Integral):
+        return int(obj)
+    elif isinstance(obj, numbers.Real):
+        return float(obj)
+    else:
+        return obj
 
 def calculate_trade_apgar(stock_symbol, side='buy'):
     """
@@ -59,7 +72,8 @@ def calculate_trade_apgar(stock_symbol, side='buy'):
         # Get weekly and daily data
         ticker = yf.Ticker(stock_symbol)
         weekly_data = ticker.history(period='6mo', interval='1wk')
-        daily_data = ticker.history(period='1mo', interval='1d')
+        # Fetch 6 months of daily data for proper indicator warmup
+        daily_data = ticker.history(period='6mo', interval='1d')
         
         if weekly_data.empty or daily_data.empty:
             return {
@@ -107,7 +121,7 @@ def calculate_trade_apgar(stock_symbol, side='buy'):
         # Pass criteria: total >= 7 and no zeros
         passed = total_score >= 7 and not has_zeros
         
-        return {
+        result = {
             'total_score': total_score,
             'passed': passed,
             'side': side,
@@ -119,9 +133,10 @@ def calculate_trade_apgar(stock_symbol, side='buy'):
                 'perfection': perfection_score
             }
         }
+        return to_native(result)
         
     except Exception as e:
-        return {
+        result = {
             'total_score': 0,
             'passed': False,
             'side': side,
@@ -134,17 +149,19 @@ def calculate_trade_apgar(stock_symbol, side='buy'):
                 'perfection': {'score': 0, 'timeframes': 0, 'reason': f'Error: {str(e)}'}
             }
         }
+        return to_native(result)
 
 def calculate_indicators_for_apgar(df):
     """Calculate required indicators for Apgar scoring"""
     df = df.copy()
     
     # Calculate EMAs
-    df['EMA_13'] = ta.trend.ema_indicator(df['Close'], window=13)
-    df['EMA_26'] = ta.trend.ema_indicator(df['Close'], window=26)
+    from ta.trend import EMAIndicator, MACD
+    df['EMA_13'] = EMAIndicator(df['Close'], window=13).ema_indicator()
+    df['EMA_26'] = EMAIndicator(df['Close'], window=26).ema_indicator()
     
     # Calculate MACD
-    macd = ta.trend.MACD(df['Close'])
+    macd = MACD(df['Close'])
     df['MACD'] = macd.macd()
     df['MACD_signal'] = macd.macd_signal()
     df['MACD_hist'] = macd.macd_diff()
@@ -157,48 +174,47 @@ def calculate_indicators_for_apgar(df):
 
 def calculate_impulse_score(df, side='buy'):
     """Calculate impulse score (0-2) based on EMA trend and MACD momentum"""
+    from functions.impulse_functions import calculate_impulse_system
     if len(df) < 2:
         return {'score': 0, 'color': 'unknown', 'reason': 'Insufficient data'}
-    
-    # Get latest values
-    latest = df.iloc[-1]
-    prev = df.iloc[-2]
-    
-    # Determine impulse color
-    ema_rising = latest['ema_slope'] > 0
-    macd_rising = latest['macd_hist_change'] > 0
-    
+    # Use the centralized impulse system logic
+    impulse_df = calculate_impulse_system(df, ema_period=13)
+    color = impulse_df['impulse_color'].iloc[-1] if len(impulse_df) > 0 else 'unknown'
+    # Scoring: depends on side
     if side == 'buy':
-        if ema_rising and macd_rising:
-            color = 'green'
-            score = 1
-        elif not ema_rising and not macd_rising:
-            color = 'red'
+        if color == 'red':
             score = 0
-        else:
-            color = 'blue'
-            score = 2
-    else: # side == 'sell' or 'short'
-        if ema_rising and macd_rising:
-            color = 'red'
-            score = 2
-        elif not ema_rising and not macd_rising:
-            color = 'green'
-            score = 0
-        else:
-            color = 'blue'
+        elif color == 'green':
             score = 1
-    
-    # Blue after red gets bonus (bears losing power)
-    if color == 'blue' and len(df) > 2:
-        prev_prev = df.iloc[-3]
-        if prev_prev['ema_slope'] < 0 and prev_prev['macd_hist_change'] < 0:
-            score = 2  # Blue after red is good for buying
-    
+        elif color == 'blue':
+            score = 2
+        else:
+            score = 0
+        # Blue after red gets bonus (bears losing power)
+        if color == 'blue' and len(impulse_df) > 2:
+            prev_color = impulse_df['impulse_color'].iloc[-2]
+            prev_prev_color = impulse_df['impulse_color'].iloc[-3]
+            if prev_prev_color == 'red':
+                score = 2
+    else:  # side == 'sell' or 'short'
+        if color == 'red':
+            score = 2
+        elif color == 'green':
+            score = 0
+        elif color == 'blue':
+            score = 1
+        else:
+            score = 0
+        # Blue after green gets bonus (bulls losing power)
+        if color == 'blue' and len(impulse_df) > 2:
+            prev_color = impulse_df['impulse_color'].iloc[-2]
+            prev_prev_color = impulse_df['impulse_color'].iloc[-3]
+            if prev_prev_color == 'green':
+                score = 1
     return {
         'score': score,
         'color': color,
-        'reason': f'EMA {"rising" if ema_rising else "falling"}, MACD {"rising" if macd_rising else "falling"}'
+        'reason': f'Impulse color: {color}'
     }
 
 def calculate_price_vs_value_score(df, side='buy'):
@@ -318,19 +334,19 @@ def is_timeframe_perfect(df, side='buy'):
     if len(df) < 5:
         return False
     
-    # Perfect conditions: strong trend with momentum
     latest = df.iloc[-1]
-    
-    # Check for strong uptrend
-    price_rising = latest['Close'] > df['Close'].iloc[-2]
-    ema_rising = latest['EMA_13'] > df['EMA_13'].iloc[-2]
-    macd_positive = latest['MACD_hist'] > 0
-    volume_good = latest['Volume'] > df['Volume'].tail(10).mean()
-    
     if side == 'buy':
-        return price_rising and ema_rising and macd_positive and volume_good
+        # Perfect conditions: strong uptrend with momentum (no volume requirement)
+        price_rising = latest['Close'] > df['Close'].iloc[-2]
+        ema_rising = latest['EMA_13'] > df['EMA_13'].iloc[-2]
+        macd_positive = latest['MACD_hist'] > 0
+        return price_rising and ema_rising and macd_positive
     else: # side == 'sell' or 'short'
-        return price_rising and ema_rising and macd_positive and volume_good
+        # Perfect short: strong downtrend with momentum (no volume requirement)
+        price_falling = latest['Close'] < df['Close'].iloc[-2]
+        ema_falling = latest['EMA_13'] < df['EMA_13'].iloc[-2]
+        macd_negative = latest['MACD_hist'] < 0
+        return price_falling and ema_falling and macd_negative
 
 # Open a new position (buy or sell) - now with optional Apgar validation
 def open_position(df, stock, amount, price_at_entry, stop_price, target_price, side, require_apgar=False):
@@ -347,7 +363,7 @@ def open_position(df, stock, amount, price_at_entry, stop_price, target_price, s
         new_equity = last_equity - amount
     else:  # sell/short
         new_equity = last_equity + amount
-    new_row['equity'] = new_equity
+    new_row['equity'] = float(new_equity)
     new_row['open_positions'] = 1.0
     new_row['amount_invested'] = amount
     new_row['side'] = str(side)  # Ensure side is stored as string
@@ -468,7 +484,7 @@ def close_position(df, stock, price_at_close):
     else:
         new_equity = last_equity - value_at_close
     new_row = {f: np.nan for f in FIELDS}
-    new_row['equity'] = new_equity
+    new_row['equity'] = float(new_equity)
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_trading_df(df)
     return df 
