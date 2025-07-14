@@ -2157,6 +2157,8 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
                 {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
+                {'name': 'Impulse (Weekly)', 'id': 'impulse_weekly', 'type': 'text'},
+                {'name': 'Impulse (Daily)', 'id': 'impulse_daily', 'type': 'text'},
                 {'name': 'Trade Apgar (Buy)', 'id': 'trade_apgar', 'type': 'numeric'},
                 {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'}
             ],
@@ -2394,6 +2396,44 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
+                },
+                # Impulse Weekly coloring
+                {
+                    'if': {'filter_query': '{impulse_weekly} = green', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_weekly} = red', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_weekly} = blue', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
+                },
+                # Impulse Daily coloring
+                {
+                    'if': {'filter_query': '{impulse_daily} = green', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = red', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = blue', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
                 },
             ],
             sort_action="native",
@@ -2846,6 +2886,8 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
                 {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
+                {'name': 'Impulse (Weekly)', 'id': 'impulse_weekly', 'type': 'text'},
+                {'name': 'Impulse (Daily)', 'id': 'impulse_daily', 'type': 'text'},
                 {'name': 'Trade Apgar', 'id': 'trade_apgar', 'type': 'numeric'}
             ],
             style_table={
@@ -3047,21 +3089,43 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
                 },
+                # Impulse Weekly coloring
                 {
-                    'if': {
-                        'filter_query': '{trade_apgar_sell} >= 5 and {trade_apgar_sell} < 7',
-                        'column_id': 'trade_apgar_sell'
-                    },
-                    'backgroundColor': '#4d3a1a',
-                    'color': '#ffcc00'
+                    'if': {'filter_query': '{impulse_weekly} = green', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
                 },
                 {
-                    'if': {
-                        'filter_query': '{trade_apgar_sell} < 5',
-                        'column_id': 'trade_apgar_sell'
-                    },
+                    'if': {'filter_query': '{impulse_weekly} = red', 'column_id': 'impulse_weekly'},
                     'backgroundColor': '#4d1a1a',
-                    'color': '#ff6b6b'
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_weekly} = blue', 'column_id': 'impulse_weekly'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
+                },
+                # Impulse Daily coloring
+                {
+                    'if': {'filter_query': '{impulse_daily} = green', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = red', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff4444',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{impulse_daily} = blue', 'column_id': 'impulse_daily'},
+                    'backgroundColor': '#1a3d4d',
+                    'color': '#00d4ff',
+                    'fontWeight': 'bold'
                 },
             ],
             page_size=10,
@@ -3561,4 +3625,5 @@ if __name__ == '__main__':
     print("Starting Stock Dashboard Server...")
     print("Open http://127.0.0.1:8050/ in your web browser to view the dashboard")
     app.run(debug=True, port=8050)
+
 

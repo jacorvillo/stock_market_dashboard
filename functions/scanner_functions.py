@@ -25,7 +25,8 @@ import random
 
 # Import technical analysis functions from existing functions.py
 from .analysis_functions import calculate_indicators
-from functions.irl_trading_functions import calculate_trade_apgar
+from functions.irl_trading_functions import calculate_trade_apgar, calculate_indicators_for_apgar
+from functions.analysis_functions import get_stock_data
 
 class StockScanner:
     def __init__(self, cache_file='scanner_cache.json'):
@@ -239,6 +240,48 @@ class StockScanner:
                     details.get('perfection', {}).get('score', 0) == 0
                 ])
             
+            # Calculate impulse system color for weekly and daily timeframes using the same logic as the chart
+            from functions.impulse_functions import calculate_impulse_system
+            # --- Weekly impulse color ---
+            try:
+                # Use the same pipeline as the chart
+                weekly_data_tuple = get_stock_data(symbol, period='6mo', frequency='1wk')
+                if isinstance(weekly_data_tuple, tuple):
+                    weekly_data = weekly_data_tuple[0]
+                else:
+                    weekly_data = weekly_data_tuple
+                if not isinstance(weekly_data, pd.DataFrame) or weekly_data.empty:
+                    impulse_weekly = 'unknown'
+                else:
+                    weekly_data = calculate_indicators(weekly_data)
+                    impulse_weekly_df = calculate_impulse_system(weekly_data, ema_period=13)
+                    if len(impulse_weekly_df) >= 1:
+                        impulse_weekly = impulse_weekly_df['impulse_color'].iloc[-1]
+                    else:
+                        impulse_weekly = 'unknown'
+            except Exception:
+                impulse_weekly = 'unknown'
+
+            # --- Daily impulse color ---
+            try:
+                # Fetch 6 months of daily data for proper indicator warmup
+                daily_data_tuple = get_stock_data(symbol, period='6mo', frequency='1d')
+                if isinstance(daily_data_tuple, tuple):
+                    daily_data = daily_data_tuple[0]
+                else:
+                    daily_data = daily_data_tuple
+                if not isinstance(daily_data, pd.DataFrame) or daily_data.empty:
+                    impulse_daily = 'unknown'
+                else:
+                    daily_data = calculate_indicators(daily_data)
+                    impulse_daily_df = calculate_impulse_system(daily_data, ema_period=13)
+                    if len(impulse_daily_df) >= 1:
+                        impulse_daily = impulse_daily_df['impulse_color'].iloc[-1]
+                    else:
+                        impulse_daily = 'unknown'
+            except Exception:
+                impulse_daily = 'unknown'
+
             # Get latest values with explicit scalar conversion
             latest = data.iloc[-1]
             latest_close = float(latest['Close'])
@@ -295,6 +338,8 @@ class StockScanner:
                 'trade_apgar_has_zeros': apgar_buy_has_zeros,
                 'trade_apgar_sell': apgar_sell_score, # Store sell score
                 'trade_apgar_sell_has_zeros': apgar_sell_has_zeros,
+                'impulse_weekly': impulse_weekly,
+                'impulse_daily': impulse_daily,
                 'last_updated': datetime.now().isoformat()
             }
             
