@@ -282,6 +282,29 @@ class StockScanner:
             except Exception:
                 impulse_daily = 'unknown'
 
+            # --- Weekly MACD/RSI divergence detection ---
+            try:
+                # Fetch 3 years of weekly data for robust divergence detection (Elder: 20-40 bars)
+                weekly_div_data_tuple = get_stock_data(symbol, period='3y', frequency='1wk')
+                if isinstance(weekly_div_data_tuple, tuple):
+                    weekly_div_data = weekly_div_data_tuple[0]
+                else:
+                    weekly_div_data = weekly_div_data_tuple
+                if not isinstance(weekly_div_data, pd.DataFrame) or weekly_div_data.empty:
+                    weekly_macd_divergence = 'none'
+                    weekly_rsi_divergence = 'none'
+                else:
+                    weekly_div_data = calculate_indicators(weekly_div_data)
+                    weekly_close = weekly_div_data['Close']
+                    weekly_rsi = weekly_div_data['RSI'] if 'RSI' in weekly_div_data else None
+                    weekly_macd_hist = weekly_div_data['MACD_hist'] if 'MACD_hist' in weekly_div_data else None
+                    divergences = self._detect_divergences(weekly_close, weekly_rsi, weekly_macd_hist)
+                    weekly_macd_divergence = divergences['macd_divergence']
+                    weekly_rsi_divergence = divergences['rsi_divergence']
+            except Exception as e:
+                weekly_macd_divergence = 'none'
+                weekly_rsi_divergence = 'none'
+
             # Get latest values with explicit scalar conversion
             latest = data.iloc[-1]
             latest_close = float(latest['Close'])
@@ -311,10 +334,7 @@ class StockScanner:
                 avg_volume_20_value = float(latest_volume)
             volume_vs_avg = (float(latest_volume) / avg_volume_20_value) if avg_volume_20_value > 0 else 1.0
             
-            # Detect divergences using MACD histogram for more accurate detection
-            divergences = self._detect_divergences(close_prices, rsi, histogram)
-            
-            # Detect RSI extremes
+            # Detect RSI extremes (still on daily data)
             rsi_extreme = self._detect_rsi_extremes(rsi)
             
             # Build scanner result
@@ -330,8 +350,9 @@ class StockScanner:
                 'rsi': round(latest_rsi, 2) if not pd.isna(latest_rsi) else None,
                 'rsi_extreme': rsi_extreme,
                 'macd_signal': self._get_macd_signal(latest_macd, latest_signal),
-                'macd_divergence': divergences['macd_divergence'],
-                'rsi_divergence': divergences['rsi_divergence'],
+                # Divergences now use weekly data:
+                'macd_divergence': weekly_macd_divergence,
+                'rsi_divergence': weekly_rsi_divergence,
                 'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) else None,
                 'price_change_pct': round(price_change_pct, 2),
                 'trade_apgar': apgar_buy_score, # Store buy score
