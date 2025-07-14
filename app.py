@@ -389,7 +389,7 @@ app.layout = dbc.Container([
                                                         dbc.Label("Minimum Volume:", style={'color': '#fff', 'marginBottom': '10px'}),
                                                         dbc.Select(
                                                             id='volume-preset',
-                                                            options=[
+                                                            options=[  # type: ignore
                                                                 {'label': 'Any Volume', 'value': 0},
                                                                 {'label': 'Light Trading (> 100K)', 'value': 100000},
                                                                 {'label': 'Moderate Trading (> 500K)', 'value': 500000},
@@ -461,7 +461,7 @@ app.layout = dbc.Container([
                                                                 dbc.Label("Max Results:", style={'color': '#ccc', 'fontSize': '12px'}),
                                                                 dbc.Select(
                                                                     id='result-limit',
-                                                                    options=[
+                                                                    options=[  # type: ignore
                                                                         {'label': 'Top 10', 'value': 10},
                                                                         {'label': 'Top 25', 'value': 25},
                                                                         {'label': 'Top 50', 'value': 50},
@@ -2130,19 +2130,6 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         # Create results table
         table_data = results_df.copy()
         
-        # Do NOT format numeric columns as strings; keep them as numbers for proper sorting
-        # Only format non-numeric columns as needed
-        if 'rsi' in table_data.columns:
-            table_data['rsi'] = table_data['rsi'].apply(lambda x: round(x, 1) if pd.notna(x) else None)
-        if 'price_change_pct' in table_data.columns:
-            table_data['price_change_pct'] = table_data['price_change_pct'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'price' in table_data.columns:
-            table_data['price'] = table_data['price'].apply(lambda x: round(x, 2) if pd.notna(x) else None)
-        if 'volume' in table_data.columns:
-            table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
-        if 'trade_apgar' in table_data.columns:
-            table_data['trade_apgar'] = table_data['trade_apgar'].apply(lambda x: int(x) if pd.notna(x) else None)
-        
         # Format divergence and RSI extreme columns for display
         if 'macd_divergence' in table_data.columns:
             table_data['macd_divergence'] = table_data['macd_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
@@ -2150,6 +2137,11 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
         if 'rsi_extreme' in table_data.columns:
             table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
+        # Capitalize and color MACD Signal and EMA Trend
+        if 'macd_signal' in table_data.columns:
+            table_data['macd_signal'] = table_data['macd_signal'].apply(lambda x: x.title() if pd.notna(x) else None)
+        if 'ema_trend' in table_data.columns:
+            table_data['ema_trend'] = table_data['ema_trend'].apply(lambda x: x.title() if pd.notna(x) else None)
 
         # Create data table
         table = dash_table.DataTable(
@@ -2159,7 +2151,6 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'Symbol', 'id': 'symbol', 'type': 'text'},
                 {'name': 'Price', 'id': 'price', 'type': 'numeric'},
                 {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
-                {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
                 {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
@@ -2188,8 +2179,25 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 'fontWeight': 'bold',
                 'border': '1px solid #00d4aa'
             },
-            style_data_conditional=[
-                # Green for positive changes
+            style_data_conditional=[  # type: ignore
+                # Price coloring based on change (add background)
+                {
+                    'if': {
+                        'filter_query': '{price_change_pct} > 0',
+                        'column_id': 'price'
+                    },
+                    'color': '#00ff88',
+                    'backgroundColor': '#1a4d3a',
+                },
+                {
+                    'if': {
+                        'filter_query': '{price_change_pct} < 0',
+                        'column_id': 'price'
+                    },
+                    'color': '#ff6b6b',
+                    'backgroundColor': '#4d1a1a',
+                },
+                # Change % coloring (existing)
                 {
                     'if': {
                         'filter_query': '{price_change_pct} > 0',
@@ -2198,7 +2206,6 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88'
                 },
-                # Red for negative changes
                 {
                     'if': {
                         'filter_query': '{price_change_pct} < 0',
@@ -2207,73 +2214,102 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
                 },
-                # Highlight bullish trend
+                # RSI coloring (add background)
                 {
                     'if': {
-                        'filter_query': '{ema_trend} = bullish',
-                        'column_id': 'ema_trend'
+                        'filter_query': '{rsi_extreme} = Overbought',
+                        'column_id': 'rsi'
                     },
-                    'backgroundColor': '#1a4d3a',
-                    'color': '#00ff88'
-                },
-                # Highlight bearish trend
-                {
-                    'if': {
-                        'filter_query': '{ema_trend} = bearish',
-                        'column_id': 'ema_trend'
-                    },
+                    'color': '#ff6b6b',
                     'backgroundColor': '#4d1a1a',
-                    'color': '#ff6b6b'
                 },
-                # Highlight RSI overbought
                 {
                     'if': {
-                        'filter_query': '{rsi_extreme} = overbought',
+                        'filter_query': '{rsi_extreme} = Oversold',
+                        'column_id': 'rsi'
+                    },
+                    'color': '#00ff88',
+                    'backgroundColor': '#1a4d3a',
+                },
+                # RSI Status coloring (add background)
+                {
+                    'if': {
+                        'filter_query': '{rsi_extreme} = Overbought',
                         'column_id': 'rsi_extreme'
                     },
                     'backgroundColor': '#4d1a1a',
-                    'color': '#ff6b6b'
+                    'color': '#ff6b6b',
                 },
-                # Highlight RSI oversold
                 {
                     'if': {
-                        'filter_query': '{rsi_extreme} = oversold',
+                        'filter_query': '{rsi_extreme} = Oversold',
                         'column_id': 'rsi_extreme'
                     },
                     'backgroundColor': '#1a4d3a',
-                    'color': '#00ff88'
+                    'color': '#00ff88',
                 },
-                # Highlight bullish divergence
+                # EMA Trend coloring
                 {
                     'if': {
-                        'filter_query': '{macd_divergence} = bullish',
+                        'filter_query': '{ema_trend} = Bullish',
+                        'column_id': 'ema_trend'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                },
+                {
+                    'if': {
+                        'filter_query': '{ema_trend} = Bearish',
+                        'column_id': 'ema_trend'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                },
+                # MACD Signal coloring
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bullish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                },
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bearish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                },
+                # MACD/RSI Divergence coloring (existing)
+                {
+                    'if': {
+                        'filter_query': '{macd_divergence} = Bullish',
                         'column_id': 'macd_divergence'
                     },
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88'
                 },
-                # Highlight bearish divergence
                 {
                     'if': {
-                        'filter_query': '{macd_divergence} = bearish',
+                        'filter_query': '{macd_divergence} = Bearish',
                         'column_id': 'macd_divergence'
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
                 },
-                # Highlight RSI bullish divergence
                 {
                     'if': {
-                        'filter_query': '{rsi_divergence} = bullish',
+                        'filter_query': '{rsi_divergence} = Bullish',
                         'column_id': 'rsi_divergence'
                     },
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88'
                 },
-                # Highlight RSI bearish divergence
                 {
                     'if': {
-                        'filter_query': '{rsi_divergence} = bearish',
+                        'filter_query': '{rsi_divergence} = Bearish',
                         'column_id': 'rsi_divergence'
                     },
                     'backgroundColor': '#4d1a1a',
@@ -2288,17 +2324,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Highlight true A-trade scores (7+ with no zeros) - Green
-                {
-                    'if': {
-                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
-                        'column_id': 'trade_apgar'
-                    },
-                    'backgroundColor': '#1a4d3a',
-                    'color': '#00ff88',
-                    'fontWeight': 'bold'
-                },
-                # Highlight scores 7+ but with zeros - Yellow warning
+                # Trade Apgar (Buy) coloring (fix logic)
                 {
                     'if': {
                         'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
@@ -2308,35 +2334,16 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'color': '#ffcc00',
                     'fontWeight': 'bold'
                 },
-                # Highlight medium Trade Apgar scores (5-6)
                 {
                     'if': {
-                        'filter_query': '{trade_apgar} >= 5 and {trade_apgar} < 7',
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
                         'column_id': 'trade_apgar'
-                    },
-                    'backgroundColor': '#4d3a1a',
-                    'color': '#ffcc00'
-                },
-                # Highlight low Trade Apgar scores (< 5)
-                {
-                    'if': {
-                        'filter_query': '{trade_apgar} < 5',
-                        'column_id': 'trade_apgar'
-                    },
-                    'backgroundColor': '#4d1a1a',
-                    'color': '#ff6b6b'
-                },
-                # Highlight true A-trade sell scores (7+ with no zeros) - Green
-                {
-                    'if': {
-                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = false',
-                        'column_id': 'trade_apgar_sell'
                     },
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
-                # Highlight sell scores 7+ but with zeros - Yellow warning
+                # Trade Apgar (Sell) coloring (fix logic)
                 {
                     'if': {
                         'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = true',
@@ -2346,7 +2353,32 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'color': '#ffcc00',
                     'fontWeight': 'bold'
                 },
-                # Highlight medium sell Trade Apgar scores (5-6)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = false',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
+                # Medium/low Apgar coloring (existing)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 5 and {trade_apgar} < 7',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00'
+                },
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} < 5',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
                 {
                     'if': {
                         'filter_query': '{trade_apgar_sell} >= 5 and {trade_apgar_sell} < 7',
@@ -2355,7 +2387,6 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'backgroundColor': '#4d3a1a',
                     'color': '#ffcc00'
                 },
-                # Highlight low sell Trade Apgar scores (< 5)
                 {
                     'if': {
                         'filter_query': '{trade_apgar_sell} < 5',
@@ -2363,7 +2394,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
-                }
+                },
             ],
             sort_action="native",
             page_size=20,
@@ -2796,6 +2827,10 @@ def load_watchlist_scan(n_clicks, watchlist_data):
             table_data['rsi_divergence'] = table_data['rsi_divergence'].apply(lambda x: x.title() if pd.notna(x) and x != 'none' else 'None')
         if 'rsi_extreme' in table_data.columns:
             table_data['rsi_extreme'] = table_data['rsi_extreme'].apply(lambda x: x.title() if pd.notna(x) and x != 'neutral' else 'Neutral')
+        if 'macd_signal' in table_data.columns:
+            table_data['macd_signal'] = table_data['macd_signal'].apply(lambda x: x.title() if pd.notna(x) else None)
+        if 'ema_trend' in table_data.columns:
+            table_data['ema_trend'] = table_data['ema_trend'].apply(lambda x: x.title() if pd.notna(x) else None)
 
         # Create data table with enhanced styling for open positions
         table = dash_table.DataTable(
@@ -2805,7 +2840,6 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 {'name': 'Symbol', 'id': 'symbol', 'type': 'text'},
                 {'name': 'Price', 'id': 'price', 'type': 'numeric'},
                 {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
-                {'name': 'Volume', 'id': 'volume', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
                 {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
@@ -2833,17 +2867,25 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 'fontWeight': 'bold',
                 'border': '1px solid #00d4aa'
             },
-            style_data_conditional=[
-                # Highlight open positions with green background
+            style_data_conditional=[  # type: ignore
+                # Price coloring based on change (add background)
                 {
                     'if': {
-                        'filter_query': f'{{symbol}} = {open_positions[0]}' if open_positions else 'FALSE'
+                        'filter_query': '{price_change_pct} > 0',
+                        'column_id': 'price'
                     },
-                    'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
-                    'fontWeight': 'bold'
+                    'backgroundColor': '#1a4d3a',
                 },
-                # Green for positive changes
+                {
+                    'if': {
+                        'filter_query': '{price_change_pct} < 0',
+                        'column_id': 'price'
+                    },
+                    'color': '#ff6b6b',
+                    'backgroundColor': '#4d1a1a',
+                },
+                # Change % coloring (existing)
                 {
                     'if': {
                         'filter_query': '{price_change_pct} > 0',
@@ -2852,11 +2894,111 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88'
                 },
-                # Red for negative changes
                 {
                     'if': {
                         'filter_query': '{price_change_pct} < 0',
                         'column_id': 'price_change_pct'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                # RSI coloring (add background)
+                {
+                    'if': {
+                        'filter_query': '{rsi_extreme} = Overbought',
+                        'column_id': 'rsi'
+                    },
+                    'color': '#ff6b6b',
+                    'backgroundColor': '#4d1a1a',
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi_extreme} = Oversold',
+                        'column_id': 'rsi'
+                    },
+                    'color': '#00ff88',
+                    'backgroundColor': '#1a4d3a',
+                },
+                # RSI Status coloring (add background)
+                {
+                    'if': {
+                        'filter_query': '{rsi_extreme} = Overbought',
+                        'column_id': 'rsi_extreme'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi_extreme} = Oversold',
+                        'column_id': 'rsi_extreme'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                },
+                # EMA Trend coloring
+                {
+                    'if': {
+                        'filter_query': '{ema_trend} = Bullish',
+                        'column_id': 'ema_trend'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                },
+                {
+                    'if': {
+                        'filter_query': '{ema_trend} = Bearish',
+                        'column_id': 'ema_trend'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                },
+                # MACD Signal coloring
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bullish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                },
+                {
+                    'if': {
+                        'filter_query': '{macd_signal} = Bearish',
+                        'column_id': 'macd_signal'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b',
+                },
+                # MACD/RSI Divergence coloring (existing)
+                {
+                    'if': {
+                        'filter_query': '{macd_divergence} = Bullish',
+                        'column_id': 'macd_divergence'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                {
+                    'if': {
+                        'filter_query': '{macd_divergence} = Bearish',
+                        'column_id': 'macd_divergence'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi_divergence} = Bullish',
+                        'column_id': 'rsi_divergence'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88'
+                },
+                {
+                    'if': {
+                        'filter_query': '{rsi_divergence} = Bearish',
+                        'column_id': 'rsi_divergence'
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
@@ -2870,17 +3012,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Highlight true A-trade scores (7+ with no zeros) - Green
-                {
-                    'if': {
-                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
-                        'column_id': 'trade_apgar'
-                    },
-                    'backgroundColor': '#1a4d3a',
-                    'color': '#00ff88',
-                    'fontWeight': 'bold'
-                },
-                # Highlight scores 7+ but with zeros - Yellow warning
+                # Trade Apgar coloring (fix logic)
                 {
                     'if': {
                         'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
@@ -2890,7 +3022,15 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'color': '#ffcc00',
                     'fontWeight': 'bold'
                 },
-                # Highlight medium Trade Apgar scores (5-6)
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
+                        'column_id': 'trade_apgar'
+                    },
+                    'backgroundColor': '#1a4d3a',
+                    'color': '#00ff88',
+                    'fontWeight': 'bold'
+                },
                 {
                     'if': {
                         'filter_query': '{trade_apgar} >= 5 and {trade_apgar} < 7',
@@ -2899,7 +3039,6 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'backgroundColor': '#4d3a1a',
                     'color': '#ffcc00'
                 },
-                # Highlight low Trade Apgar scores (< 5)
                 {
                     'if': {
                         'filter_query': '{trade_apgar} < 5',
@@ -2907,7 +3046,23 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     },
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff6b6b'
-                }
+                },
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} >= 5 and {trade_apgar_sell} < 7',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d3a1a',
+                    'color': '#ffcc00'
+                },
+                {
+                    'if': {
+                        'filter_query': '{trade_apgar_sell} < 5',
+                        'column_id': 'trade_apgar_sell'
+                    },
+                    'backgroundColor': '#4d1a1a',
+                    'color': '#ff6b6b'
+                },
             ],
             page_size=10,
             sort_action='native',
