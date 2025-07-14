@@ -2010,20 +2010,16 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                 print(f"Error calculating Autoenvelope: {e}")
         
         # Add previous day's close line for intraday charts (Today or Previous Market Period)
+        prev_close = None
         if is_intraday and len(df) > 0:
             # Get the official previous close from a 6-month timeframe (like shown in 6M+ views)
             try:
                 # Get 6-month daily data to ensure we get the official previous close price
                 monthly_data = yf.download(symbol, period="6mo", interval="1d", progress=False)
-                
                 if not monthly_data.empty:
                     # Get yesterday's close or the last available close price
-                    # This ensures consistency with what's shown in 1M+ views
                     if len(monthly_data) >= 2:
-                        prev_close = float(monthly_data['Close'].iloc[-2])  # Convert to float to ensure it's a scalar
-                        
-                        print(f"Adding previous close line for {symbol}: ${prev_close:.2f}")
-                        
+                        prev_close = float(monthly_data['Close'].iloc[-2])
                         # Add horizontal line for the official previous close
                         fig.add_trace(
                             go.Scatter(
@@ -2034,11 +2030,9 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                                 name=f'Prev Close: ${prev_close:.2f}',
                                 hoverinfo='y',
                                 showlegend=False
-                            ), 
-                            row=1, col=1
+                            ),
+                            row=1, col=1 if 'row' in locals() else 1
                         )
-                        
-                        # Add annotation for the previous close value
                         fig.add_annotation(
                             x=df['Date'].min(),
                             y=prev_close,
@@ -2048,16 +2042,13 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             yanchor='bottom',
                             xshift=10,
                             bgcolor='rgba(0,0,0,0.6)',
-                            bordercolor='rgba(0,0,0,0)',  # Transparent border
-                            borderwidth=0,               # No border
+                            bordercolor='rgba(0,0,0,0)',
+                            borderwidth=0,
                             borderpad=4,
                             font=dict(color='white', size=10)
                         )
                     else:
-                        # If we only have one day of data, use that close as reference
-                        prev_close = float(monthly_data['Close'].iloc[-1])  # Convert to float to ensure it's a scalar
-                        
-                        # Add horizontal line for the official previous close
+                        prev_close = float(monthly_data['Close'].iloc[-1])
                         fig.add_trace(
                             go.Scatter(
                                 x=[df['Date'].min(), df['Date'].max()],
@@ -2067,11 +2058,9 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                                 name=f'Last Close: ${prev_close:.2f}',
                                 hoverinfo='y',
                                 showlegend=False
-                            ), 
-                            row=1, col=1
+                            ),
+                            row=1, col=1 if 'row' in locals() else 1
                         )
-                        
-                        # Add annotation for the last close value
                         fig.add_annotation(
                             x=df['Date'].min(),
                             y=prev_close,
@@ -2081,55 +2070,46 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             yanchor='bottom',
                             xshift=10,
                             bgcolor='rgba(0,0,0,0.6)',
-                            bordercolor='rgba(0,0,0,0)',  # Transparent border
-                            borderwidth=0,               # No border
+                            bordercolor='rgba(0,0,0,0)',
+                            borderwidth=0,
                             borderpad=4,
                             font=dict(color='white', size=10)
                         )
                 else:
-                    # Fallback to use the first open price if we can't get monthly data
-                    fallback_close = float(df['Open'].iloc[0])  # Convert to float to ensure it's a scalar
-                    
-                    # Add horizontal line with fallback price
+                    prev_close = float(df['Open'].iloc[0])
                     fig.add_trace(
                         go.Scatter(
                             x=[df['Date'].min(), df['Date'].max()],
-                            y=[fallback_close, fallback_close],
+                            y=[prev_close, prev_close],
                             mode='lines',
                             line=dict(color='rgba(255, 255, 255, 0.5)', width=1, dash='dash'),
-                            name=f'Approx. Prev: ${fallback_close:.2f}',
+                            name=f'Approx. Prev: ${prev_close:.2f}',
                             hoverinfo='y',
                             showlegend=False
-                        ), 
-                        row=1, col=1
+                        ),
+                        row=1, col=1 if 'row' in locals() else 1
                     )
-                    
-                    # Add annotation for the approximate previous close
                     fig.add_annotation(
                         x=df['Date'].min(),
-                        y=fallback_close,
-                        text=f"Approx. Prev: ${fallback_close:.2f}",
+                        y=prev_close,
+                        text=f"Approx. Prev: ${prev_close:.2f}",
                         showarrow=False,
                         xanchor='left',
                         yanchor='bottom',
                         xshift=10,
                         bgcolor='rgba(0,0,0,0.6)',
-                        bordercolor='rgba(0,0,0,0)',  # Transparent border
-                        borderwidth=0,               # No border
+                        bordercolor='rgba(0,0,0,0)',
+                        borderwidth=0,
                         borderpad=4,
                         font=dict(color='white', size=10)
                     )
             except Exception as e:
                 print(f"Error fetching previous close for {symbol}: {e}")
-                # Try a more direct approach as fallback
                 try:
-                    # Try to get yesterday's close using direct Yahoo Finance API call
                     ticker = yf.Ticker(symbol)
                     prev_close = ticker.info.get('previousClose')
-                    
                     if prev_close and isinstance(prev_close, (int, float)):
-                        prev_close = float(prev_close)  # Ensure it's a float scalar
-                        print(f"Using ticker.info for previous close: ${prev_close:.2f}")
+                        prev_close = float(prev_close)
                         fig.add_trace(
                             go.Scatter(
                                 x=[df['Date'].min(), df['Date'].max()],
@@ -2139,11 +2119,9 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                                 name=f'Prev Close: ${prev_close:.2f}',
                                 hoverinfo='y',
                                 showlegend=False
-                            ), 
-                            row=1, col=1
+                            ),
+                            row=1, col=1 if 'row' in locals() else 1
                         )
-                        
-                        # Add annotation for the previous close value
                         fig.add_annotation(
                             x=df['Date'].min(),
                             y=prev_close,
@@ -2153,56 +2131,72 @@ def update_combined_chart(data, symbol, chart_type, show_ema, ema_periods, atr_b
                             yanchor='bottom',
                             xshift=10,
                             bgcolor='rgba(0,0,0,0.6)',
-                            bordercolor='rgba(0,0,0,0)',  # Transparent border
-                            borderwidth=0,               # No border
+                            bordercolor='rgba(0,0,0,0)',
+                            borderwidth=0,
                             borderpad=4,
                             font=dict(color='white', size=10)
                         )
                 except Exception as fallback_error:
                     print(f"Fallback for previous close also failed: {fallback_error}")
-                    # Continue without adding the line
+                    prev_close = None
 
         # Calculate dynamic title with price and percentage changes
         title_text = symbol
         title_color = '#00d4aa'  # Default color
-        
         if len(df) > 0:
             current_price = df['Close'].iloc[-1]
-            
             # For percentage calculation, use the first price of the dataset as reference
             if len(df) > 1:
-                if is_intraday:
-                    # For 1D view, compare with opening price (approximates previous close)
+                if is_intraday and prev_close is not None:
+                    reference_price = prev_close
+                elif is_intraday:
                     reference_price = df['Open'].iloc[0]
                 else:
-                    # For other timeframes, compare with first price in the dataset
                     reference_price = df['Close'].iloc[0]
-                
                 price_change = current_price - reference_price
-                percent_change = (price_change / reference_price) * 100
-                
-                # Determine arrow and color based on percentage change
-                if percent_change > 0:
-                    arrow = "↗"
-                    title_color = '#00ff88'  # Green for positive percentage
-                elif percent_change < 0:
-                    arrow = "↘"
-                    title_color = '#ff4444'  # Red for negative percentage
+                percent_change = (price_change / reference_price) * 100 if reference_price != 0 else 0
+                # Determine arrow and color based on previous close for intraday
+                if is_intraday and prev_close is not None:
+                    if current_price > prev_close:
+                        arrow = "↗"
+                        title_color = '#00ff88'  # Green for above previous close
+                    elif current_price < prev_close:
+                        arrow = "↘"
+                        title_color = '#ff4444'  # Red for below previous close
+                    else:
+                        arrow = "→"
+                        title_color = '#ffaa00'  # Yellow/orange for equal
                 else:
-                    arrow = "→"
-                    title_color = '#ffaa00'  # Yellow/orange for neutral
-                
-                # Get current time in HH:MM:SS format
+                    if percent_change > 0:
+                        arrow = "↗"
+                        title_color = '#00ff88'  # Green for positive percentage
+                    elif percent_change < 0:
+                        arrow = "↘"
+                        title_color = '#ff4444'  # Red for negative percentage
+                    else:
+                        arrow = "→"
+                        title_color = '#ffaa00'  # Yellow/orange for neutral
                 from datetime import datetime
                 current_time = datetime.now().strftime('%H:%M:%S')
-                
-                # Format main title
                 main_title = f"{symbol} - ${current_price:.2f} ({arrow} ${abs(price_change):.2f}, {percent_change:+.2f}%)"
+                symbol_info = {
+                    'symbol': symbol,
+                    'price': current_price,
+                    'change': price_change,
+                    'percent': percent_change,
+                    'time': current_time,
+                    'color': title_color
+                }
             else:
-                # Single data point case with current time
                 from datetime import datetime
                 current_time = datetime.now().strftime('%H:%M:%S')
                 main_title = f"{symbol} - ${current_price:.2f}"
+                symbol_info = {
+                    'symbol': symbol,
+                    'price': current_price,
+                    'time': current_time,
+                    'color': title_color
+                }
 
         # Update layout for dark theme
         layout_settings = {
