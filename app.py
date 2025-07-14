@@ -1986,6 +1986,7 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
     elif button_id == 'preset-volume':
         return [], 'any', 5000000, ['sp500', 'nasdaq100'], 25, False, 'volume'
     elif button_id == 'preset-apgar':
+        # Set both buy and sell Apgar score filters to 7
         return [], 'any', 500000, ['sp500'], 25, True, 'apgar'
     elif button_id == 'remove-all-filters':
         # Reset all filters to default values with minimal volume filter
@@ -2105,9 +2106,10 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         # Initialize scanner and run scan
         scanner = StockScanner()
         
-        # Add Trade Apgar filter if requested (score >= 7, regardless of zeros)
+        # Add Trade Apgar filter if requested (score >= 7 for both buy and sell)
         if apgar_preset:
             filters['min_apgar_score'] = 7
+            filters['min_apgar_sell_score'] = 7
         
         # Debug: Print the filters being applied
         print(f"Scanner filters: {filters}")

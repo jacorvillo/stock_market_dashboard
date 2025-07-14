@@ -860,20 +860,28 @@ class StockScanner:
                 filtered_df = filtered_df[filtered_df['price_change_pct'] >= filters['change_min']]
             if filters.get('change_max') is not None:
                 filtered_df = filtered_df[filtered_df['price_change_pct'] <= filters['change_max']]
-            
-            # Trade Apgar filter for buy positions
-            if filters.get('min_apgar_score') is not None:
+
+            # Trade Apgar filter for buy/sell positions (OR logic if both set)
+            min_apgar = filters.get('min_apgar_score')
+            min_apgar_sell = filters.get('min_apgar_sell_score')
+            if min_apgar is not None and min_apgar_sell is not None:
                 filtered_df = filtered_df[
-                    (filtered_df['trade_apgar'].notna()) & 
-                    (filtered_df['trade_apgar'] >= filters['min_apgar_score'])
+                    ((filtered_df['trade_apgar'].notna()) & (filtered_df['trade_apgar'] >= min_apgar)) |
+                    ((filtered_df['trade_apgar_sell'].notna()) & (filtered_df['trade_apgar_sell'] >= min_apgar_sell))
                 ]
-            
-            # Trade Apgar filter for sell positions
-            if filters.get('min_apgar_sell_score') is not None:
-                filtered_df = filtered_df[
-                    (filtered_df['trade_apgar_sell'].notna()) & 
-                    (filtered_df['trade_apgar_sell'] >= filters['min_apgar_sell_score'])
-                ]
+            else:
+                # Trade Apgar filter for buy positions only
+                if min_apgar is not None:
+                    filtered_df = filtered_df[
+                        (filtered_df['trade_apgar'].notna()) & 
+                        (filtered_df['trade_apgar'] >= min_apgar)
+                    ]
+                # Trade Apgar filter for sell positions only
+                if min_apgar_sell is not None:
+                    filtered_df = filtered_df[
+                        (filtered_df['trade_apgar_sell'].notna()) & 
+                        (filtered_df['trade_apgar_sell'] >= min_apgar_sell)
+                    ]
                 
         except Exception as e:
             print(f"Error applying filters: {e}")
