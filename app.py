@@ -2761,70 +2761,44 @@ def load_watchlist_scan(n_clicks, watchlist_data):
         # Get open positions for reference
         open_positions = get_open_positions_from_csv()
         
-        # Process watchlist symbols directly
-        results = []
-        failed_symbols = []
-        open_position_results = []
+        # Instead of manual loop, use scan_stocks with force_refresh=True for watchlist
+        results_df = scanner.scan_stocks(
+            filters=None,
+            universes=None,
+            max_results=len(watchlist_data),
+            sort_by='volume',
+            random_sample=False,
+            force_refresh=True,
+            symbols=watchlist_data
+        )
+        # But we want only the symbols in watchlist_data, so filter after scan
+        if not results_df.empty:
+            results_df = results_df[results_df['symbol'].isin(watchlist_data)]
         
-        for symbol in watchlist_data:
-            try:
-                result = scanner._calculate_indicators_for_symbol(symbol)
-                if result:
-                    results.append(result)
-                    # Track open position results separately
-                    if symbol in open_positions:
-                        open_position_results.append(result)
-                else:
-                    failed_symbols.append(symbol)
-            except Exception as e:
-                print(f"Error processing {symbol}: {e}")
-                failed_symbols.append(symbol)
-                continue
-        
-        if not results:
+        if results_df.empty:
             # Check if we have any open positions that failed
-            open_position_failures = [s for s in failed_symbols if s in open_positions]
+            open_position_failures = [s for s in results_df['symbol'] if s in open_positions]
             if open_position_failures:
                 return (
                     dbc.Alert([
                         html.H6("⚠️ Watchlist Scan Results", style={'marginBottom': '10px'}),
-                        html.P(f"No data found for {len(failed_symbols)} symbols including open positions: {', '.join(open_position_failures)}", 
+                        html.P(f"No data found for {len(open_position_failures)} symbols including open positions: {', '.join(open_position_failures)}", 
                                style={'marginBottom': '5px'}),
                         html.Small("This may be due to market hours or data availability issues.", 
                                  style={'color': '#ccc', 'fontStyle': 'italic'})
                     ], color="warning"),
                     [],
-                    'd-none',
-                    {
-                        'backgroundColor': '#000000', 
-                        'height': '90vh',
-                        'position': 'absolute',
-                        'top': '0',
-                        'left': '0',
-                        'width': '100%',
-                        'zIndex': 1,
-                        'display': 'block'
-                    }
+                    'd-none'
                 )
             else:
                 return (
                     dbc.Alert("❌ No data found for watchlist symbols. Check if symbols are valid.", color="warning"),
                     [],
-                    'd-none',
-                    {
-                        'backgroundColor': '#000000', 
-                        'height': '90vh',
-                        'position': 'absolute',
-                        'top': '0',
-                        'left': '0',
-                        'width': '100%',
-                        'zIndex': 1,
-                        'display': 'block'
-                    }
+                    'd-none'
                 )
         
         # Convert to DataFrame
-        results_df = pd.DataFrame(results)
+        results_df = pd.DataFrame(results_df)
         
         if results_df.empty:
             return (
@@ -2876,7 +2850,8 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 {'name': 'RSI Divergence', 'id': 'rsi_divergence', 'type': 'text'},
                 {'name': 'Impulse (Weekly)', 'id': 'impulse_weekly', 'type': 'text'},
                 {'name': 'Impulse (Daily)', 'id': 'impulse_daily', 'type': 'text'},
-                {'name': 'Trade Apgar', 'id': 'trade_apgar', 'type': 'numeric'}
+                {'name': 'Trade Apgar (Buy)', 'id': 'trade_apgar', 'type': 'numeric'},
+                {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -3042,7 +3017,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Trade Apgar coloring (fix logic)
+                # Trade Apgar (Buy) coloring (fix logic)
                 {
                     'if': {
                         'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
@@ -3152,17 +3127,13 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'fontWeight': 'bold'
                 },
             ],
-            page_size=10,
-            sort_action='native',
-            filter_action='native',
-            style_as_list_view=True,
-            row_selectable=False,
-            selected_rows=[],
-            page_current=0
+            page_size=20,
+            page_action="native",
+            sort_action="native"
         )
         
         # Create success message with open position info
-        open_positions_found = len(open_position_results)
+        open_positions_found = len(results_df)
         total_symbols = len(results_df)
         
         if open_positions_found > 0:
@@ -3174,7 +3145,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 html.P([
                     f"Found data for {total_symbols} symbols ",
                     html.Span(f"({open_positions_found} open positions)", style={'color': '#00ff88', 'fontWeight': 'bold'}),
-                    f". {len(failed_symbols)} symbols had no data."
+                    f". {len(results_df) - open_positions_found} symbols had no data."
                 ], style={'marginBottom': '0', 'fontSize': '14px'})
             ], color="success", className="mb-3")
         else:
@@ -3184,7 +3155,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     f"Watchlist scan completed!"
                 ], style={'marginBottom': '10px', 'color': '#00d4aa'}),
                 html.P([
-                    f"Found data for {total_symbols} symbols. {len(failed_symbols)} symbols had no data."
+                    f"Found data for {total_symbols} symbols. {len(results_df) - open_positions_found} symbols had no data."
                 ], style={'marginBottom': '0', 'fontSize': '14px'})
             ], color="success", className="mb-3")
         

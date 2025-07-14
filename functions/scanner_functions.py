@@ -153,16 +153,13 @@ class StockScanner:
             print(f"Error checking cache age: {e}")
             return True
     
-    def _calculate_indicators_for_symbol(self, symbol, period='6mo'):
-        """Calculate all technical indicators for a single symbol"""
+    def _calculate_indicators_for_symbol(self, symbol, period='6mo', force_refresh=False):
+        """Calculate all technical indicators for a single symbol. If force_refresh is True, always fetch fresh data and do not use cache."""
         try:
-            # Create a fresh ticker object for thread safety
+            # Always fetch fresh data for force_refresh (watchlist), else normal behavior
             ticker = yf.Ticker(symbol)
-            
-            # Special handling for Spanish stocks - they may have different data availability
             if symbol.endswith('.MC'):
-                # Spanish stocks might need longer period for sufficient data
-                data = ticker.history(period='1y')  # Use 1 year for Spanish stocks
+                data = ticker.history(period='1y')
             else:
                 data = ticker.history(period=period)
             
@@ -702,28 +699,24 @@ class StockScanner:
             print(f"Error getting market info for {symbol}: {e}")
             return None
 
-    def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False):
+    def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False, force_refresh=False, symbols=None):
         """
-        Perform stock scan with filters
-        
-        Args:
-            filters: Dictionary of filter criteria
-            universes: List of universes to scan ['sp500', 'nasdaq100', etc.]
-            max_results: Maximum number of results to return
-            sort_by: How to sort results ('volume', 'change', 'rsi', 'random')
-            random_sample: If True or int, return random sample instead of filtered results
+        Perform stock scan with filters. If 'symbols' is provided and non-empty, scan only those symbols (ignore universes).
         """
         
-        if universes is None:
-            universes = ['sp500']
-        
-        # Get symbols to scan
-        symbols_to_scan = self._get_universe_symbols(universes)
+        if symbols is not None and symbols:
+            symbols_to_scan = symbols
+        else:
+            if universes is None:
+                universes = ['sp500']
+            symbols_to_scan = self._get_universe_symbols(universes)
         
         if not symbols_to_scan:
             return pd.DataFrame()
         
         # Special handling for Spanish stocks
+        if universes is None:
+            universes = []
         spanish_stocks_present = any('spanish' in universe for universe in universes)
         if spanish_stocks_present:
             print("Spanish stocks detected - applying enhanced validation and data handling")
@@ -751,7 +744,7 @@ class StockScanner:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all jobs
             future_to_symbol = {
-                executor.submit(self._calculate_indicators_for_symbol, symbol): symbol 
+                executor.submit(self._calculate_indicators_for_symbol, symbol, '6mo', force_refresh): symbol 
                 for symbol in symbols_to_scan
             }
             
