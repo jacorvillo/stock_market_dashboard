@@ -1359,6 +1359,12 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
     unreliable_warning = None
     unreliable_class = 'alert alert-warning fade show d-none'
 
+    # If in Scanner tab, suppress all chart and disclaimer outputs
+    if active_tab == 'scanner-tab':
+        empty_fig = go.Figure()
+        chart_style = {'display': 'none'}
+        return empty_fig, chart_style, 'd-none', [], '', 'alert alert-warning fade show d-none'
+
     # Check for unreliable indicators in intraday views
     is_intraday = timeframe in ['1d', 'yesterday']
     if data and is_intraday:
