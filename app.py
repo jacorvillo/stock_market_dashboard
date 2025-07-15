@@ -2415,15 +2415,15 @@ def update_apgar_button_style(active_preset):
      Output('frequency-dropdown', 'value', allow_duplicate=True),
      Output('sidebar-tabs', 'active_tab', allow_duplicate=True)],
     [Input('scan-results-table', 'active_cell')],
-    [State('scan-results-table', 'data')],
+    [State('scan-results-table', 'derived_viewport_data')],
     prevent_initial_call=True
 )
-def load_symbol_from_scanner(active_cell, table_data):
+def load_symbol_from_scanner(active_cell, viewport_data):
     """Load clicked symbol from scanner results into main chart and switch to chart view"""
-    if active_cell and table_data:
+    if active_cell and viewport_data:
         row = active_cell['row']
-        if row < len(table_data):
-            symbol = table_data[row]['symbol']
+        if row < len(viewport_data):
+            symbol = viewport_data[row]['symbol']
             # Clean the symbol (remove any potential formatting)
             clean_symbol = symbol.strip()
             return (
@@ -2441,17 +2441,17 @@ def load_symbol_from_scanner(active_cell, table_data):
      Output('timeframe-dropdown', 'value', allow_duplicate=True),
      Output('sidebar-tabs', 'active_tab', allow_duplicate=True)],
     [Input('watchlist-results-table', 'active_cell')],
-    [State('watchlist-results-table', 'data')],
+    [State('watchlist-results-table', 'derived_viewport_data')],
     prevent_initial_call=True
 )
-def load_symbol_from_watchlist(active_cell, table_data):
+def load_symbol_from_watchlist(active_cell, viewport_data):
     """Load a symbol from watchlist results into the chart"""
-    if not active_cell or not table_data:
+    if not active_cell or not viewport_data:
         raise PreventUpdate
     
     row = active_cell['row']
-    if row < len(table_data):
-        symbol = table_data[row]['symbol']
+    if row < len(viewport_data):
+        symbol = viewport_data[row]['symbol']
         # Clean the symbol (remove any potential formatting)
         clean_symbol = symbol.strip()
         return (

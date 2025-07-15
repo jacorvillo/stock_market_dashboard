@@ -22,7 +22,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:53.894361"
+      "last_updated": "2025-07-15T13:16:18.723491"
     },
     {
       "symbol": "TSLA",
@@ -46,7 +46,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Buy",
-      "last_updated": "2025-07-15T12:14:53.546333"
+      "last_updated": "2025-07-15T13:16:18.461184"
     },
     {
       "symbol": "AMD",
@@ -70,7 +70,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Buy",
-      "last_updated": "2025-07-15T12:15:04.744289"
+      "last_updated": "2025-07-15T13:16:27.751258"
     },
     {
       "symbol": "AAPL",
@@ -94,7 +94,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:53.934782"
+      "last_updated": "2025-07-15T13:16:18.705770"
     },
     {
       "symbol": "BAC",
@@ -118,7 +118,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T12:14:56.833303"
+      "last_updated": "2025-07-15T13:16:21.310372"
     },
     {
       "symbol": "AMZN",
@@ -142,7 +142,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Buy",
-      "last_updated": "2025-07-15T12:14:53.738000"
+      "last_updated": "2025-07-15T13:16:18.582160"
     },
     {
       "symbol": "GOOGL",
@@ -166,7 +166,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Buy",
-      "last_updated": "2025-07-15T12:14:53.870968"
+      "last_updated": "2025-07-15T13:16:18.686936"
     },
     {
       "symbol": "T",
@@ -190,7 +190,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Sell",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T12:15:02.576476"
+      "last_updated": "2025-07-15T13:16:25.528239"
     },
     {
       "symbol": "GOOG",
@@ -214,7 +214,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Buy",
-      "last_updated": "2025-07-15T12:14:53.850077"
+      "last_updated": "2025-07-15T13:16:18.665409"
     },
     {
       "symbol": "WFC",
@@ -238,7 +238,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:15:01.041338"
+      "last_updated": "2025-07-15T13:16:24.443180"
     },
     {
       "symbol": "CSCO",
@@ -262,7 +262,7 @@
       "trade_apgar_sell_has_zeros": false,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T12:14:59.759974"
+      "last_updated": "2025-07-15T13:16:23.231102"
     },
     {
       "symbol": "VZ",
@@ -286,7 +286,7 @@
       "trade_apgar_sell_has_zeros": false,
       "impulse_weekly": "Sell",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T12:14:59.807608"
+      "last_updated": "2025-07-15T13:16:23.317066"
     },
     {
       "symbol": "CSX",
@@ -310,7 +310,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Buy",
-      "last_updated": "2025-07-15T12:15:10.552012"
+      "last_updated": "2025-07-15T13:16:32.382871"
     },
     {
       "symbol": "KO",
@@ -334,7 +334,7 @@
       "trade_apgar_sell_has_zeros": false,
       "impulse_weekly": "Sell",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T12:14:57.956366"
+      "last_updated": "2025-07-15T13:16:22.164037"
     },
     {
       "symbol": "WMT",
@@ -358,7 +358,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:55.346559"
+      "last_updated": "2025-07-15T13:16:20.144665"
     },
     {
       "symbol": "XOM",
@@ -382,7 +382,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:55.411178"
+      "last_updated": "2025-07-15T13:16:19.959887"
     },
     {
       "symbol": "MSFT",
@@ -406,7 +406,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:53.913379"
+      "last_updated": "2025-07-15T13:16:18.741338"
     },
     {
       "symbol": "AVGO",
@@ -430,7 +430,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:57.901089"
+      "last_updated": "2025-07-15T13:16:22.053510"
     },
     {
       "symbol": "PG",
@@ -454,7 +454,7 @@
       "trade_apgar_sell_has_zeros": false,
       "impulse_weekly": "Sell",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T12:14:56.428913"
+      "last_updated": "2025-07-15T13:16:21.015921"
     },
     {
       "symbol": "NKE",
@@ -478,7 +478,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:15:00.354257"
+      "last_updated": "2025-07-15T13:16:24.558319"
     },
     {
       "symbol": "ORCL",
@@ -502,7 +502,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:56.475288"
+      "last_updated": "2025-07-15T13:16:20.896936"
     },
     {
       "symbol": "BMY",
@@ -526,7 +526,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:15:02.748186"
+      "last_updated": "2025-07-15T13:16:25.915817"
     },
     {
       "symbol": "CVX",
@@ -550,7 +550,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T12:14:57.006320"
+      "last_updated": "2025-07-15T13:16:21.446780"
     },
     {
       "symbol": "UNH",
@@ -574,7 +574,7 @@
       "trade_apgar_sell_has_zeros": false,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T12:14:54.997310"
+      "last_updated": "2025-07-15T13:16:19.690018"
     },
     {
       "symbol": "NEE",
@@ -598,10 +598,10 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Buy",
-      "last_updated": "2025-07-15T12:15:01.240012"
+      "last_updated": "2025-07-15T13:16:24.503361"
     }
   ],
-  "last_full_update": "2025-07-15T12:15:10.913284",
+  "last_full_update": "2025-07-15T13:16:33.012171",
   "total_symbols": 25,
   "universe_info": {
     "sp500": 100,
