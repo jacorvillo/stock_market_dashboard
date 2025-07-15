@@ -281,6 +281,16 @@ class StockScanner:
                     details.get('false_breakout', {}).get('score', 0) == 0,
                     details.get('perfection', {}).get('score', 0) == 0
                 ])
+            # Map impulse colors to display labels
+            def map_impulse_label(color):
+                if color == 'green':
+                    return 'Buy'
+                elif color == 'red':
+                    return 'Sell'
+                elif color == 'blue':
+                    return 'Neutral'
+                else:
+                    return 'Unknown'
             # Build scanner result
             scanner_data = {
                 'symbol': symbol,
@@ -302,8 +312,8 @@ class StockScanner:
                 'trade_apgar_has_zeros': apgar_buy_has_zeros,
                 'trade_apgar_sell': apgar_sell_score, # Store sell score
                 'trade_apgar_sell_has_zeros': apgar_sell_has_zeros,
-                'impulse_weekly': impulse_weekly,
-                'impulse_daily': impulse_daily,
+                'impulse_weekly': map_impulse_label(impulse_weekly),
+                'impulse_daily': map_impulse_label(impulse_daily),
                 'last_updated': datetime.now().isoformat()
             }
             return scanner_data
