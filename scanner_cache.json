@@ -22,7 +22,7 @@
       "trade_apgar_sell_has_zeros": false,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T11:29:52.313941"
+      "last_updated": "2025-07-15T11:54:51.917222"
     },
     {
       "symbol": "MRK",
@@ -46,7 +46,7 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Buy",
       "impulse_daily": "Neutral",
-      "last_updated": "2025-07-15T11:29:52.420157"
+      "last_updated": "2025-07-15T11:54:51.745287"
     },
     {
       "symbol": "NFLX",
@@ -70,10 +70,10 @@
       "trade_apgar_sell_has_zeros": true,
       "impulse_weekly": "Neutral",
       "impulse_daily": "Sell",
-      "last_updated": "2025-07-15T11:29:52.252398"
+      "last_updated": "2025-07-15T11:54:51.638318"
     }
   ],
-  "last_full_update": "2025-07-15T11:29:52.424278",
+  "last_full_update": "2025-07-15T11:54:51.921375",
   "total_symbols": 3,
   "universe_info": {
     "sp500": 100,

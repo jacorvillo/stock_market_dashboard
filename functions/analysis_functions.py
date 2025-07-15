@@ -11,6 +11,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from plotly.subplots import make_subplots
 import re
+import ta.trend
+import ta.volume
+import ta.volatility
+import ta.momentum
 
 # Simple cache for recently viewed tickers (speeds up repeated requests)
 _ticker_cache = {}
@@ -52,6 +56,7 @@ def _clear_cache_for_symbol(symbol, timeframe):
 # Function to fetch stock data with lookback for indicators
 def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 26]):
     """Fetch stock data from yfinance with caching for faster ticker switching, with extended lookback for intraday EMA warmup."""
+    # Note: YTD is treated as a non-intraday period, so indicators are reliable from the first bar (unlike '1d' or 'yesterday').
     # Check if 1mo period is requested (no longer supported)
     if period == "1mo":
         raise Exception("1-month period is no longer supported. Please use 6-month or longer timeframes.")
@@ -187,9 +192,22 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
                 ):
                     # Remove rows where Date is NaT before filtering
                     data = data[data['Date'].notna()]
-                    data = data[(data['Date'].dt.time >= market_start) & (data['Date'].dt.time <= market_end)]
+                    date_col = data['Date']
+                    if (
+                        isinstance(date_col, pd.Series)
+                        and pd.api.types.is_datetime64_any_dtype(date_col)
+                        and date_col.notnull().all()
+                        and not date_col.isin([pd.NaT]).any()
+                    ):
+                        # Filter out NaT values before using .dt.time
+                        valid_mask = ~date_col.isin([pd.NaT])
+                        data = data[valid_mask]
+                        date_col = data['Date']
+                        # Only use .dt if still a Series (not ndarray)
+                        if isinstance(date_col, pd.Series):
+                            data = data[(date_col.dt.time >= market_start) & (date_col.dt.time <= market_end)]
                 
-                if data.empty:
+                if isinstance(data, (pd.DataFrame, pd.Series)) and getattr(data, 'empty', False):
                     empty_df = pd.DataFrame({
                         'Date': [],
                         'Open': [],
@@ -392,21 +410,22 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
             if is_intraday:
                 # For 1d intraday view, show just one full trading day (9:30AM - 4:00PM)
                 # Get today's market date
-                trading_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
-                # Calculate market opening and closing times
-                market_open = trading_day.replace(hour=9, minute=30)
-                market_close = trading_day.replace(hour=16, minute=0)
-                
-                # For intraday data, we'll restrict to market hours on the display date
-                start_date = market_open
-                
-                # If we're showing yesterday's data (pre-market), ensure we get correct market hours
-                if is_pre_market:
-                    # We're viewing previous day's data, so use that date's market session
-                    start_date = trading_day.replace(hour=9, minute=30)
-                    end_date = trading_day.replace(hour=16, minute=0)
+                if isinstance(end_date, pd.Timestamp):
+                    trading_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # Calculate market opening and closing times
+                    market_open = trading_day.replace(hour=9, minute=30)
+                    market_close = trading_day.replace(hour=16, minute=0)
+                    # For intraday data, we'll restrict to market hours on the display date
+                    start_date = market_open
+                    # If we're showing yesterday's data (pre-market), ensure we get correct market hours
+                    if is_pre_market:
+                        # We're viewing previous day's data, so use that date's market session
+                        start_date = trading_day.replace(hour=9, minute=30)
+                        end_date = trading_day.replace(hour=16, minute=0)
+                    else:
+                        start_date = trading_day
                 else:
-                    start_date = trading_day
+                    start_date = end_date
             else:
                 start_date = end_date - timedelta(days=1)
         # Removed 1mo period - no longer supported
@@ -415,11 +434,10 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
         elif period == "ytd":
             # For YTD, exclude today from the data if we're in pre-market hours
             # Using ET (market time) for the determination
-            if is_pre_market:
+            if is_pre_market and isinstance(end_date, pd.Timestamp):
                 # Adjust end_date to previous day's end
                 end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
                 end_date = end_date.replace(hour=23, minute=59, second=59)
-                
             # Create a naive datetime object for January 1st of the current year
             start_date = pd.Timestamp(end_date.year, 1, 1) if isinstance(end_date, pd.Timestamp) else end_date
         elif period == "1y":
@@ -443,13 +461,20 @@ def get_stock_data(symbol="SPY", period="1y", frequency=None, ema_periods=[13, 2
         is_minute_data = False
         if period in ["1d", "yesterday"] and is_intraday and len(data) > 0:
             # Check if the data has minute granularity (check time differences)
-            time_diffs = data['Date'].diff().dropna()
-            if len(time_diffs) > 0:
-                # If the median time difference is less than 10 minutes, it's likely minute data
-                median_diff = time_diffs.median()
-                if hasattr(median_diff, 'total_seconds'):
-                    median_diff_seconds = median_diff.total_seconds()
-                    is_minute_data = median_diff_seconds < 600  # 10 minutes in seconds
+            date_col = data['Date']
+            if (
+                isinstance(date_col, pd.Series)
+                and pd.api.types.is_datetime64_any_dtype(date_col)
+                and date_col.notnull().all()
+                and not date_col.isin([pd.NaT]).any()
+            ):
+                time_diffs = date_col.diff().dropna()
+                if len(time_diffs) > 0:
+                    median_diff = time_diffs.median()
+                    # Only call .total_seconds() if median_diff is a Timedelta
+                    if isinstance(median_diff, pd.Timedelta):
+                        median_diff_seconds = median_diff.total_seconds()
+                        is_minute_data = median_diff_seconds < 600  # 10 minutes in seconds
         
         # Cache non-intraday data for faster ticker switching (don't cache intraday as it needs real-time updates)
         if period != "1d":
@@ -802,6 +827,7 @@ def get_comparison_volume(comparison_symbol, timeframe, start_date, end_date):
 
 def update_data(n, symbol, timeframe, ema_periods, macd_fast, macd_slow, macd_signal, force_smoothing, adx_period, stoch_period, rsi_period, frequency=None):
     """Update stock data periodically or when symbol/timeframe/parameters change"""
+    # Note: YTD is treated as a non-intraday period, so indicators are reliable from the first bar (unlike '1d' or 'yesterday').
     error_msg = []
     error_class = "alert alert-warning fade show d-none"  # Hidden by default
     

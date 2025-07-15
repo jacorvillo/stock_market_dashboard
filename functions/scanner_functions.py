@@ -618,9 +618,10 @@ class StockScanner:
             print(f"Error getting market info for {symbol}: {e}")
             return None
 
-    def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False, force_refresh=False, symbols=None):
+    def scan_stocks(self, filters=None, universes=None, max_results=50, sort_by='volume', random_sample=False, force_refresh=False, symbols=None, progress_callback=None):
         """
         Perform stock scan with filters. If 'symbols' is provided and non-empty, scan only those symbols (ignore universes).
+        Optionally, provide a progress_callback(completed, total) to report progress.
         """
         
         if symbols is not None and symbols:
@@ -659,6 +660,7 @@ class StockScanner:
         results = []
         completed = 0
         spanish_results = 0
+        total = len(symbols_to_scan)
         
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all jobs
@@ -679,9 +681,15 @@ class StockScanner:
                         if symbol.endswith('.MC'):
                             spanish_results += 1
                     
-                    # Progress update every 10 symbols
+                    # Progress update every symbol
+                    if progress_callback is not None:
+                        try:
+                            progress_callback(completed, total)
+                        except Exception:
+                            pass
+                    # Progress update every 10 symbols (console)
                     if completed % 10 == 0:
-                        print(f"Processed {completed}/{len(symbols_to_scan)} symbols...")
+                        print(f"Processed {completed}/{total} symbols...")
                         if spanish_stocks_present:
                             print(f"Spanish stocks found so far: {spanish_results}")
                         

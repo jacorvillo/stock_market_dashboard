@@ -16,6 +16,8 @@ import xarray as xr
 import os
 from dash.dependencies import ALL
 from dash.dash_table import Format, FormatTemplate
+import threading
+import time
 
 # Import functions from functions module
 from functions.analysis_functions import (
@@ -1097,8 +1099,22 @@ app.layout = dbc.Container([
     # Store to track Trade Apgar preset
     dcc.Store(id='apgar-preset-store', data=False),
     # Store to track active preset button
-    dcc.Store(id='active-preset-store', data=None)
+    dcc.Store(id='active-preset-store', data=None),
+    # Add a dcc.Store for scan progress
+    dcc.Store(id='scan-progress-store', data={'percent': 0})
 ], fluid=True)  # Make container full width
+
+# --- Scanner Progress Global State ---
+scan_progress = {'percent': 0}
+scan_progress_lock = threading.Lock()
+
+def set_scan_progress(percent):
+    with scan_progress_lock:
+        scan_progress['percent'] = percent
+
+def get_scan_progress():
+    with scan_progress_lock:
+        return scan_progress.get('percent', 0)
 
 # Callback to update dynamic lower chart settings based on selection
 @callback(
@@ -1820,7 +1836,8 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
 @callback(
     [Output('scan-status', 'children'),
      Output('scanner-results-area', 'children'),
-     Output('scanner-results-area', 'className')],
+     Output('scanner-results-area', 'className'),
+     Output('scan-progress-store', 'data')],
     [Input('start-scan-button', 'n_clicks')],
     [State('elder-filters', 'value'),
      State('rsi-preset', 'value'),
@@ -1832,15 +1849,20 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
      State('sort-by', 'value'),
      State('apgar-preset-store', 'data')],
     prevent_initial_call=True,
-    running=[(Output("start-scan-button", "disabled"), True, False)]
+    running=[(Output("start-scan-button", "disabled"), True, False),
+             (Output('scan-status', 'children'), dbc.Spinner(size="sm", color="success", fullscreen=False, children=html.Span(" Scanning...", style={'marginLeft': '10px', 'color': '#00d4aa'})), "")]
 )
 def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_preset, 
                   change_preset, universe_selection, result_limit, sort_by, apgar_preset):
-    """Handle the stock scan when the button is clicked"""
     if not n_clicks:
         raise PreventUpdate
-    
+    # Always define progress_data and reset progress at the start
+    set_scan_progress(0)
+    progress_data = {'percent': 0}
     try:
+        # Reset progress
+        set_scan_progress(0)
+        progress_data = {'percent': 0}
         # Show loading message
         loading_status = dbc.Alert([
             html.Div([
@@ -1938,20 +1960,29 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         print(f"Universe: {universe_selection or ['sp500']}")
         print(f"Max results: {result_limit or 25}")
         
-        # Run the scan
+        # Progress callback for scan_stocks
+        def dash_progress_callback(completed, total):
+            percent = int((completed / total) * 100)
+            set_scan_progress(percent)
+        # Run the scan (blocking, but updates progress)
         results_df = scanner.scan_stocks(
             filters=filters,
             universes=universe_selection or ['sp500'],
             max_results=result_limit or 25,
             sort_by=sort_by or 'volume',
-            random_sample=False
+            random_sample=False,
+            progress_callback=dash_progress_callback
         )
+        # After scan, set to 100%
+        set_scan_progress(100)
+        progress_data = {'percent': 100}
         
         if results_df.empty:
             return (
                 dbc.Alert("❌ No stocks found matching your criteria. Try adjusting your filters.", color="warning"),
                 [],
-                'd-none'  # Hide scanner results area
+                'd-none',
+                progress_data
             )
         
         # Create results table
@@ -2226,38 +2257,38 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 },
                 # Impulse Weekly coloring
                 {
-                    'if': {'filter_query': '{impulse_weekly} = green', 'column_id': 'impulse_weekly'},
+                    'if': {'filter_query': '{impulse_weekly} = Buy', 'column_id': 'impulse_weekly'},
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_weekly} = red', 'column_id': 'impulse_weekly'},
+                    'if': {'filter_query': '{impulse_weekly} = Sell', 'column_id': 'impulse_weekly'},
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff4444',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_weekly} = blue', 'column_id': 'impulse_weekly'},
+                    'if': {'filter_query': '{impulse_weekly} = Neutral', 'column_id': 'impulse_weekly'},
                     'backgroundColor': '#1a3d4d',
                     'color': '#00d4ff',
                     'fontWeight': 'bold'
                 },
                 # Impulse Daily coloring
                 {
-                    'if': {'filter_query': '{impulse_daily} = green', 'column_id': 'impulse_daily'},
+                    'if': {'filter_query': '{impulse_daily} = Buy', 'column_id': 'impulse_daily'},
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_daily} = red', 'column_id': 'impulse_daily'},
+                    'if': {'filter_query': '{impulse_daily} = Sell', 'column_id': 'impulse_daily'},
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff4444',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_daily} = blue', 'column_id': 'impulse_daily'},
+                    'if': {'filter_query': '{impulse_daily} = Neutral', 'column_id': 'impulse_daily'},
                     'backgroundColor': '#1a3d4d',
                     'color': '#00d4ff',
                     'fontWeight': 'bold'
@@ -2292,14 +2323,14 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
             ], style={'marginBottom': '0', 'fontSize': '12px', 'fontStyle': 'italic'})
         ], color="info", className="mb-2")
         
-        return success_msg, [instructions, table], 'd-block'
+        return success_msg, [instructions, table], 'd-block', progress_data
         
     except Exception as e:
         error_msg = dbc.Alert([
             html.H6("❌ Scan Failed", style={'marginBottom': '10px'}),
             html.P(f"Error: {str(e)}", style={'marginBottom': '0', 'fontSize': '14px'})
         ], color="danger")
-        return error_msg, [], 'd-none'
+        return error_msg, [], 'd-none', progress_data
 
 # Callback to reset preset stores after scan
 @callback(
@@ -2571,7 +2602,8 @@ def preload_open_positions_on_startup(n_intervals):
     [Input('load-watchlist-button', 'n_clicks')],
     [State('watchlist-store', 'data')],
     prevent_initial_call=True,
-    running=[(Output("load-watchlist-button", "disabled"), True, False)]
+    running=[(Output("load-watchlist-button", "disabled"), True, False),
+             (Output('scan-status', 'children'), dbc.Spinner(size="sm", color="info", fullscreen=False, children=html.Span(" Loading watchlist...", style={'marginLeft': '10px', 'color': '#00d4aa'})), "")]
 )
 def load_watchlist_scan(n_clicks, watchlist_data):
     """Load and scan all stocks in the watchlist"""
@@ -2914,38 +2946,38 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 },
                 # Impulse Weekly coloring
                 {
-                    'if': {'filter_query': '{impulse_weekly} = green', 'column_id': 'impulse_weekly'},
+                    'if': {'filter_query': '{impulse_weekly} = Buy', 'column_id': 'impulse_weekly'},
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_weekly} = red', 'column_id': 'impulse_weekly'},
+                    'if': {'filter_query': '{impulse_weekly} = Sell', 'column_id': 'impulse_weekly'},
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff4444',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_weekly} = blue', 'column_id': 'impulse_weekly'},
+                    'if': {'filter_query': '{impulse_weekly} = Neutral', 'column_id': 'impulse_weekly'},
                     'backgroundColor': '#1a3d4d',
                     'color': '#00d4ff',
                     'fontWeight': 'bold'
                 },
                 # Impulse Daily coloring
                 {
-                    'if': {'filter_query': '{impulse_daily} = green', 'column_id': 'impulse_daily'},
+                    'if': {'filter_query': '{impulse_daily} = Buy', 'column_id': 'impulse_daily'},
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_daily} = red', 'column_id': 'impulse_daily'},
+                    'if': {'filter_query': '{impulse_daily} = Sell', 'column_id': 'impulse_daily'},
                     'backgroundColor': '#4d1a1a',
                     'color': '#ff4444',
                     'fontWeight': 'bold'
                 },
                 {
-                    'if': {'filter_query': '{impulse_daily} = blue', 'column_id': 'impulse_daily'},
+                    'if': {'filter_query': '{impulse_daily} = Neutral', 'column_id': 'impulse_daily'},
                     'backgroundColor': '#1a3d4d',
                     'color': '#00d4ff',
                     'fontWeight': 'bold'
