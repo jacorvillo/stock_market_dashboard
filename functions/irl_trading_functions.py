@@ -65,7 +65,8 @@ def calculate_trade_apgar(stock_symbol, side='buy'):
     """
     try:
         ticker = yf.Ticker(stock_symbol)
-        weekly_data = ticker.history(period='6mo', interval='1wk')
+        # Use 3 years of weekly data for consistency with scanner/chart
+        weekly_data = ticker.history(period='3y', interval='1wk')
         daily_data = ticker.history(period='6mo', interval='1d')
         if weekly_data.empty or daily_data.empty:
             return {
@@ -148,6 +149,7 @@ def calculate_impulse_score(df, side='buy'):
         return {'score': 0, 'color': 'unknown', 'reason': 'Insufficient data'}
     impulse_df = calculate_impulse_system(df, ema_period=13)
     color = impulse_df['impulse_color'].iloc[-1] if len(impulse_df) > 0 else 'unknown'
+    score = 0
     if side == 'buy':
         if color == 'red':
             score = 0
@@ -155,27 +157,29 @@ def calculate_impulse_score(df, side='buy'):
             score = 1
         elif color == 'blue':
             score = 2
+            # Only apply bonus if previous was green and two ago was red
+            if len(impulse_df) > 2:
+                prev_color = impulse_df['impulse_color'].iloc[-2]
+                prev_prev_color = impulse_df['impulse_color'].iloc[-3]
+                if prev_color == 'green' and prev_prev_color == 'red':
+                    score = 2  # This is the same as default, but logic is explicit
         else:
             score = 0
-        if color == 'blue' and len(impulse_df) > 2:
-            prev_color = impulse_df['impulse_color'].iloc[-2]
-            prev_prev_color = impulse_df['impulse_color'].iloc[-3]
-            if prev_prev_color == 'red':
-                score = 2
-    else:
+    else:  # side == 'sell'
         if color == 'red':
-            score = 2
+            score = 1
         elif color == 'green':
             score = 0
         elif color == 'blue':
-            score = 1
+            score = 2
+            # Only apply bonus if previous was red and two ago was green
+            if len(impulse_df) > 2:
+                prev_color = impulse_df['impulse_color'].iloc[-2]
+                prev_prev_color = impulse_df['impulse_color'].iloc[-3]
+                if prev_color == 'red' and prev_prev_color == 'green':
+                    score = 2  # This is the same as default, but logic is explicit
         else:
             score = 0
-        if color == 'blue' and len(impulse_df) > 2:
-            prev_color = impulse_df['impulse_color'].iloc[-2]
-            prev_prev_color = impulse_df['impulse_color'].iloc[-3]
-            if prev_prev_color == 'green':
-                score = 1
     return {
         'score': score,
         'color': color,
