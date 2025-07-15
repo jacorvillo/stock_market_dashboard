@@ -156,93 +156,61 @@ class StockScanner:
     def _calculate_indicators_for_symbol(self, symbol, period='6mo', force_refresh=False):
         """Calculate all technical indicators for a single symbol. If force_refresh is True, always fetch fresh data and do not use cache."""
         try:
-            # Always fetch fresh data for force_refresh (watchlist), else normal behavior
-            ticker = yf.Ticker(symbol)
-            if symbol.endswith('.MC'):
-                data = ticker.history(period='1y')
+            # Use get_stock_data for daily data to ensure consistency with Analysis/IRL Trading tabs
+            daily_data_tuple = get_stock_data(symbol, period='6mo', frequency='1d')
+            if isinstance(daily_data_tuple, tuple):
+                daily_data = daily_data_tuple[0]
             else:
-                data = ticker.history(period=period)
-            
-            # Check if data is valid
-            if data is None or len(data) == 0 or len(data) < 30:  # Reduced minimum for Spanish stocks
+                daily_data = daily_data_tuple
+            if not isinstance(daily_data, pd.DataFrame) or daily_data.empty or len(daily_data) < 20:
                 return None
-            
-            # Handle MultiIndex columns (when downloading single symbol, yfinance sometimes returns MultiIndex)
-            if isinstance(data.columns, pd.MultiIndex):
-                # Flatten MultiIndex columns by taking the first level (the price type)
-                data.columns = data.columns.droplevel(1)
-            
-            # Calculate basic indicators using existing functions
-            # Note: We'll use simplified calculations here for speed
-            close_prices = data['Close'].dropna()
-            volume = data['Volume'].dropna()
-            high_prices = data['High'].dropna()
-            low_prices = data['Low'].dropna()
-            
-            if len(close_prices) < 20:  # Reduced minimum for Spanish stocks
-                return None
-            
-            # Calculate EMAs
-            ema_13 = pd.Series(close_prices.ewm(span=13, adjust=False).mean(), index=close_prices.index)
-            ema_26 = pd.Series(close_prices.ewm(span=26, adjust=False).mean(), index=close_prices.index)
-            
-            # Calculate RSI (13-period)
-            delta = close_prices.diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=13).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=13).mean()
-            rs = gain / loss
-            rsi = pd.Series(100 - (100 / (1 + rs)), index=close_prices.index)
-            
-            # Calculate MACD
-            ema_12 = close_prices.ewm(span=12, adjust=False).mean()
-            macd_line = pd.Series(ema_12 - ema_26, index=close_prices.index)
-            signal_line = pd.Series(macd_line.ewm(span=9, adjust=False).mean(), index=close_prices.index)
-            histogram = pd.Series(macd_line - signal_line, index=close_prices.index)
-            
-            # Calculate ATR (13-period for consistency)
-            tr1 = high_prices - low_prices
-            tr2 = abs(high_prices - close_prices.shift(1))
-            tr3 = abs(low_prices - close_prices.shift(1))
-            true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-            atr = pd.Series(true_range.rolling(window=13).mean(), index=close_prices.index)
-            
-            # Calculate Trade Apgar score for both buy and sell scenarios
-            apgar_buy_result = calculate_trade_apgar(symbol, 'buy')
-            apgar_sell_result = calculate_trade_apgar(symbol, 'sell')
-            
-            apgar_buy_score = apgar_buy_result.get('total_score', 0) if apgar_buy_result else 0
-            apgar_sell_score = apgar_sell_result.get('total_score', 0) if apgar_sell_result else 0
-            
-            # Check if Trade Apgar has zero components (for proper color coding)
-            apgar_buy_has_zeros = False
-            apgar_sell_has_zeros = False
-            
-            if apgar_buy_result and 'details' in apgar_buy_result:
-                details = apgar_buy_result['details']
-                apgar_buy_has_zeros = any([
-                    details.get('weekly_impulse', {}).get('score', 0) == 0,
-                    details.get('daily_impulse', {}).get('score', 0) == 0,
-                    details.get('daily_price', {}).get('score', 0) == 0,
-                    details.get('false_breakout', {}).get('score', 0) == 0,
-                    details.get('perfection', {}).get('score', 0) == 0
-                ])
-            
-            if apgar_sell_result and 'details' in apgar_sell_result:
-                details = apgar_sell_result['details']
-                apgar_sell_has_zeros = any([
-                    details.get('weekly_impulse', {}).get('score', 0) == 0,
-                    details.get('daily_impulse', {}).get('score', 0) == 0,
-                    details.get('daily_price', {}).get('score', 0) == 0,
-                    details.get('false_breakout', {}).get('score', 0) == 0,
-                    details.get('perfection', {}).get('score', 0) == 0
-                ])
-            
+            # Calculate indicators using the same pipeline
+            daily_data = calculate_indicators(daily_data)
+            # Use the last row for all calculations
+            latest = daily_data.iloc[-1]
+            # EMAs
+            ema_13 = latest.get('EMA_13', np.nan)
+            ema_26 = latest.get('EMA_26', np.nan)
+            # RSI
+            latest_rsi = latest.get('RSI', np.nan)
+            # MACD
+            latest_macd = latest.get('MACD', np.nan)
+            latest_signal = latest.get('MACD_signal', np.nan)
+            latest_histogram = latest.get('MACD_hist', np.nan)
+            # ATR
+            latest_atr = latest.get('ATR', np.nan)
+            # Price/Volume
+            latest_close = latest.get('Close', np.nan)
+            latest_volume = latest.get('Volume', 0)
+            # Calculate price change
+            if len(daily_data) >= 2:
+                prev_close = daily_data.iloc[-2].get('Close', np.nan)
+                price_change_pct = float(((latest_close - prev_close) / prev_close) * 100) if prev_close else 0.0
+            else:
+                price_change_pct = 0.0
+            # Average volume (20-day)
+            if len(daily_data) >= 20:
+                avg_volume_20_value = daily_data['Volume'].rolling(window=20).mean().iloc[-1]
+                if pd.isna(avg_volume_20_value):
+                    avg_volume_20_value = float(latest_volume)
+            else:
+                avg_volume_20_value = float(latest_volume)
+            volume_vs_avg = (float(latest_volume) / avg_volume_20_value) if avg_volume_20_value > 0 else 1.0
+            # Value zone
+            in_value_zone = self._check_value_zone(latest_close, ema_13, ema_26)
+            above_ema_13 = latest_close > ema_13 if not pd.isna(ema_13) else False
+            above_ema_26 = latest_close > ema_26 if not pd.isna(ema_26) else False
+            ema_trend = 'bullish' if (not pd.isna(ema_13) and not pd.isna(ema_26) and ema_13 > ema_26) else 'bearish'
+            # RSI extreme
+            rsi_extreme = self._detect_rsi_extremes(daily_data['RSI'])
+            # MACD signal
+            macd_signal = self._get_macd_signal(latest_macd, latest_signal)
             # Calculate impulse system color for weekly and daily timeframes using the same logic as the chart
             from functions.impulse_functions import calculate_impulse_system
             # --- Weekly impulse color ---
             try:
-                # Use the same pipeline as the chart
-                weekly_data_tuple = get_stock_data(symbol, period='6mo', frequency='1wk')
+                # Use 3 years of weekly data for proper indicator warmup and consistency
+                weekly_data_tuple = get_stock_data(symbol, period='3y', frequency='1wk')
                 if isinstance(weekly_data_tuple, tuple):
                     weekly_data = weekly_data_tuple[0]
                 else:
@@ -258,30 +226,17 @@ class StockScanner:
                         impulse_weekly = 'unknown'
             except Exception:
                 impulse_weekly = 'unknown'
-
             # --- Daily impulse color ---
             try:
-                # Fetch 6 months of daily data for proper indicator warmup
-                daily_data_tuple = get_stock_data(symbol, period='6mo', frequency='1d')
-                if isinstance(daily_data_tuple, tuple):
-                    daily_data = daily_data_tuple[0]
+                impulse_daily_df = calculate_impulse_system(daily_data, ema_period=13)
+                if len(impulse_daily_df) >= 1:
+                    impulse_daily = impulse_daily_df['impulse_color'].iloc[-1]
                 else:
-                    daily_data = daily_data_tuple
-                if not isinstance(daily_data, pd.DataFrame) or daily_data.empty:
                     impulse_daily = 'unknown'
-                else:
-                    daily_data = calculate_indicators(daily_data)
-                    impulse_daily_df = calculate_impulse_system(daily_data, ema_period=13)
-                    if len(impulse_daily_df) >= 1:
-                        impulse_daily = impulse_daily_df['impulse_color'].iloc[-1]
-                    else:
-                        impulse_daily = 'unknown'
             except Exception:
                 impulse_daily = 'unknown'
-
             # --- Weekly MACD/RSI divergence detection ---
             try:
-                # Fetch 3 years of weekly data for robust divergence detection (Elder: 20-40 bars)
                 weekly_div_data_tuple = get_stock_data(symbol, period='3y', frequency='1wk')
                 if isinstance(weekly_div_data_tuple, tuple):
                     weekly_div_data = weekly_div_data_tuple[0]
@@ -301,56 +256,47 @@ class StockScanner:
             except Exception as e:
                 weekly_macd_divergence = 'none'
                 weekly_rsi_divergence = 'none'
-
-            # Get latest values with explicit scalar conversion
-            latest = data.iloc[-1]
-            latest_close = float(latest['Close'])
-            latest_volume = int(float(latest['Volume'])) if not pd.isna(latest['Volume']) else 0
-            latest_ema_13 = float(ema_13.iloc[-1]) if not ema_13.empty and not pd.isna(ema_13.iloc[-1]) else np.nan
-            latest_ema_26 = float(ema_26.iloc[-1]) if not ema_26.empty and not pd.isna(ema_26.iloc[-1]) else np.nan
-            latest_rsi = float(rsi.iloc[-1]) if not rsi.empty and not pd.isna(rsi.iloc[-1]) else np.nan
-            latest_macd = float(macd_line.iloc[-1]) if not macd_line.empty and not pd.isna(macd_line.iloc[-1]) else np.nan
-            latest_signal = float(signal_line.iloc[-1]) if not signal_line.empty and not pd.isna(signal_line.iloc[-1]) else np.nan
-            latest_atr = float(atr.iloc[-1]) if not atr.empty and not pd.isna(atr.iloc[-1]) else np.nan
-            latest_histogram = float(histogram.iloc[-1]) if not histogram.empty and not pd.isna(histogram.iloc[-1]) else np.nan
-            
-            # Calculate price change
-            if len(close_prices) >= 2:
-                price_change_pct = float(((latest_close - close_prices.iloc[-2]) / close_prices.iloc[-2]) * 100)
-            else:
-                price_change_pct = 0.0
-            
-            # Calculate average volume (20-day)
-            if len(volume) >= 20:
-                avg_volume_20 = volume.rolling(window=20).mean()
-                if isinstance(avg_volume_20, pd.Series) and not avg_volume_20.empty:
-                    avg_volume_20_value = float(avg_volume_20.iloc[-1]) if not pd.isna(avg_volume_20.iloc[-1]) else float(latest_volume)
-                else:
-                    avg_volume_20_value = float(latest_volume)
-            else:
-                avg_volume_20_value = float(latest_volume)
-            volume_vs_avg = (float(latest_volume) / avg_volume_20_value) if avg_volume_20_value > 0 else 1.0
-            
-            # Detect RSI extremes (still on daily data)
-            rsi_extreme = self._detect_rsi_extremes(rsi)
-            
+            # Calculate Trade Apgar score for both buy and sell scenarios
+            apgar_buy_result = calculate_trade_apgar(symbol, 'buy')
+            apgar_sell_result = calculate_trade_apgar(symbol, 'sell')
+            apgar_buy_score = apgar_buy_result.get('total_score', 0) if apgar_buy_result else 0
+            apgar_sell_score = apgar_sell_result.get('total_score', 0) if apgar_sell_result else 0
+            apgar_buy_has_zeros = False
+            apgar_sell_has_zeros = False
+            if apgar_buy_result and 'details' in apgar_buy_result:
+                details = apgar_buy_result['details']
+                apgar_buy_has_zeros = any([
+                    details.get('weekly_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_price', {}).get('score', 0) == 0,
+                    details.get('false_breakout', {}).get('score', 0) == 0,
+                    details.get('perfection', {}).get('score', 0) == 0
+                ])
+            if apgar_sell_result and 'details' in apgar_sell_result:
+                details = apgar_sell_result['details']
+                apgar_sell_has_zeros = any([
+                    details.get('weekly_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_impulse', {}).get('score', 0) == 0,
+                    details.get('daily_price', {}).get('score', 0) == 0,
+                    details.get('false_breakout', {}).get('score', 0) == 0,
+                    details.get('perfection', {}).get('score', 0) == 0
+                ])
             # Build scanner result
             scanner_data = {
                 'symbol': symbol,
-                'price': round(latest_close, 2),
-                'volume': latest_volume,
+                'price': round(latest_close, 2) if not pd.isna(latest_close) else None,
+                'volume': int(latest_volume) if not pd.isna(latest_volume) else 0,
                 'volume_vs_avg': round(volume_vs_avg, 2),
-                'in_value_zone': self._check_value_zone(latest_close, latest_ema_13, latest_ema_26),
-                'above_ema_13': latest_close > latest_ema_13 if not pd.isna(latest_ema_13) else False,
-                'above_ema_26': latest_close > latest_ema_26 if not pd.isna(latest_ema_26) else False,
-                'ema_trend': 'bullish' if (not pd.isna(latest_ema_13) and not pd.isna(latest_ema_26) and latest_ema_13 > latest_ema_26) else 'bearish',
+                'in_value_zone': in_value_zone,
+                'above_ema_13': above_ema_13,
+                'above_ema_26': above_ema_26,
+                'ema_trend': ema_trend,
                 'rsi': round(latest_rsi, 2) if not pd.isna(latest_rsi) else None,
                 'rsi_extreme': rsi_extreme,
-                'macd_signal': self._get_macd_signal(latest_macd, latest_signal),
-                # Divergences now use weekly data:
+                'macd_signal': macd_signal,
                 'macd_divergence': weekly_macd_divergence,
                 'rsi_divergence': weekly_rsi_divergence,
-                'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) else None,
+                'atr_pct': round((latest_atr / latest_close) * 100, 2) if not pd.isna(latest_atr) and not pd.isna(latest_close) and latest_close != 0 else None,
                 'price_change_pct': round(price_change_pct, 2),
                 'trade_apgar': apgar_buy_score, # Store buy score
                 'trade_apgar_has_zeros': apgar_buy_has_zeros,
@@ -360,9 +306,7 @@ class StockScanner:
                 'impulse_daily': impulse_daily,
                 'last_updated': datetime.now().isoformat()
             }
-            
             return scanner_data
-            
         except Exception as e:
             print(f"Error processing {symbol}: {e}")
             return None
