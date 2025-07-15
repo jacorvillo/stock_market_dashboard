@@ -1346,11 +1346,12 @@ def update_data_callback(n, symbol, timeframe, frequency, ema_periods, macd_fast
      Input('frequency-dropdown', 'value'),
      Input('impulse-system-toggle', 'value'),
      Input('bollinger-bands-store', 'data'),
-     Input('autoenvelope-store', 'data')],
+     Input('autoenvelope-store', 'data'),
+     Input('sidebar-tabs', 'active_tab')],
     [State('combined-chart', 'relayoutData')],
     prevent_initial_call=False
 )
-def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, frequency, impulse_system_toggle, bollinger_bands, autoenvelope, relayout_data):
+def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_periods, atr_bands, lower_chart_type, adx_components, timeframe, frequency, impulse_system_toggle, bollinger_bands, autoenvelope, active_tab, relayout_data):
     """Call update_combined_chart function from functions module"""
     ctx = dash.callback_context
     volume_comparison = 'none'  # Default value
@@ -1366,7 +1367,7 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
         unreliable_present = False
         if 'unreliable_indicators' in df.columns:
             unreliable_present = bool(df['unreliable_indicators'].any())
-        if unreliable_present:
+        if unreliable_present and active_tab != 'scanner-tab':
             unreliable_warning = (
                 html.Div([
                     html.Span("⚠️", style={'color': '#ffc107', 'fontSize': '18px', 'marginRight': '8px'}),
@@ -1376,6 +1377,9 @@ def update_combined_chart_callback(data, symbol, chart_type, show_ema, ema_perio
                 ]),
             )
             unreliable_class = 'alert alert-warning fade show'
+        elif active_tab == 'scanner-tab':
+            unreliable_warning = None
+            unreliable_class = 'alert alert-warning fade show d-none'
 
     # Always show the Today view, even if empty
     if timeframe == '1d' and (not data or len(data) == 0):
