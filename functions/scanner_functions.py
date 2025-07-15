@@ -2,31 +2,28 @@
 Stock Scanner Functions for Technical Analysis Dashboard
 Based on Dr. Alexander Elder's Trading Methods
 
-This module provides comprehensive stock scanning functiona            # Calculate ATR (13-period for consistency)
-            tr1 = high_prices - low_prices
-            tr2 = abs(high_prices - close_prices.shift(1))
-            tr3 = abs(low_prices - close_prices.shift(1))
-            true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-            atr = true_range.rolling(window=13).mean()ith
+This module provides comprehensive stock scanning functionality with
 technical indicator filters and market universe management.
 """
+
+import os
+import json
+import time
+import random
+import threading
+from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 import numpy as np
 import yfinance as yf
 import ta
-import json
-import os
-from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
-import time
-import random
 
-# Import technical analysis functions from existing functions.py
+# Import technical analysis functions from existing modules
 from .analysis_functions import calculate_indicators
 from functions.irl_trading_functions import calculate_trade_apgar, calculate_indicators_for_apgar
 from functions.analysis_functions import get_stock_data
+
 
 class StockScanner:
     def __init__(self, cache_file='scanner_cache.json'):
@@ -34,7 +31,7 @@ class StockScanner:
         self.update_threshold_hours = 4  # Update every 4 hours during market hours
         self.universe = self._get_stock_universe()
         self.max_workers = 8  # Reasonable thread pool size
-        
+
     def _get_stock_universe(self):
         """Get comprehensive stock universe for scanning"""
         return {
@@ -154,7 +151,7 @@ class StockScanner:
             return True
     
     def _calculate_indicators_for_symbol(self, symbol, period='6mo', force_refresh=False):
-        """Calculate all technical indicators for a single symbol. If force_refresh is True, always fetch fresh data and do not use cache."""
+        """Calculate all technical indicators for a single symbol."""
         try:
             # Use get_stock_data for daily data to ensure consistency with Analysis/IRL Trading tabs
             daily_data_tuple = get_stock_data(symbol, period='6mo', frequency='1d')
@@ -369,15 +366,6 @@ class StockScanner:
     def _detect_macd_divergence_enhanced(self, close_prices, macd_histogram):
         """
         Enhanced MACD divergence detection based on research criteria
-        
-        Research shows most tradable divergences occur when distance between 
-        two peaks/bottoms of MACD-H is between 20-40 bars, closer to 20 being better.
-        
-        Looks for:
-        1. Two peaks or two bottoms in MACD-H (histogram)
-        2. Distance between peaks/bottoms: 20-40 bars (optimal 20-30)
-        3. Price making higher highs while MACD-H makes lower highs (bearish divergence)
-        4. Price making lower lows while MACD-H makes higher lows (bullish divergence)
         """
         try:
             # Use MACD histogram (MACD-H) for divergence detection as per research
@@ -446,15 +434,6 @@ class StockScanner:
     def _detect_rsi_divergence_enhanced(self, close_prices, rsi):
         """
         Enhanced RSI divergence detection based on research criteria
-        
-        Research shows most tradable divergences occur when distance between 
-        two peaks/bottoms of RSI is between 20-40 bars, closer to 20 being better.
-        
-        Looks for:
-        1. Two peaks or two bottoms in RSI
-        2. Distance between peaks/bottoms: 20-40 bars (optimal 20-30)
-        3. Price making higher highs while RSI makes lower highs (bearish divergence)
-        4. Price making lower lows while RSI makes higher lows (bullish divergence)
         """
         try:
             # Find peaks and troughs in RSI
@@ -522,13 +501,6 @@ class StockScanner:
     def _find_peaks(self, series, prominence=0.001):
         """
         Find peaks in a time series with minimum prominence
-        
-        Args:
-            series: pandas Series with numeric values
-            prominence: minimum prominence for a peak to be considered
-            
-        Returns:
-            List of indices where peaks occur
         """
         peaks = []
         if len(series) < 3:
@@ -550,13 +522,6 @@ class StockScanner:
     def _find_troughs(self, series, prominence=0.001):
         """
         Find troughs (valleys) in a time series with minimum prominence
-        
-        Args:
-            series: pandas Series with numeric values
-            prominence: minimum prominence for a trough to be considered
-            
-        Returns:
-            List of indices where troughs occur
         """
         troughs = []
         if len(series) < 3:
@@ -613,7 +578,7 @@ class StockScanner:
         return [s for s in symbols if s.endswith('.MC')]
     
     def filter_spanish_indices(self, symbols):
-        """Filter a list of symbols to only those that are Spanish indices/ETFs (customize as needed)"""
+        """Filter a list of symbols to only those that are Spanish indices/ETFs"""
         spanish_indices = set([
             '^IBEX', 'EWP', 'ES35.MI', 'IBEX.MC', 'BME.MC', 'XES.MC'
         ])

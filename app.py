@@ -36,226 +36,48 @@ from functions.analysis_functions import (
     update_stock_status_indicator
 )
 
-# Import Impulse System functions
 from functions.impulse_functions import calculate_impulse_system, get_impulse_colors
-
-# Import scanner functions
 from functions.scanner_functions import StockScanner, get_preset_filter, get_available_presets
-
-# Import insights functions
 from functions.insights_functions import TechnicalInsights, generate_insights_summary
-
-# Import IRL trading functions
 from functions.irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price, calculate_trade_apgar
-
-# Import watchlist persistence functions
 from functions.watchlist_functions import load_watchlist, add_to_watchlist, remove_from_watchlist
 
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-/* Font family for all elements */
-* {
-    font-family: 'Inter', sans-serif !important;
-}
-
-/* Update button hover effect */
-#update-insights-stock-button:hover {
-    background-color: transparent !important;
-    border-color: #00d4aa !important;
-    color: #00d4aa !important;
-}
-
-/* Background colors and text colors */
-body, .card, .card-header, .card-body, .nav-tabs, .tab-content, .tab-pane {
-    background-color: #000000 !important;
-    color: #fff !important;
-}
-
-/* Card styling */
-.card, .card-header {
-    border-color: #000 !important;
-}
-
-.card-header {
-    border-bottom: 1px solid #333 !important;
-}
-
-/* Card headers - Bold and white */
-.card-header h1, .card-header h2, .card-header h3, 
-.card-header h4, .card-header h5, .card-header h6 {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    font-family: 'Inter', sans-serif !important;
-    margin: 0 !important;
-}
-
-/* All headers should be bold and white */
-h1, h2, h3, h4, h5, h6 {
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    font-family: 'Inter', sans-serif !important;
-}
-
-
-
-/* Enhanced Form control styling */
-.form-control, .form-select {
-    background-color: #000000 !important;
-    border: 1px solid #333 !important;
-    border-radius: 8px !important;
-    color: #fff !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-}
-
-.form-control:focus, .form-select:focus {
-    background-color: #000000 !important;
-    border-color: #00d4aa !important;
-    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1) !important;
-    color: #fff !important;
-}
-
-/* Ensure dbc.Select has consistent styling */
-.form-select option {
-    background-color: #000000 !important;
-    color: #fff !important;
-}
-
-/* Navigation tabs */
-.nav-tabs {
-    background-color: #000000 !important;
-    border-bottom: 1px solid #444 !important;
-}
-
-.nav-tabs .nav-link {
-    background-color: #000000 !important;
-    border: 1px solid #444 !important;
-    color: #ccc !important;
-    font-weight: 500 !important;
-    border-radius: 8px 8px 0 0 !important;
-}
-
-.nav-tabs .nav-link:hover, .nav-tabs .nav-link.active {
-    color: #00d4aa !important;
-    border-color: #00d4aa !important;
-}
-
-.nav-tabs .nav-link.active {
-    background-color: #000000 !important;
-    border-color: #00d4aa #00d4aa #000000 !important;
-}
-
-/* Enhanced Form controls */
-.form-check-input {
-    background-color: #222 !important;
-    border: 2px solid #666 !important;
-    border-radius: 6px !important;
-}
-
-.form-check-input:checked {
-    background-color: #00d4aa !important;
-    border-color: #00d4aa !important;
-}
-
-.form-check-label {
-    color: #fff !important;
-    padding-left: 8px !important;
-    font-weight: 500 !important;
-}
-
-/* Enhanced Button effects */
-.btn {
-    font-family: 'Inter', sans-serif !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    transition: all 0.3s ease !important;
-}
-
-.btn:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
-}
-
-.btn-success {
-    background: linear-gradient(45deg, #00d4aa, #00ff88) !important;
-    border: none !important;
-    color: #000 !important;
-}
-
-.btn-secondary {
-    background-color: #333 !important;
-    border-color: #444 !important;
-    color: #fff !important;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #000000;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #444;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #00d4aa;
-}
-
-/* Enhanced Labels styling */
-.form-label, label {
-    color: #fff !important;
-    font-weight: 600 !important;
-    font-family: 'Inter', sans-serif !important;
-    margin-bottom: 8px !important;
-}
-
-/* Input styling enhancements */
-input[type="number"], input[type="text"] {
-    background-color: #000000 !important;
-    border: 1px solid #333 !important;
-    border-radius: 6px !important;
-    color: #fff !important;
-    font-weight: 500 !important;
-}
-
-input[type="number"]:focus, input[type="text"]:focus {
-    border-color: #00d4aa !important;
-    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1) !important;
-}
-
-/* Card enhancements */
-.card {
-    border-radius: 12px !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-}
-
-.card-header {
-    border-radius: 12px 12px 0 0 !important;
-}
-
-.card-body {
-    border-radius: 0 0 12px 12px !important;
-}
-
-/* Alert styling for AMOLED */
-.alert {
-    border-radius: 8px !important;
-    border: 1px solid #333 !important;
-    background-color: #000000 !important;
-}
-
-.alert-warning {
-    color: #ffcc00 !important;
-    border-color: #ffcc00 !important;
-}
+* { font-family: 'Inter', sans-serif !important; }
+#update-insights-stock-button:hover { background-color: transparent !important; border-color: #00d4aa !important; color: #00d4aa !important; }
+body, .card, .card-header, .card-body, .nav-tabs, .tab-content, .tab-pane { background-color: #000000 !important; color: #fff !important; }
+.card, .card-header { border-color: #000 !important; }
+.card-header { border-bottom: 1px solid #333 !important; }
+.card-header h1, .card-header h2, .card-header h3, .card-header h4, .card-header h5, .card-header h6 { color: #ffffff !important; font-weight: 700 !important; font-family: 'Inter', sans-serif !important; margin: 0 !important; }
+h1, h2, h3, h4, h5, h6 { color: #ffffff !important; font-weight: 600 !important; font-family: 'Inter', sans-serif !important; }
+.form-control, .form-select { background-color: #000000 !important; border: 1px solid #333 !important; border-radius: 8px !important; color: #fff !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important; }
+.form-control:focus, .form-select:focus { background-color: #000000 !important; border-color: #00d4aa !important; box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1) !important; color: #fff !important; }
+.form-select option { background-color: #000000 !important; color: #fff !important; }
+.nav-tabs { background-color: #000000 !important; border-bottom: 1px solid #444 !important; }
+.nav-tabs .nav-link { background-color: #000000 !important; border: 1px solid #444 !important; color: #ccc !important; font-weight: 500 !important; border-radius: 8px 8px 0 0 !important; }
+.nav-tabs .nav-link:hover, .nav-tabs .nav-link.active { color: #00d4aa !important; border-color: #00d4aa !important; }
+.nav-tabs .nav-link.active { background-color: #000000 !important; border-color: #00d4aa #00d4aa #000000 !important; }
+.form-check-input { background-color: #222 !important; border: 2px solid #666 !important; border-radius: 6px !important; }
+.form-check-input:checked { background-color: #00d4aa !important; border-color: #00d4aa !important; }
+.form-check-label { color: #fff !important; padding-left: 8px !important; font-weight: 500 !important; }
+.btn { font-family: 'Inter', sans-serif !important; border-radius: 8px !important; font-weight: 600 !important; transition: all 0.3s ease !important; }
+.btn:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important; }
+.btn-success { background: linear-gradient(45deg, #00d4aa, #00ff88) !important; border: none !important; color: #000 !important; }
+.btn-secondary { background-color: #333 !important; border-color: #444 !important; color: #fff !important; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #000000; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #00d4aa; }
+.form-label, label { color: #fff !important; font-weight: 600 !important; font-family: 'Inter', sans-serif !important; margin-bottom: 8px !important; }
+input[type="number"], input[type="text"] { background-color: #000000 !important; border: 1px solid #333 !important; border-radius: 6px !important; color: #fff !important; font-weight: 500 !important; }
+input[type="number"]:focus, input[type="text"]:focus { border-color: #00d4aa !important; box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1) !important; }
+.card { border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important; }
+.card-header { border-radius: 12px 12px 0 0 !important; }
+.card-body { border-radius: 0 0 12px 12px !important; }
+.alert { border-radius: 8px !important; border: 1px solid #333 !important; background-color: #000000 !important; }
+.alert-warning { color: #ffcc00 !important; border-color: #ffcc00 !important; }
 """
 
 # Initialize the Dash app with Dark Bootstrap theme and Font Awesome for icons
