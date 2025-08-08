@@ -1857,13 +1857,14 @@ def handle_preset_buttons(divergence_clicks, rsi_extremes_clicks, volume_clicks,
      State('universe-selection', 'value'),
      State('result-limit', 'value'),
      State('sort-by', 'value'),
-     State('apgar-preset-store', 'data')],
+     State('apgar-preset-store', 'data'),
+     State('watchlist-store', 'data')],
     prevent_initial_call=True,
     running=[(Output("start-scan-button", "disabled"), True, False),
              (Output('scan-status', 'children'), dbc.Spinner(size="sm", color="success", fullscreen=False, children=html.Span(" Scanning...", style={'marginLeft': '10px', 'color': '#00d4aa'})), "")]
 )
 def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_preset, 
-                  change_preset, universe_selection, result_limit, sort_by, apgar_preset):
+                  change_preset, universe_selection, result_limit, sort_by, apgar_preset, current_watchlist):
     if not n_clicks:
         raise PreventUpdate
     # Always define progress_data and reset progress at the start
@@ -2011,6 +2012,19 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         if 'ema_trend' in table_data.columns:
             table_data['ema_trend'] = table_data['ema_trend'].apply(lambda x: x.title() if pd.notna(x) else None)
 
+        # Add Watchlist action column data (toggle Add/Remove based on current watchlist)
+        try:
+            wl_set = set(current_watchlist or [])
+        except Exception:
+            wl_set = set()
+        table_data['watchlist_action'] = table_data['symbol'].apply(lambda s: 'Remove' if str(s).upper() in wl_set else 'Add')
+
+        # Normalize Apgar helper flags to numeric for reliable filtering in DataTable
+        if 'trade_apgar_has_zeros' in table_data.columns:
+            table_data['trade_apgar_zero_components'] = table_data['trade_apgar_has_zeros'].apply(lambda v: 1 if bool(v) else 0)
+        if 'trade_apgar_sell_has_zeros' in table_data.columns:
+            table_data['trade_apgar_sell_zero_components'] = table_data['trade_apgar_sell_has_zeros'].apply(lambda v: 1 if bool(v) else 0)
+
         # Create data table
         table = dash_table.DataTable(
             id='scan-results-table',
@@ -2020,7 +2034,6 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'Price', 'id': 'price', 'type': 'numeric'},
                 {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
-                {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
@@ -2028,7 +2041,8 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'Impulse (Weekly)', 'id': 'impulse_weekly', 'type': 'text'},
                 {'name': 'Impulse (Daily)', 'id': 'impulse_daily', 'type': 'text'},
                 {'name': 'Trade Apgar (Buy)', 'id': 'trade_apgar', 'type': 'numeric'},
-                {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'}
+                {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'},
+                {'name': 'Watchlist', 'id': 'watchlist_action', 'type': 'text'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -2101,22 +2115,29 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'color': '#00ff88',
                     'backgroundColor': '#1a4d3a',
                 },
-                # RSI Status coloring (add background)
+                # Watchlist action base styling (button-like, black background)
                 {
-                    'if': {
-                        'filter_query': '{rsi_extreme} = Overbought',
-                        'column_id': 'rsi_extreme'
-                    },
-                    'backgroundColor': '#4d1a1a',
-                    'color': '#ff6b6b',
+                    'if': {'column_id': 'watchlist_action'},
+                    'backgroundColor': '#000000',
+                    'fontWeight': 'bold',
+                    'textAlign': 'center',
+                    'cursor': 'pointer'
                 },
+                # Watchlist action: Add -> bold green
                 {
                     'if': {
-                        'filter_query': '{rsi_extreme} = Oversold',
-                        'column_id': 'rsi_extreme'
+                        'filter_query': '{watchlist_action} = Add',
+                        'column_id': 'watchlist_action'
                     },
-                    'backgroundColor': '#1a4d3a',
-                    'color': '#00ff88',
+                    'color': '#00ff88'
+                },
+                # Watchlist action: Remove -> bold red
+                {
+                    'if': {
+                        'filter_query': '{watchlist_action} = Remove',
+                        'column_id': 'watchlist_action'
+                    },
+                    'color': '#ff4444'
                 },
                 # EMA Trend coloring
                 {
@@ -2194,10 +2215,10 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Trade Apgar (Buy) coloring (fix logic)
+                # Trade Apgar (Buy) coloring (reliable numeric flag)
                 {
                     'if': {
-                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_zero_components} = 1',
                         'column_id': 'trade_apgar'
                     },
                     'backgroundColor': '#4d3a1a',
@@ -2206,17 +2227,17 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 },
                 {
                     'if': {
-                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_zero_components} = 0',
                         'column_id': 'trade_apgar'
                     },
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
-                # Trade Apgar (Sell) coloring (fix logic)
+                # Trade Apgar (Sell) coloring (reliable numeric flag)
                 {
                     'if': {
-                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = true',
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_zero_components} = 1',
                         'column_id': 'trade_apgar_sell'
                     },
                     'backgroundColor': '#4d3a1a',
@@ -2225,7 +2246,7 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 },
                 {
                     'if': {
-                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = false',
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_zero_components} = 0',
                         'column_id': 'trade_apgar_sell'
                     },
                     'backgroundColor': '#1a4d3a',
@@ -2421,6 +2442,9 @@ def update_apgar_button_style(active_preset):
 def load_symbol_from_scanner(active_cell, viewport_data):
     """Load clicked symbol from scanner results into main chart and switch to chart view"""
     if active_cell and viewport_data:
+        # Only handle clicks on the Symbol column here
+        if active_cell.get('column_id') != 'symbol':
+            raise PreventUpdate
         row = active_cell['row']
         if row < len(viewport_data):
             symbol = viewport_data[row]['symbol']
@@ -2434,6 +2458,52 @@ def load_symbol_from_scanner(active_cell, viewport_data):
                 'stock-search-tab'                                   # Switch to stock search tab
             )
     raise PreventUpdate
+
+# Callback to add symbol to watchlist from scanner results "Watchlist" column
+@callback(
+    [Output('watchlist-store', 'data', allow_duplicate=True),
+     Output('watchlist-status', 'children', allow_duplicate=True),
+     Output('scan-results-table', 'data'),
+     Output('scan-results-table', 'active_cell', allow_duplicate=True)],
+    [Input('scan-results-table', 'active_cell')],
+    [State('scan-results-table', 'derived_viewport_data'),
+     State('scan-results-table', 'data'),
+     State('watchlist-store', 'data')],
+    prevent_initial_call=True
+)
+def add_watchlist_from_scan(active_cell, viewport_data, table_data, current_watchlist):
+    if not active_cell or not viewport_data:
+        raise PreventUpdate
+    # Only handle clicks on the Watchlist column
+    if active_cell.get('column_id') != 'watchlist_action':
+        raise PreventUpdate
+    row = active_cell['row']
+    if row >= len(viewport_data):
+        raise PreventUpdate
+    symbol = (viewport_data[row].get('symbol') or '').strip().upper()
+    if not symbol:
+        raise PreventUpdate
+    current = current_watchlist or []
+    if symbol in current:
+        # Toggle: remove
+        new_watchlist = remove_from_watchlist(symbol)
+        # Update table cell to 'Add'
+        new_table_data = list(table_data or [])
+        for row_data in new_table_data:
+            if (row_data.get('symbol') or '').strip().upper() == symbol:
+                row_data['watchlist_action'] = 'Add'
+                break
+        return new_watchlist, f"🗑️ {symbol} removed from watchlist.", new_table_data, None
+    else:
+        # Toggle: add
+        new_watchlist = add_to_watchlist(symbol)
+        # Update table cell to 'Remove'
+        new_table_data = list(table_data or [])
+        for row_data in new_table_data:
+            if (row_data.get('symbol') or '').strip().upper() == symbol:
+                row_data['watchlist_action'] = 'Remove'
+                break
+        return new_watchlist, f"✅ {symbol} added to watchlist!", new_table_data, None
 
 @callback(
     [Output('stock-symbol-input', 'value', allow_duplicate=True),
@@ -2687,6 +2757,11 @@ def load_watchlist_scan(n_clicks, watchlist_data):
             table_data['volume'] = table_data['volume'].apply(lambda x: int(x) if pd.notna(x) else None)
         if 'trade_apgar' in table_data.columns:
             table_data['trade_apgar'] = table_data['trade_apgar'].apply(lambda x: int(x) if pd.notna(x) else None)
+        # Normalize Apgar helper flags to numeric for reliable filtering in DataTable
+        if 'trade_apgar_has_zeros' in table_data.columns:
+            table_data['trade_apgar_zero_components'] = table_data['trade_apgar_has_zeros'].apply(lambda v: 1 if bool(v) else 0)
+        if 'trade_apgar_sell_has_zeros' in table_data.columns:
+            table_data['trade_apgar_sell_zero_components'] = table_data['trade_apgar_sell_has_zeros'].apply(lambda v: 1 if bool(v) else 0)
         
         # Format divergence and RSI extreme columns
         if 'macd_divergence' in table_data.columns:
@@ -2709,7 +2784,6 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 {'name': 'Price', 'id': 'price', 'type': 'numeric'},
                 {'name': 'Change %', 'id': 'price_change_pct', 'type': 'numeric'},
                 {'name': 'RSI', 'id': 'rsi', 'type': 'numeric'},
-                {'name': 'RSI Status', 'id': 'rsi_extreme', 'type': 'text'},
                 {'name': 'EMA Trend', 'id': 'ema_trend', 'type': 'text'},
                 {'name': 'MACD Signal', 'id': 'macd_signal', 'type': 'text'},
                 {'name': 'MACD Divergence', 'id': 'macd_divergence', 'type': 'text'},
@@ -2790,23 +2864,6 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'color': '#00ff88',
                     'backgroundColor': '#1a4d3a',
                 },
-                # RSI Status coloring (add background)
-                {
-                    'if': {
-                        'filter_query': '{rsi_extreme} = Overbought',
-                        'column_id': 'rsi_extreme'
-                    },
-                    'backgroundColor': '#4d1a1a',
-                    'color': '#ff6b6b',
-                },
-                {
-                    'if': {
-                        'filter_query': '{rsi_extreme} = Oversold',
-                        'column_id': 'rsi_extreme'
-                    },
-                    'backgroundColor': '#1a4d3a',
-                    'color': '#00ff88',
-                },
                 # EMA Trend coloring
                 {
                     'if': {
@@ -2883,10 +2940,10 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                     'cursor': 'pointer',
                     'textDecoration': 'underline'
                 },
-                # Trade Apgar (Buy) coloring (fix logic)
+                # Trade Apgar (Buy) coloring (reliable numeric flag)
                 {
                     'if': {
-                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = true',
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_zero_components} = 1',
                         'column_id': 'trade_apgar'
                     },
                     'backgroundColor': '#4d3a1a',
@@ -2895,17 +2952,17 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 },
                 {
                     'if': {
-                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_has_zeros} = false',
+                        'filter_query': '{trade_apgar} >= 7 and {trade_apgar_zero_components} = 0',
                         'column_id': 'trade_apgar'
                     },
                     'backgroundColor': '#1a4d3a',
                     'color': '#00ff88',
                     'fontWeight': 'bold'
                 },
-                # Trade Apgar (Sell) coloring (fix logic)
+                # Trade Apgar (Sell) coloring (reliable numeric flag)
                 {
                     'if': {
-                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = true',
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_zero_components} = 1',
                         'column_id': 'trade_apgar_sell'
                     },
                     'backgroundColor': '#4d3a1a',
@@ -2914,7 +2971,7 @@ def load_watchlist_scan(n_clicks, watchlist_data):
                 },
                 {
                     'if': {
-                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_has_zeros} = false',
+                        'filter_query': '{trade_apgar_sell} >= 7 and {trade_apgar_sell_zero_components} = 0',
                         'column_id': 'trade_apgar_sell'
                     },
                     'backgroundColor': '#1a4d3a',
