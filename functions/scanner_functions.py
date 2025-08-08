@@ -80,6 +80,51 @@ class StockScanner:
                 'PM', 'MO', 'SO', 'DUK', 'NEE', 'D', 'AEP', 'EXC', 'SRE', 'PEG',
                 'O', 'STOR', 'WPC', 'NNN', 'ADC', 'STAG', 'EPR', 'GOOD', 'SRC', 'VICI'
             ],
+            'uk': [
+                # United Kingdom (LSE)
+                'SHEL.L', 'BP.L', 'HSBA.L', 'RIO.L', 'AZN.L', 'GSK.L', 'ULVR.L', 'BATS.L', 'LSEG.L', 'DGE.L',
+                'BARC.L', 'VOD.L', 'PRU.L', 'LLOY.L', 'III.L', 'BA.L', 'NG.L', 'TSCO.L', 'REL.L', 'AV.L'
+            ],
+            'germany': [
+                # Germany (XETRA)
+                'SAP.DE', 'ALV.DE', 'BMW.DE', 'MBG.DE', 'VOW3.DE', 'BAS.DE', 'BAYN.DE', 'LIN.DE', 'DTE.DE', 'ADS.DE',
+                'SIE.DE', 'MUV2.DE', 'IFX.DE', 'DBK.DE', 'HEN3.DE', 'RWE.DE', 'EOAN.DE', 'DWNI.DE', 'FRE.DE', 'FME.DE'
+            ],
+            'france': [
+                # France (Euronext Paris)
+                'MC.PA', 'OR.PA', 'AIR.PA', 'DG.PA', 'TTE.PA', 'SAN.PA', 'BNP.PA', 'GLE.PA', 'ACA.PA', 'ORA.PA',
+                'RI.PA', 'SU.PA', 'AI.PA', 'RMS.PA', 'CA.PA', 'HO.PA', 'SGO.PA', 'ENGI.PA', 'CAP.PA', 'SAF.PA'
+            ],
+            'canada': [
+                # Canada (TSX)
+                'RY.TO', 'TD.TO', 'BNS.TO', 'BMO.TO', 'CM.TO', 'ENB.TO', 'TRP.TO', 'SU.TO', 'CNQ.TO', 'SHOP.TO',
+                'BCE.TO', 'T.TO', 'CNR.TO', 'CP.TO', 'FNV.TO', 'NTR.TO', 'BAM.TO', 'BN.TO', 'MFC.TO', 'AEM.TO'
+            ],
+            'australia': [
+                # Australia (ASX)
+                'BHP.AX', 'CBA.AX', 'WBC.AX', 'NAB.AX', 'ANZ.AX', 'CSL.AX', 'WOW.AX', 'WES.AX', 'TLS.AX', 'MQG.AX',
+                'RIO.AX', 'FMG.AX', 'WPL.AX', 'COL.AX', 'GMG.AX', 'BXB.AX', 'SUN.AX', 'QBE.AX', 'TPG.AX', 'APA.AX'
+            ],
+            'japan': [
+                # Japan (TSE)
+                '7203.T', '6758.T', '9984.T', '9432.T', '9433.T', '7267.T', '8306.T', '8411.T', '8058.T', '8035.T',
+                '4502.T', '6861.T', '6954.T', '7751.T', '8766.T', '2914.T', '9020.T', '4063.T', '9983.T', '4689.T'
+            ],
+            'india': [
+                # India (NSE)
+                'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'INFY.NS', 'ITC.NS', 'HINDUNILVR.NS', 'LT.NS',
+                'SBIN.NS', 'BHARTIARTL.NS', 'KOTAKBANK.NS', 'ASIANPAINT.NS', 'HCLTECH.NS', 'MARUTI.NS', 'ULTRACEMCO.NS', 'TITAN.NS'
+            ],
+            'hong_kong': [
+                # Hong Kong (HKEX)
+                '0700.HK', '0939.HK', '1299.HK', '2318.HK', '0005.HK', '0941.HK', '0388.HK', '1398.HK', '3988.HK', '0883.HK',
+                '2388.HK', '0857.HK', '2319.HK', '0027.HK', '0011.HK', '1928.HK', '0002.HK', '0016.HK', '0019.HK', '0386.HK'
+            ],
+            'china_adr': [
+                # Mainland China large caps via US ADRs (NYSE/NASDAQ)
+                'BABA', 'JD', 'PDD', 'BIDU', 'TME', 'NTES', 'IQ', 'NIO', 'XPEV', 'LI',
+                'YUMC', 'ZTO', 'VIPS', 'TAL', 'EDU', 'WB', 'BEKE', 'HUYA', 'DADA', 'KC'
+            ],
             'spanish': [
                 # Spanish stocks (IBEX 35, main .MC tickers) - Updated comprehensive list
                 'SAN.MC', 'BBVA.MC', 'ITX.MC', 'IBE.MC', 'REP.MC', 'TEF.MC', 'AMS.MC', 'AENA.MC',
@@ -91,12 +136,11 @@ class StockScanner:
                 'CABK.MC', 'CIE.MC', 'CLNX.MC', 'COL.MC', 'ELE.MC', 'ENG.MC', 'FER.MC', 'GRF.MC',
                 'IAG.MC', 'IBE.MC', 'ITX.MC', 'LOG.MC', 'MAP.MC', 'MEL.MC', 'MRL.MC', 'NTGY.MC',
                 'PHM.MC', 'RED.MC', 'REP.MC', 'SAB.MC', 'SAN.MC', 'SGRE.MC', 'SLR.MC', 'TEF.MC',
-                'VIS.MC', 'ZAL.MC'
-            ],
-            'spanish_indices': [
-                # Spanish indices and ETFs (as available on Yahoo Finance)
+                'VIS.MC', 'ZAL.MC',
+                # Spanish indices and ETFs merged into the same universe
                 '^IBEX', 'EWP', 'ES35.MI', 'IBEX.MC', 'BME.MC', 'XES.MC'
-            ]
+            ],
+            # 'spanish_indices' merged into 'spanish'
         }
     
     def _load_cache(self):

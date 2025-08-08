@@ -270,11 +270,17 @@ app.layout = dbc.Container([
                                                                 {'label': '📈 S&P 500', 'value': 'sp500'},
                                                                 {'label': '🚀 NASDAQ 100', 'value': 'nasdaq100'},
                                                                 {'label': '🏛️ Dow Jones 30', 'value': 'dow30'},
-                                                                {'label': '📊 Popular ETFs', 'value': 'etfs'},
-                                                                {'label': '🌱 Growth Stocks', 'value': 'growth'},
-                                                                {'label': '💰 Dividend Stocks', 'value': 'dividend'},
-                                                                {'label': '🇪🇸 Spanish Stocks', 'value': 'spanish'},
-                                                                {'label': '🇪🇸 Spanish Indices', 'value': 'spanish_indices'}
+                                                                    
+                                                                {'label': '🇬🇧 UK (LSE)', 'value': 'uk'},
+                                                                {'label': '🇩🇪 Germany (XETRA)', 'value': 'germany'},
+                                                                {'label': '🇫🇷 France (Paris)', 'value': 'france'},
+                                                                {'label': '🇨🇦 Canada (TSX)', 'value': 'canada'},
+                                                                {'label': '🇦🇺 Australia (ASX)', 'value': 'australia'},
+                                                                {'label': '🇯🇵 Japan (TSE)', 'value': 'japan'},
+                                                                {'label': '🇮🇳 India (NSE)', 'value': 'india'},
+                                                                {'label': '🇭🇰 Hong Kong (HKEX)', 'value': 'hong_kong'},
+                                                                {'label': '🇨🇳 China (A股)', 'value': 'china_adr'},
+                                                                {'label': '🇪🇸 Spain (Stocks & Indices)', 'value': 'spanish'}
                                                             ],
                                                             value=['sp500'],
                                                             style={'color': '#fff'},
