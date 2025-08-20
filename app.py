@@ -42,7 +42,7 @@ from functions.impulse_functions import calculate_impulse_system, get_impulse_co
 from functions.scanner_functions import StockScanner, get_preset_filter, get_available_presets
 from functions.insights_functions import TechnicalInsights, generate_insights_summary
 from functions.irl_trading_functions import open_position, close_position, load_trading_df, save_trading_df, update_stop_price, calculate_trade_apgar
-from functions.watchlist_functions import load_watchlist, add_to_watchlist, remove_from_watchlist
+from functions.watchlist_functions import load_watchlist, add_to_watchlist, remove_from_watchlist, get_watchlist_symbols
 
 # Enhanced CSS with Inter font and bold white card headers
 custom_css = """
@@ -2018,12 +2018,32 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
         if 'ema_trend' in table_data.columns:
             table_data['ema_trend'] = table_data['ema_trend'].apply(lambda x: x.title() if pd.notna(x) else None)
 
-        # Add Watchlist action column data (toggle Add/Remove based on current watchlist)
+        # Add Watchlist action columns data (Buy/Sell/Remove based on current watchlist)
         try:
-            wl_set = set(current_watchlist or [])
+            wl_dict = current_watchlist or {}
+            # Handle backwards compatibility if current_watchlist is still a list
+            if isinstance(current_watchlist, list):
+                wl_dict = {symbol: 'buy' for symbol in current_watchlist}
         except Exception:
-            wl_set = set()
-        table_data['watchlist_action'] = table_data['symbol'].apply(lambda s: 'Remove' if str(s).upper() in wl_set else 'Add')
+            wl_dict = {}
+        
+        def get_watchlist_actions(symbol):
+            symbol = str(symbol).upper()
+            if symbol in wl_dict:
+                current_intent = wl_dict[symbol]
+                return f"Remove ({current_intent.title()})"
+            else:
+                return "Add Buy"
+        
+        def get_watchlist_sell_action(symbol):
+            symbol = str(symbol).upper()
+            if symbol in wl_dict:
+                return ""  # Empty if already in watchlist
+            else:
+                return "Add Sell"
+        
+        table_data['watchlist_buy_action'] = table_data['symbol'].apply(get_watchlist_actions)
+        table_data['watchlist_sell_action'] = table_data['symbol'].apply(get_watchlist_sell_action)
 
         # Normalize Apgar helper flags to numeric for reliable filtering in DataTable
         if 'trade_apgar_has_zeros' in table_data.columns:
@@ -2048,7 +2068,8 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                 {'name': 'Impulse (Daily)', 'id': 'impulse_daily', 'type': 'text'},
                 {'name': 'Trade Apgar (Buy)', 'id': 'trade_apgar', 'type': 'numeric'},
                 {'name': 'Trade Apgar (Sell)', 'id': 'trade_apgar_sell', 'type': 'numeric'},
-                {'name': 'Watchlist', 'id': 'watchlist_action', 'type': 'text'}
+                {'name': 'Watch (Buy)', 'id': 'watchlist_buy_action', 'type': 'text'},
+                {'name': 'Watch (Sell)', 'id': 'watchlist_sell_action', 'type': 'text'}
             ],
             style_table={
                 'backgroundColor': '#000000',
@@ -2121,29 +2142,64 @@ def run_stock_scan(n_clicks, elder_filters, rsi_preset, volume_preset, price_pre
                     'color': '#00ff88',
                     'backgroundColor': '#1a4d3a',
                 },
-                # Watchlist action base styling (button-like, black background)
+                # Watchlist Buy action base styling (button-like, black background)
                 {
-                    'if': {'column_id': 'watchlist_action'},
+                    'if': {'column_id': 'watchlist_buy_action'},
                     'backgroundColor': '#000000',
                     'fontWeight': 'bold',
                     'textAlign': 'center',
-                    'cursor': 'pointer'
+                    'cursor': 'pointer',
+                    'fontSize': '11px'
                 },
-                # Watchlist action: Add -> bold green
+                # Watchlist Buy action: Add Buy -> bold green
                 {
                     'if': {
-                        'filter_query': '{watchlist_action} = Add',
-                        'column_id': 'watchlist_action'
+                        'filter_query': '{watchlist_buy_action} = "Add Buy"',
+                        'column_id': 'watchlist_buy_action'
                     },
                     'color': '#00ff88'
                 },
-                # Watchlist action: Remove -> bold red
+                # Watchlist Buy action: Remove (Buy) -> orange
                 {
                     'if': {
-                        'filter_query': '{watchlist_action} = Remove',
-                        'column_id': 'watchlist_action'
+                        'filter_query': '{watchlist_buy_action} contains "Remove (Buy)"',
+                        'column_id': 'watchlist_buy_action'
+                    },
+                    'color': '#ffaa00'
+                },
+                # Watchlist Buy action: Remove (Sell) -> light gray (not the primary action for this column)
+                {
+                    'if': {
+                        'filter_query': '{watchlist_buy_action} contains "Remove (Sell)"',
+                        'column_id': 'watchlist_buy_action'
+                    },
+                    'color': '#666666'
+                },
+                # Watchlist Sell action base styling (button-like, black background)
+                {
+                    'if': {'column_id': 'watchlist_sell_action'},
+                    'backgroundColor': '#000000',
+                    'fontWeight': 'bold',
+                    'textAlign': 'center',
+                    'cursor': 'pointer',
+                    'fontSize': '11px'
+                },
+                # Watchlist Sell action: Add Sell -> bold red
+                {
+                    'if': {
+                        'filter_query': '{watchlist_sell_action} = "Add Sell"',
+                        'column_id': 'watchlist_sell_action'
                     },
                     'color': '#ff4444'
+                },
+                # Hide empty watchlist sell actions
+                {
+                    'if': {
+                        'filter_query': '{watchlist_sell_action} = ""',
+                        'column_id': 'watchlist_sell_action'
+                    },
+                    'color': 'transparent',
+                    'cursor': 'default'
                 },
                 # EMA Trend coloring
                 {
@@ -2465,7 +2521,7 @@ def load_symbol_from_scanner(active_cell, viewport_data):
             )
     raise PreventUpdate
 
-# Callback to add symbol to watchlist from scanner results "Watchlist" column
+# Callback to add symbol to watchlist from scanner results with buy/sell intent
 @callback(
     [Output('watchlist-store', 'data', allow_duplicate=True),
      Output('watchlist-status', 'children', allow_duplicate=True),
@@ -2480,36 +2536,75 @@ def load_symbol_from_scanner(active_cell, viewport_data):
 def add_watchlist_from_scan(active_cell, viewport_data, table_data, current_watchlist):
     if not active_cell or not viewport_data:
         raise PreventUpdate
-    # Only handle clicks on the Watchlist column
-    if active_cell.get('column_id') != 'watchlist_action':
+    
+    column_id = active_cell.get('column_id')
+    # Only handle clicks on the watchlist columns
+    if column_id not in ['watchlist_buy_action', 'watchlist_sell_action']:
         raise PreventUpdate
+    
     row = active_cell['row']
     if row >= len(viewport_data):
         raise PreventUpdate
+    
     symbol = (viewport_data[row].get('symbol') or '').strip().upper()
     if not symbol:
         raise PreventUpdate
-    current = current_watchlist or []
-    if symbol in current:
-        # Toggle: remove
-        new_watchlist = remove_from_watchlist(symbol)
-        # Update table cell to 'Add'
-        new_table_data = list(table_data or [])
-        for row_data in new_table_data:
-            if (row_data.get('symbol') or '').strip().upper() == symbol:
-                row_data['watchlist_action'] = 'Add'
-                break
-        return new_watchlist, f"🗑️ {symbol} removed from watchlist.", new_table_data, None
+    
+    # Handle current_watchlist as dict or list for backwards compatibility
+    current_wl_dict = current_watchlist or {}
+    if isinstance(current_watchlist, list):
+        current_wl_dict = {s: 'buy' for s in current_watchlist}
+    
+    # Determine the action based on which column was clicked
+    if column_id == 'watchlist_buy_action':
+        # Check if symbol is already in watchlist
+        if symbol in current_wl_dict:
+            # Remove from watchlist
+            new_watchlist = remove_from_watchlist(symbol)
+            status_msg = f"🗑️ {symbol} removed from watchlist."
+        else:
+            # Add as buy intent
+            new_watchlist = add_to_watchlist(symbol, 'buy')
+            status_msg = f"✅ {symbol} added to watchlist for BUY!"
+    
+    elif column_id == 'watchlist_sell_action':
+        # Check if symbol is already in watchlist
+        if symbol in current_wl_dict:
+            # This shouldn't happen as the cell should be empty, but handle gracefully
+            raise PreventUpdate
+        else:
+            # Add as sell intent
+            new_watchlist = add_to_watchlist(symbol, 'sell')
+            status_msg = f"✅ {symbol} added to watchlist for SELL!"
+    
     else:
-        # Toggle: add
-        new_watchlist = add_to_watchlist(symbol)
-        # Update table cell to 'Remove'
-        new_table_data = list(table_data or [])
-        for row_data in new_table_data:
-            if (row_data.get('symbol') or '').strip().upper() == symbol:
-                row_data['watchlist_action'] = 'Remove'
-                break
-        return new_watchlist, f"✅ {symbol} added to watchlist!", new_table_data, None
+        raise PreventUpdate
+    
+    # Update table data to reflect new watchlist state
+    new_table_data = list(table_data or [])
+    new_wl_dict = new_watchlist or {}
+    
+    def update_watchlist_actions(symbol):
+        symbol = str(symbol).upper()
+        if symbol in new_wl_dict:
+            current_intent = new_wl_dict[symbol]
+            return f"Remove ({current_intent.title()})"
+        else:
+            return "Add Buy"
+    
+    def update_watchlist_sell_action(symbol):
+        symbol = str(symbol).upper()
+        if symbol in new_wl_dict:
+            return ""  # Empty if already in watchlist
+        else:
+            return "Add Sell"
+    
+    for row_data in new_table_data:
+        row_symbol = (row_data.get('symbol') or '').strip().upper()
+        row_data['watchlist_buy_action'] = update_watchlist_actions(row_symbol)
+        row_data['watchlist_sell_action'] = update_watchlist_sell_action(row_symbol)
+    
+    return new_watchlist, status_msg, new_table_data, None
 
 @callback(
     [Output('stock-symbol-input', 'value', allow_duplicate=True),
@@ -2578,11 +2673,19 @@ def add_to_watchlist_callback(n_clicks, symbol, current_watchlist):
     clean_symbol = symbol.strip().upper()
     if not clean_symbol:
         return dash.no_update, "Please enter a valid symbol.", ""
-    if clean_symbol in current_watchlist:
+    
+    # Handle both dict and list formats for backwards compatibility
+    if isinstance(current_watchlist, list):
+        current_symbols = current_watchlist
+    else:
+        current_symbols = list(current_watchlist.keys()) if current_watchlist else []
+    
+    if clean_symbol in current_symbols:
         return dash.no_update, f"❌ {clean_symbol} is already in your watchlist.", ""
-    # Add to persistent watchlist
-    new_watchlist = add_to_watchlist(clean_symbol)
-    return new_watchlist, f"✅ {clean_symbol} added to watchlist!", ""
+    
+    # Add to persistent watchlist (default to 'buy' intent for manual adds)
+    new_watchlist = add_to_watchlist(clean_symbol, 'buy')
+    return new_watchlist, f"✅ {clean_symbol} added to watchlist for BUY!", ""
 
 @callback(
     [Output('watchlist-table', 'children'),
@@ -2591,33 +2694,56 @@ def add_to_watchlist_callback(n_clicks, symbol, current_watchlist):
     prevent_initial_call=False
 )
 def update_watchlist_display(watchlist_data):
-    """Update the watchlist display"""
+    """Update the watchlist display with buy/sell color coding"""
     if not watchlist_data or len(watchlist_data) == 0:
         return "No stocks in watchlist", {'display': 'block'}
     
-    # Create watchlist items with remove buttons
+    # Handle both dict and list formats for backwards compatibility
+    if isinstance(watchlist_data, list):
+        # Convert old list format to dict format (default to 'buy')
+        watchlist_dict = {symbol: 'buy' for symbol in watchlist_data}
+    else:
+        watchlist_dict = watchlist_data
+    
+    # Create watchlist items with remove buttons and buy/sell indicators
     watchlist_items = []
-    for i, symbol in enumerate(watchlist_data):
+    for i, (symbol, intent) in enumerate(watchlist_dict.items()):
         # Check if this is an open position from CSV
         open_positions = get_open_positions_from_csv()
         is_open_position = symbol in open_positions
         
-        # Create different styling for open positions
+        # Color coding: green for buy, red for sell, enhanced for open positions
+        if is_open_position:
+            # Open positions get enhanced styling regardless of intent
+            symbol_color = '#00ff88'
+            intent_color = '#00ff88'
+            font_size = '14px'
+            position_indicator = html.Span(" 📈", style={'color': '#00ff88', 'fontSize': '12px'})
+        else:
+            # Regular watchlist items get color based on intent
+            symbol_color = '#00ff88' if intent == 'buy' else '#ff4444'
+            intent_color = '#00ff88' if intent == 'buy' else '#ff4444'
+            font_size = '12px'
+            position_indicator = ""
+        
+        # Create different styling for buy vs sell
         symbol_style = {
-            'color': '#00ff88' if is_open_position else '#fff',
+            'color': symbol_color,
             'fontWeight': 'bold',
-            'fontSize': '14px' if is_open_position else '12px'
+            'fontSize': font_size
         }
         
-        # Add position indicator for open positions
-        position_indicator = ""
-        if is_open_position:
-            position_indicator = html.Span(" 📈", style={'color': '#00ff88', 'fontSize': '12px'})
+        # Add intent indicator
+        intent_indicator = html.Span(
+            f" ({intent.upper()})", 
+            style={'color': intent_color, 'fontSize': '10px', 'fontWeight': 'normal'}
+        )
         
         item = dbc.Row([
             dbc.Col([
                 html.Div([
                     html.Span(symbol, style=symbol_style),
+                    intent_indicator,
                     position_indicator
                 ])
             ], width=8),
@@ -2652,8 +2778,15 @@ def remove_from_watchlist_callback(remove_clicks, current_watchlist):
     import json
     button_data = json.loads(triggered_id)
     index = button_data['index']
-    if current_watchlist and 0 <= index < len(current_watchlist):
-        symbol_to_remove = current_watchlist[index]
+    
+    # Handle both dict and list formats for backwards compatibility
+    if isinstance(current_watchlist, list):
+        watchlist_items = current_watchlist
+    else:
+        watchlist_items = list(current_watchlist.keys()) if current_watchlist else []
+    
+    if watchlist_items and 0 <= index < len(watchlist_items):
+        symbol_to_remove = watchlist_items[index]
         # Remove from persistent watchlist
         new_watchlist = remove_from_watchlist(symbol_to_remove)
         return new_watchlist
@@ -2673,12 +2806,15 @@ def preload_open_positions_on_startup(n_intervals):
     if n_intervals == 0:
         # Load open positions from CSV
         open_positions = get_open_positions_from_csv()
-        # Load from persistent watchlist file
-        watchlist = load_watchlist()
-        # Merge, open positions first, then rest, no duplicates
-        seen = set(open_positions)
-        merged = open_positions + [s for s in watchlist if s not in seen]
-        return merged
+        # Load from persistent watchlist file (returns dict format)
+        watchlist_dict = load_watchlist()
+        
+        # Ensure all open positions are in watchlist with 'buy' intent (default for open positions)
+        for pos in open_positions:
+            if pos not in watchlist_dict:
+                watchlist_dict[pos] = 'buy'
+        
+        return watchlist_dict
     raise PreventUpdate
 
 @callback(
@@ -2697,6 +2833,12 @@ def load_watchlist_scan(n_clicks, watchlist_data):
         raise PreventUpdate
     
     try:
+        # Handle both dict and list formats for backwards compatibility
+        if isinstance(watchlist_data, list):
+            symbols_to_scan = watchlist_data
+        else:
+            symbols_to_scan = list(watchlist_data.keys())
+        
         # Initialize scanner
         scanner = StockScanner()
         
@@ -2707,15 +2849,15 @@ def load_watchlist_scan(n_clicks, watchlist_data):
         results_df = scanner.scan_stocks(
             filters=None,
             universes=None,
-            max_results=len(watchlist_data),
+            max_results=len(symbols_to_scan),
             sort_by='volume',
             random_sample=False,
             force_refresh=True,
-            symbols=watchlist_data
+            symbols=symbols_to_scan
         )
-        # But we want only the symbols in watchlist_data, so filter after scan
+        # But we want only the symbols in symbols_to_scan, so filter after scan
         if not results_df.empty:
-            results_df = results_df[results_df['symbol'].isin(watchlist_data)]
+            results_df = results_df[results_df['symbol'].isin(symbols_to_scan)]
         
         if results_df.empty:
             # Check if we have any open positions that failed

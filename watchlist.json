@@ -1,6 +1,4 @@
-[
-  "CSCO",
-  "AAPL",
-  "VZ",
-  "TEF.MC"
-]
+{
+  "MRK": "buy",
+  "MSFT": "sell"
+}
